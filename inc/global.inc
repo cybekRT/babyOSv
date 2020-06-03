@@ -1,0 +1,1 @@
+KERNEL_ADDR	equ 0xE00

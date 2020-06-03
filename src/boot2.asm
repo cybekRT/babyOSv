@@ -4,28 +4,18 @@
 [org KERNEL_ADDR]
 
 main16:
-	; Read kernel.bin
-;	mov	ah, (kmain - main16 + 511) / 512 + 1 ;0x02
-;	mov	al, (KERNEL_SIZE + 511) / 512
-;	mov	ch, 0
-;	mov	cl, 2
-;	mov	dh, 0
-;	mov	dl, 0
-;	mov	bx, 0
-;	mov	es, bx
-;	mov	bx, kmain
-;	int	13h
-;	jc 	.fail
+	mov	bx, 0
+	mov	ds, bx
 
-	mov	ax, (kmain - main16 + 511) / 512 + 2
+	; Read kernel.bin
+	mov	ax, (kmain - main16 + 511) / 512 + 1
 	mov	cx, (KERNEL_SIZE + 511) / 512
 	mov	bx, 0
 	mov	es, bx
 	mov	bx, kmain
-xchg bx, bx
 .loop:
 	call	ReadSector
-xchg bx, bx
+
 	inc	ax
 	add	bx, 512
 	loop	.loop
@@ -35,12 +25,7 @@ xchg bx, bx
 	mov	bx, 0
 	inc	byte [es:bx]
 
-	mov	bx, 0
-	mov	ds, bx
-	mov	es, bx
-
-	;mov	ax, 13h
-	;int	10h
+	call	Memory_Init
 
 	lgdt	[GDT_Handle]
 
@@ -53,20 +38,56 @@ xchg bx, bx
 	mov	es, bx
 	mov	ss, bx
 
-xchg bx, bx
 	jmp	0x8:main32
-.fail:
-	mov	bx, 0xb800
-	mov	es, bx
-	mov	bx, 0
-	mov	byte [es:bx + 0], 'F'
-	mov	byte [es:bx + 2], ' '
 
+MEM_MAP_entries_max equ 8
+MEM_MAP_entries dd 0
+MEM_MAP times MEM_MAP_entries_max * 24 db 0
+Memory_Init:
+	xor	ebx, ebx
+	mov	edx, 0x534d4150
+
+	mov	di, 0
+	mov	es, di
+	mov	di, MEM_MAP
+.loop:
+	mov	ecx, 24
+	mov	eax, 0xe820
+	int	0x15
+
+	jc	.legacy
+	test	ebx, ebx
+	jz	.exit
+
+	add	di, 24
+	inc	dword [MEM_MAP_entries]
+
+	cmp	dword [MEM_MAP_entries], MEM_MAP_entries_max
+	ja	.fail
+
+	jmp	.loop
+
+.exit:
+	ret
+.fail:
+	cli
 	hlt
 	jmp	.fail
+.legacy:
+	; TODO: detect memory size, reserve standard BIOS and GPU ranges
+	cli
+	hlt
+	jmp	.legacy
+	;mov	dword [MEM_MAP_entries], 1
+	;mov	eax, MEM_MAP
+	;mov	dword [eax + MEMMap_t.base], 0x0
+	;mov	dword [eax + MEMMap_t.length], 0xfffff
+	;mov	byte [eax + MEMMap_t.type], 0x1
+	;jmp	.exit
 
 %include "boot_read.asm"
 
+%include "bootloader_info.inc"
 %include "GDT.inc"
 %include "Paging.inc"
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -108,7 +129,7 @@ main32:
 	mov	byte [ebx + 6], ' '
 
 	mov	eax, PageDirectory
-	mov	ebx, PageEntry
+	mov	ebx, PageTable
 	and	ebx, ~0xFFF
 	or	ebx, (PAGE_DIRECTORY_FLAG_PRESENT | PAGE_DIRECTORY_FLAG_READ_WRITE | PAGE_DIRECTORY_FLAG_SUPERVISOR | PAGE_DIRECTORY_FLAG_PAGE_4K)
 	mov	[eax], ebx
@@ -118,44 +139,34 @@ main32:
 	or	eax, 0x80000001
 	mov	cr0, eax
 
-;	mov	ebx, 0xb8000
-;	mov	byte [ebx + 0], 'C'
-;	mov	byte [ebx + 2], 'R'
-;	mov	byte [ebx + 4], '3'
-;	mov	byte [ebx + 6], '.'
-
-xchg bx, bx
+	push	BootloaderInfo
 	jmp	kmain
-
 .halt:
 	cli
 	hlt
 	jmp	.halt
 
+BootloaderInfo:
+istruc bootloader_info
+	at bootloader_info.memoryEntriesCount, dd MEM_MAP_entries
+	at bootloader_info.memoryEntries, dd MEM_MAP
+	at bootloader_info.pageDirectory, dd PageDirectory
+iend
+
 times 0x1000 - ($ - $$ + KERNEL_ADDR) db 0
-;times 0x1000 - ($ - $$ + KERNEL_ADDR) % 0x1000 db 0
-;align 0x1000
-;times 4096 - ($ - $$) % 4096 db 0
 
 PageDirectory:
 	;dd PAGE_TABLE_ENTRY(PageEntry, PAGE_DIRECTORY_FLAG_PRESENT | PAGE_DIRECTORY_FLAG_READ_WRITE | PAGE_DIRECTORY_FLAG_SUPERVISOR | PAGE_DIRECTORY_FLAG_PAGE_4K)
 	;times 1023 dd 0
 	times 1024 dd 0
 
-PageEntry:
+PageTable:
 	%assign i 0
 	%rep 1024
 		dd PAGE_TABLE_ENTRY(i, PAGE_TABLE_FLAG_PRESENT | PAGE_TABLE_FLAG_READ_WRITE | PAGE_TABLE_FLAG_SUPERVISOR)
 	%assign i i+4096
 	%endrep
 
-;times 0x3000 - ($ - $$ + KERNEL_ADDR) % 0x3000 db 0
-
-;times (0x3000 - $) db 0
-
-;times 8704 - ($ - $$) db 0
+times 0x3000 - KERNEL_ADDR - ($ - $$) db 0
 kmain:
 ;	incbin "c/kernel.bin"
-
-times (KERNEL_ADDR + 512 - ($ - $$)) % 512 db 0
-;kmain:

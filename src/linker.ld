@@ -1,6 +1,7 @@
 ENTRY(main)
-/*OUTPUT_FORMAT(binary)*/
 OUTPUT_FORMAT(binary)
+
+stack_size = 0x400;
 
 SECTIONS
 {
@@ -17,5 +18,11 @@ SECTIONS
 		*(.cstring)
 		*(COMMON)
 		*(.bss)
+		
+		stack_end = .;
+		. = . + stack_size;
+		stack_beg = .;
 	}
+
+	_kernel_end = .;
 }
