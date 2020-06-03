@@ -1,9 +1,10 @@
 [bits 32]
-extern _kmain
+extern kmain
 global main
 
+[section .startup]
 main:
-	call	_kmain
+	call	kmain
 
 .halt:
 	cli

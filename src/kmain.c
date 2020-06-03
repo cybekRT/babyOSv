@@ -1,3 +1,14 @@
+char* tmp = "Dafuq, just random text~!";
+
+int strlen(const char* str)
+{
+	unsigned len = 0;
+	while(*str++)
+		len++;
+
+	return len;
+}
+
 void kmain()
 {
 	/*char* vid = (char*)0xa0000;
@@ -21,18 +32,24 @@ void kmain()
 
 	char* data = (char*)0xb8000;
 
-	for(unsigned a = 0; a < 320*200; a++)
+	/*for(unsigned a = 0; a < 320*200; a++)
 	{
 		data[a * 2 + 0] = 0;
-		data[a * 2 + 1] = 0x80;
-	}
+		//data[a * 2 + 1] = 0x80;
+	}*/
 
+//__asm("xchgb bx, bx");
 	data[ 0] = 'K';
 	data[ 2] = 'e';
 	data[ 4] = 'r';
 	data[ 6] = 'n';
 	data[ 8] = 'C';
 	data[10] = ' ';
+
+	for(unsigned a = 0; a < strlen(tmp); a++)
+	{
+		data[80 * 2 + a * 2] = tmp[a];
+	}
 
 	for(;;)
 	{

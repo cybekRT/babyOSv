@@ -4,6 +4,32 @@
 [org KERNEL_ADDR]
 
 main16:
+	; Read kernel.bin
+;	mov	ah, (kmain - main16 + 511) / 512 + 1 ;0x02
+;	mov	al, (KERNEL_SIZE + 511) / 512
+;	mov	ch, 0
+;	mov	cl, 2
+;	mov	dh, 0
+;	mov	dl, 0
+;	mov	bx, 0
+;	mov	es, bx
+;	mov	bx, kmain
+;	int	13h
+;	jc 	.fail
+
+	mov	ax, (kmain - main16 + 511) / 512 + 2
+	mov	cx, (KERNEL_SIZE + 511) / 512
+	mov	bx, 0
+	mov	es, bx
+	mov	bx, kmain
+xchg bx, bx
+.loop:
+	call	ReadSector
+xchg bx, bx
+	inc	ax
+	add	bx, 512
+	loop	.loop
+
 	mov	bx, 0xb800
 	mov	es, bx
 	mov	bx, 0
@@ -22,7 +48,25 @@ main16:
 	or	eax, 1
 	mov	cr0, eax
 
+	mov	bx, 0x10
+	mov	ds, bx
+	mov	es, bx
+	mov	ss, bx
+
+xchg bx, bx
 	jmp	0x8:main32
+.fail:
+	mov	bx, 0xb800
+	mov	es, bx
+	mov	bx, 0
+	mov	byte [es:bx + 0], 'F'
+	mov	byte [es:bx + 2], ' '
+
+	hlt
+	jmp	.fail
+
+%include "boot_read.asm"
+
 %include "GDT.inc"
 %include "Paging.inc"
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -74,12 +118,13 @@ main32:
 	or	eax, 0x80000001
 	mov	cr0, eax
 
-	mov	ebx, 0xb8000
-	mov	byte [ebx + 0], 'C'
-	mov	byte [ebx + 2], 'R'
-	mov	byte [ebx + 4], '3'
-	mov	byte [ebx + 6], '.'
+;	mov	ebx, 0xb8000
+;	mov	byte [ebx + 0], 'C'
+;	mov	byte [ebx + 2], 'R'
+;	mov	byte [ebx + 4], '3'
+;	mov	byte [ebx + 6], '.'
 
+xchg bx, bx
 	jmp	kmain
 
 .halt:
@@ -87,7 +132,8 @@ main32:
 	hlt
 	jmp	.halt
 
-times 0x1000 - ($ - $$ + KERNEL_ADDR) % 0x1000 db 0
+times 0x1000 - ($ - $$ + KERNEL_ADDR) db 0
+;times 0x1000 - ($ - $$ + KERNEL_ADDR) % 0x1000 db 0
 ;align 0x1000
 ;times 4096 - ($ - $$) % 4096 db 0
 
@@ -105,5 +151,11 @@ PageEntry:
 
 ;times 0x3000 - ($ - $$ + KERNEL_ADDR) % 0x3000 db 0
 
+;times (0x3000 - $) db 0
+
+;times 8704 - ($ - $$) db 0
 kmain:
-	incbin "c/kernel.bin"
+;	incbin "c/kernel.bin"
+
+times (KERNEL_ADDR + 512 - ($ - $$)) % 512 db 0
+;kmain:
