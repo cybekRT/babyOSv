@@ -1,0 +1,6 @@
+// Place your settings in this file to overwrite default and user settings.
+{
+	"editor.fontFamily": "DejaVu Sans Mono",
+	"editor.tabSize": 16,
+	"editor.insertSpaces": false	
+}
