@@ -1,12 +1,13 @@
+
 NASM		= nasm -Iinc/ -Isrc/
 
 ifeq ($(OS),Windows_NT)
 	#BOCHS		= bochs -f bochs.cfg
 	BOCHS		= d:\Programs\Bochs\bochsdbg-p4-smp.exe -f bochs-win.cfg
 	OUT		= $(PWD)/out
-	GCC		= gcc
+	GCC		= i386-elf-gcc
 	# /usr/local/osdev/bin/i386-elf-gcc
-	LD		= D:/Programs/Cygwin/bin/ld
+	LD		= i386-elf-ld
 	# /usr/local/osdev/bin/i386-elf-ld
 	QEMU		= D:\Programs\Qemu\qemu-system-i386.exe
 	DD		= D:\Programs\Cygwin\bin\dd
