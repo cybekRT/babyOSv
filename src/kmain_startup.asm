@@ -2,18 +2,18 @@
 global main
 global bootloader_info_ptr
 global _bootloader_info_ptr
-global _kernelx
-extern _kmain
+global kernel_end
+extern kmain
 extern stack_beg
 extern stack_end
-extern _kernel_end
+extern __kernel_end
 
 [section .startup]
 main:
 	pop	dword [bootloader_info_ptr]
 	mov	esp, stack_beg
 
-	call	_kmain
+	call	kmain
 
 .halt:
 	cli
@@ -22,4 +22,4 @@ main:
 
 _bootloader_info_ptr
 bootloader_info_ptr dd 0
-_kernelx dd _kernel_end
+kernel_end dd __kernel_end

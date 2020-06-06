@@ -24,5 +24,5 @@ SECTIONS
 		stack_beg = .;
 	}
 
-	_kernel_end = .;
+	__kernel_end = .;
 }

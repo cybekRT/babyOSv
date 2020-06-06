@@ -1,15 +1,26 @@
 NASM		= nasm -Iinc/ -Isrc/
-#BOCHS		= bochs -f bochs.cfg
-BOCHS		= d:\Programs\Bochs\bochsdbg-p4-smp.exe -f bochs-win.cfg
-OUT		= $(PWD)/out
-GCC		= gcc
-# /usr/local/osdev/bin/i386-elf-gcc
-LD		= D:/Programs/Cygwin/bin/ld
-# /usr/local/osdev/bin/i386-elf-ld
-QEMU		= D:\Programs\Qemu\qemu-system-i386.exe
-DD		= D:\Programs\Cygwin\bin\dd
-# qemu-system-i386
-PCEM		= D:\Programs\PCem\PCem.exe
+
+ifeq ($(OS),Windows_NT)
+	#BOCHS		= bochs -f bochs.cfg
+	BOCHS		= d:\Programs\Bochs\bochsdbg-p4-smp.exe -f bochs-win.cfg
+	OUT		= $(PWD)/out
+	GCC		= gcc
+	# /usr/local/osdev/bin/i386-elf-gcc
+	LD		= D:/Programs/Cygwin/bin/ld
+	# /usr/local/osdev/bin/i386-elf-ld
+	QEMU		= D:\Programs\Qemu\qemu-system-i386.exe
+	DD		= D:\Programs\Cygwin\bin\dd
+	# qemu-system-i386
+	PCEM		= D:\Programs\PCem\PCem.exe
+else
+	BOCHS		= bochs -f bochs.cfg
+	OUT		= $(PWD)/out
+	GCC		= /usr/local/osdev/bin/i386-elf-gcc
+	LD		= /usr/local/osdev/bin/i386-elf-ld
+	QEMU		= qemu-system-i386
+	DD		= dd
+	PCEM		= 
+endif
 
 all: floppy.img
 
@@ -29,7 +40,7 @@ out/boot2.bin: src/boot2.asm out/kernel.bin
 out/kernel.bin: out/kmain.o out/kmain_startup.o
 	$(LD) -nostdlib -nolibc -nostartfiles -nodefaultlibs -m elf_i386 -T src/linker.ld $^ -o $@
 
-out/kmain.o: src/kmain.c
+out/kmain.o: src/kmain.cpp
 	$(GCC) -Iinc/ -s -O2 -m32 -c $< -o $@ 
 
 out/kmain_startup.o: src/kmain_startup.asm
