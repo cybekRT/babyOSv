@@ -5,7 +5,7 @@ stack_size = 0x400;
 
 SECTIONS
 {
-	. = 0x00003000;
+	. = 0x80003000;
 	.startup : {
 		*(.startup)
 	}

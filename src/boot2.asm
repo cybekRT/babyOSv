@@ -122,17 +122,19 @@ GDT_Handle:
 
 [bits 32]
 main32:
-	mov	ebx, 0xb8000
-	mov	byte [ebx + 0], 'x'
-	mov	byte [ebx + 2], 'y'
-	mov	byte [ebx + 4], 'z'
-	mov	byte [ebx + 6], ' '
+	;mov	ebx, 0xb8000
+	;mov	byte [ebx + 0], 'x'
+	;mov	byte [ebx + 2], 'y'
+	;mov	byte [ebx + 4], 'z'
+	;mov	byte [ebx + 6], ' '
 
 	mov	eax, PageDirectory
 	mov	ebx, PageTable
 	and	ebx, ~0xFFF
 	or	ebx, (PAGE_DIRECTORY_FLAG_PRESENT | PAGE_DIRECTORY_FLAG_READ_WRITE | PAGE_DIRECTORY_FLAG_SUPERVISOR | PAGE_DIRECTORY_FLAG_PAGE_4K)
-	mov	[eax], ebx
+	mov	[eax + 4 *    0], ebx ; 0x00000000
+	mov	[eax + 4 *  512], ebx ; 0x80000000
+	mov	[eax + 4 * 1023], eax
 
 	mov	cr3, eax
 	mov	eax, cr0
@@ -140,7 +142,7 @@ main32:
 	mov	cr0, eax
 
 	push	BootloaderInfo
-	jmp	kmain
+	jmp	kmain + 0x80000000
 .halt:
 	cli
 	hlt

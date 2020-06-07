@@ -11,7 +11,7 @@ enum PageDirectoryFlag
 	PAGE_DIRECTORY_FLAG_ACCESSED		= (1 << 5),
 	PAGE_DIRECTORY_FLAG_PAGE_4K		= (0 << 7),
 	PAGE_DIRECTORY_FLAG_PAGE_4M		= (1 << 7),
-}
+};
 
 enum PageTableFlag
 {
@@ -27,4 +27,27 @@ enum PageTableFlag
 	PAGE_TABLE_FLAG_DIRTY			= (1 << 6),
 	PAGE_TABLE_FLAG_GLOBAL			= (1 << 7),
 	PAGE_TABLE_ADDRESS_OFFSET		= 12,
+};
+
+struct PageDirectoryEntry
+{
+	unsigned flags : 12;
+	unsigned address : 20;
+
+	void* GetAddress() { return (void*)(address << 12); }
+	void SetAddress(void* address) { this->address = ((unsigned)address) >> 12; } // TODO: add assert
+} __attribute__((packed));
+
+struct PageDirectory
+{
+	PageDirectoryEntry entries[1024];
+} __attribute__((packed));
+
+typedef PageDirectoryEntry PageTableEntry;
+
+typedef PageDirectory PageTable;
+
+namespace Memory
+{
+	bool Init(void* pageDirectory);
 }

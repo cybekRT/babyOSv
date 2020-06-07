@@ -62,12 +62,12 @@ void PutChar(char c)
 	if(p >= 80*25*2)
 		return;
 
-	char* vmem = (char*)0xb8000;
+	char* vmem = (char*)0x800b8000;
 	vmem[p] = c;
 	p+=2;
 }
 
-void PutString(char* s)
+void PutString(const char* s)
 {
 	while(*s)
 	{
@@ -86,13 +86,16 @@ void PutHex(unsigned long v)
 		v <<= 4;
 	}
 }
-
+#include"Memory.h"
 extern "C" void kmain()
 {
-	char* data = (char*)0xb8000;
+	unsigned short* data = (unsigned short*)0x800b8000;
+	for(unsigned a = 0; a < 80 * 25 * 2; a++) data[a] = 0x0700;
 
-	MemoryInfo_t* mi = (MemoryInfo_t*)(bootloader_info_ptr->memoryEntries);
+	MemoryInfo_t* mi = (MemoryInfo_t*)(((unsigned)bootloader_info_ptr->memoryEntries) | 0x80000000);
 	unsigned miSize = *bootloader_info_ptr->memoryEntriesCount;
+
+	Memory::Init(bootloader_info_ptr->pageDirectory);
 
 	while(true)
 	{
