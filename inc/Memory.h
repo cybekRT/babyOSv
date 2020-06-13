@@ -49,5 +49,10 @@ typedef PageDirectory PageTable;
 
 namespace Memory
 {
-	bool Init(void* pageDirectory);
+	bool Init(void* pageDirectory, void* memoryEntries, unsigned memoryEntriesCount);
+
+	void PrintMemoryMap();
+	void FreePhys(void* address);
+	void* Alloc(unsigned allocSize);
+	void MapPhys(void* physAddress, void* logicAddress);
 }

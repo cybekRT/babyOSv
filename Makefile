@@ -20,7 +20,7 @@ else
 	PCEM		= 
 endif
 
-GCC_FLAGS		= -fno-isolate-erroneous-paths-attribute
+GCC_FLAGS		= -fno-isolate-erroneous-paths-attribute -fno-asynchronous-unwind-tables
 
 all: floppy.img
 
@@ -32,13 +32,16 @@ out/boot1.bin: src/boot1.asm out/boot2.bin
 	$(NASM) $< -o $@ -fbin -DBOOT2_SIZE=$(strip $(shell wc -c < out/boot2.bin))
 
 out/boot2.bin: src/boot2.asm out/kernel.bin
-	$(NASM) $< -fbin -o $@ -l out/kernel.lst -DKERNEL_SIZE=$(strip $(shell wc -c < out/kernel.bin))
+	$(NASM) $< -fbin -o $@ -DKERNEL_SIZE=$(strip $(shell wc -c < out/kernel.bin))
 
-out/kernel.bin: out/kmain.o out/kmain_startup.o out/Memory.o
+out/kernel.elf: out/kmain.o out/kmain_startup.o out/Memory.o
 	$(LD) -nostdlib -nolibc -nostartfiles -nodefaultlibs -m elf_i386 -T src/linker.ld $^ -o $@
 
+out/kernel.bin: out/kernel.elf
+	/usr/local/osdev/bin/i386-elf-objcopy -Obinary $< $@
+
 out/%.o: src/%.cpp src/linker.ld
-	$(GCC) $(GCC_FLAGS) -Iinc/ -s -O2 -m32 -c $< -o $@ 
+	$(GCC) $(GCC_FLAGS) -Wall -Wextra -Iinc/ -g3 -O0 -m32 -c $< -o $@ 
 
 out/kmain_startup.o: src/kmain_startup.asm
 	$(NASM) -felf $< -o $@

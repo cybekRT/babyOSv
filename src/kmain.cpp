@@ -1,13 +1,5 @@
 #include "bootloader_info.h"
-
-struct MemoryInfo_t
-{
-	long long base;
-	long long length;
-	unsigned int type;
-	unsigned int attr;
-	//char padding[8];
-} __attribute__((__packed__));
+#include "Memory.h"
 
 int strlen(const char* str)
 {
@@ -86,18 +78,41 @@ void PutHex(unsigned long v)
 		v <<= 4;
 	}
 }
-#include"Memory.h"
+
 extern "C" void kmain()
 {
 	unsigned short* data = (unsigned short*)0x800b8000;
 	for(unsigned a = 0; a < 80 * 25 * 2; a++) data[a] = 0x0700;
 
-	MemoryInfo_t* mi = (MemoryInfo_t*)(((unsigned)bootloader_info_ptr->memoryEntries) | 0x80000000);
-	unsigned miSize = *bootloader_info_ptr->memoryEntriesCount;
+	//MemoryInfo_t* mi = (MemoryInfo_t*)(((unsigned)bootloader_info_ptr->memoryEntries) | 0x80000000);
+	//unsigned miSize = *bootloader_info_ptr->memoryEntriesCount;
 
-	Memory::Init(bootloader_info_ptr->pageDirectory);
+	PutHex((unsigned)bootloader_info_ptr->pageDirectory); PutString("\n");
 
-	while(true)
+	Memory::Init(bootloader_info_ptr->pageDirectory, bootloader_info_ptr->memoryEntries, *bootloader_info_ptr->memoryEntriesCount);
+	PutString("$$$ "); PutHex( *(unsigned*)0x80001000 ); PutString(" $$$\n");
+
+	void* a = Memory::Alloc(512);
+	void* b = Memory::Alloc(128);
+
+	Memory::FreePhys(a);
+
+	void* c = Memory::Alloc(1024);
+	Memory::PrintMemoryMap();
+
+	Memory::MapPhys(c, (void*)0x123000);
+
+	__asm("xchg %%bx, %%bx\n" : : : "bx");
+
+	//for(;;);
+
+	unsigned* z = (unsigned*)0x123000;//  (unsigned*)z;
+	for(unsigned a = 0; a < 512; a++)
+	{
+		z[a] = 0xBAADF00D;
+	}
+
+	/*while(true)
 	{
 		bool changed = false;
 
@@ -130,7 +145,7 @@ extern "C" void kmain()
 		PutHex(mi[a].base); PutChar('\n');
 		PutHex(mi[a].length); PutChar('\n');
 		PutHex(mi[a].type); PutChar('\n');
-	}
+	}*/
 
 	for(;;)
 	{

@@ -1,5 +1,5 @@
 ENTRY(main)
-OUTPUT_FORMAT(binary)
+OUTPUT_FORMAT(elf32-i386)
 
 stack_size = 0x400;
 
@@ -18,6 +18,7 @@ SECTIONS
 		*(.cstring)
 		*(COMMON)
 		*(.bss)
+		*(.eh_frame)
 		
 		stack_end = .;
 		. = . + stack_size;
