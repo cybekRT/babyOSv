@@ -36,6 +36,8 @@ struct PageDirectoryEntry
 
 	void* GetAddress() { return (void*)(address << 12); }
 	void SetAddress(void* address) { this->address = ((unsigned)address) >> 12; } // TODO: add assert
+
+	bool IsUsed() { return flags & PAGE_DIRECTORY_FLAG_PRESENT; }
 } __attribute__((packed));
 
 struct PageDirectory
@@ -49,10 +51,18 @@ typedef PageDirectory PageTable;
 
 namespace Memory
 {
-	bool Init(void* pageDirectory, void* memoryEntries, unsigned memoryEntriesCount);
-
+	bool Init(void* memoryEntries, unsigned memoryEntriesCount);
 	void PrintMemoryMap();
+	
+	// Physical allocator
+	void* AllocPhys(unsigned allocSize);
 	void FreePhys(void* address);
+
+	// Mapper
+	void Map(void* physAddress, void* logicAddress, unsigned length);
+	void Unmap(void* logicAddress);
+	
+	// Logical allocator
 	void* Alloc(unsigned allocSize);
-	void MapPhys(void* physAddress, void* logicAddress);
+	void Free(void* ptr);
 }

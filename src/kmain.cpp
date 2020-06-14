@@ -52,7 +52,22 @@ void PutChar(char c)
 	}
 
 	if(p >= 80*25*2)
-		return;
+	{
+		unsigned short* src = (unsigned short*)0x800b80a0;
+		unsigned short* dst = (unsigned short*)0x800b8000;
+
+		for(unsigned a = 0; a < 80*24; a++)
+		{
+			*dst++ = *src++;
+		}
+
+		for(unsigned a = 0; a < 80; a++)
+		{
+			*dst++ = 0x0700;
+		}
+
+		p -= 160;
+	}
 
 	char* vmem = (char*)0x800b8000;
 	vmem[p] = c;
@@ -84,69 +99,17 @@ extern "C" void kmain()
 	unsigned short* data = (unsigned short*)0x800b8000;
 	for(unsigned a = 0; a < 80 * 25 * 2; a++) data[a] = 0x0700;
 
-	//MemoryInfo_t* mi = (MemoryInfo_t*)(((unsigned)bootloader_info_ptr->memoryEntries) | 0x80000000);
-	//unsigned miSize = *bootloader_info_ptr->memoryEntriesCount;
-
-	PutHex((unsigned)bootloader_info_ptr->pageDirectory); PutString("\n");
-
-	Memory::Init(bootloader_info_ptr->pageDirectory, bootloader_info_ptr->memoryEntries, *bootloader_info_ptr->memoryEntriesCount);
-	PutString("$$$ "); PutHex( *(unsigned*)0x80001000 ); PutString(" $$$\n");
-
-	void* a = Memory::Alloc(512);
-	void* b = Memory::Alloc(128);
-
-	Memory::FreePhys(a);
+	Memory::Init(bootloader_info_ptr->memoryEntries, *bootloader_info_ptr->memoryEntriesCount);
 
 	void* c = Memory::Alloc(1024);
+
+	PutString("Filling memory!\n");
+	unsigned* z = (unsigned*)c;
+	for(unsigned a = 0; a < 256; a++)
+		z[a] = 0xbaadf00d;
+
 	Memory::PrintMemoryMap();
-
-	Memory::MapPhys(c, (void*)0x123000);
-
-	__asm("xchg %%bx, %%bx\n" : : : "bx");
-
-	//for(;;);
-
-	unsigned* z = (unsigned*)0x123000;//  (unsigned*)z;
-	for(unsigned a = 0; a < 512; a++)
-	{
-		z[a] = 0xBAADF00D;
-	}
-
-	/*while(true)
-	{
-		bool changed = false;
-
-		for(unsigned a = 1; a < miSize; a++)
-		{
-			if(mi[a].base <= mi[a - 1].base)
-			{
-				MemoryInfo_t tmp = mi[a];
-				mi[a] = mi[a - 1];
-				mi[a - 1] = tmp;
-				changed = true;
-			}
-		}
-
-		if(!changed)
-			break;
-	}
-
-	for(unsigned a = 0; a < miSize; a++)
-	{
-		PutString("--------\n");
-
-		if(mi[a].base < (unsigned)kernel_end)
-		{
-			unsigned diff = (unsigned)kernel_end - mi[a].base;
-			mi[a].base = (unsigned)kernel_end;
-			mi[a].length -= diff;
-		}
-
-		PutHex(mi[a].base); PutChar('\n');
-		PutHex(mi[a].length); PutChar('\n');
-		PutHex(mi[a].type); PutChar('\n');
-	}*/
-
+	PutString("Kernel halted~!");
 	for(;;)
 	{
 		__asm("cli");

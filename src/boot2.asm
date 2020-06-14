@@ -177,3 +177,7 @@ PageTable:
 times 0x3000 - KERNEL_ADDR - ($ - $$) db 0
 kmain:
 ;	incbin "c/kernel.bin"
+
+%if ($ - $$ + KERNEL_ADDR) >= 0x7c00
+	%error "Kernel too big!"
+%endif

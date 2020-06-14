@@ -5,6 +5,8 @@ void PutHex(unsigned long v);
 void PutChar(char c);
 extern void* kernel_end;
 
+// TODO: stop using bubble sort everywhere! Optimmize sorting algorithms in allocator~!
+
 void memset(void* ptr, unsigned char c, unsigned len)
 {
 	unsigned char* p = (unsigned char*)ptr;
@@ -27,7 +29,6 @@ namespace Memory
 
 	struct MemoryMap
 	{
-		//unsigned count;
 		void* address[340];
 		unsigned length[340];
 		bool used[340];
@@ -35,47 +36,21 @@ namespace Memory
 		MemoryMap* next;
 	};
 
-	PageDirectory* pageDirectory = nullptr;
+	PageDirectory* pageDirectory = (PageDirectory*)0xFFFFF000;
 	MemoryInfo_t* memoryEntries = nullptr;
 	unsigned memoryEntriesCount = 0;
 	MemoryMap memoryMap;
 
 	void DisableFirstMegabyteMapping()
 	{
-		// Disable first megabyte
-		//PageDirectory* pd = (PageDirectory*)pageDirectory;
-
-		//unsigned* xxx = (unsigned*)0x1000;
-		//*xxx = 0;
-
-//__asm("xchg %%bx, %%bx\n" : : : "bx");
-
-		PutString("===\n");
-		//PutHex((unsigned)pageDirectory); PutString("\n");
-		//PutHex((unsigned)pageDirectory->entries[0].address); PutString("\n");
-		//PutHex((unsigned)pageDirectory->entries[0].flags); PutString("\n");
-
 		pageDirectory->entries[0].address = 0;
 		pageDirectory->entries[0].flags = 0;
-
-		PutHex((unsigned) (&pageDirectory->entries[0]) );
-
-		//PutHex((unsigned)pageDirectory->entries[0].address); PutString("\n");
-		//PutHex((unsigned)pageDirectory->entries[0].flags); PutString("\n");
-		//for(;;);
 
 		// Refresh cr3
 		__asm(
 		"mov %%cr3, %%eax \n"
 		"mov %%eax, %%cr3 \n"
 		: : : "eax");
-
-//		PutString("##### ");
-//
-//		PageTable* pt = (PageTable*)(((unsigned)pageDirectory->entries[0].address) << 12);
-//		pt = (PageTable*)((unsigned)pt | 0x80000000);
-//		PutHex((unsigned)pt);
-//		PutString(" #####");
 	}
 
 	void SortEntries()
@@ -106,8 +81,6 @@ namespace Memory
 		unsigned kEnd = ((unsigned)kernel_end) & 0x7FFFFFFF;
 		for(unsigned a = 0; a < memoryEntriesCount; a++)
 		{
-			//PutString("\n--------\n");
-
 			if(memoryEntries[a].base < (unsigned)kEnd)
 			{
 				unsigned diff = (unsigned)kEnd - memoryEntries[a].base;
@@ -119,43 +92,33 @@ namespace Memory
 			{
 				unsigned oldBase = memoryEntries[a].base;
 				if(memoryEntries[a].type == 1)
-					memoryEntries[a].base = (memoryEntries[a].base + 0xfff) & 0x1000;
+					memoryEntries[a].base = (memoryEntries[a].base + 0xfff) & (~0xFFF);
 				else
-					memoryEntries[a].base = memoryEntries[a].base & 0x1000;
+					memoryEntries[a].base = memoryEntries[a].base & (~0xFFF);
 
 				unsigned diff = memoryEntries[a].base - oldBase;
 
 				if(memoryEntries[a].type == 1)
 				{
 					memoryEntries[a].length -= diff;
-					memoryEntries[a].length = memoryEntries[a].length & 0x1000;
+					memoryEntries[a].length = memoryEntries[a].length & (~0xFFF);
 				}
 				else
 				{
 					memoryEntries[a].length += diff;
-					memoryEntries[a].length = (memoryEntries[a].length + 0xfff) & 0x1000;
+					memoryEntries[a].length = (memoryEntries[a].length + 0xfff) & (~0xFFF);
 				}
 			}
-
-			// PutHex(memoryEntries[a].base); PutChar('\n');
-			// PutHex(memoryEntries[a].length); PutChar('\n');
-			// len += memoryEntries[a].length;
-			// PutHex(memoryEntries[a].type); PutChar('\n');
 		}
 
-		// Find and fix overlapping entries
-
-		//PutString("... ");
-		//PutHex(len);
+		// TODO: find and fix overlapping entries
 	}
 
 	void CreateMemoryMap()
 	{
-		PutString(" "); PutHex(sizeof(MemoryMap));
-		PutString("\n.....\n");
-
 		memset((void*)&memoryMap, 0, sizeof(memoryMap));
 
+		unsigned memoryMapCount = 0;
 		for(unsigned a = 0; a < memoryEntriesCount; a++)
 		{
 			if(memoryEntries[a].type != 1 || memoryEntries[a].length == 0)
@@ -165,40 +128,26 @@ namespace Memory
 			if(memoryEntries[a].base + memoryEntries[a].length > 0xffffffff)
 				memoryEntries[a].length = 0xffffffff - memoryEntries[a].base;
 
-			memoryMap.address[a] = (void*)memoryEntries[a].base;
-			memoryMap.length[a] = memoryEntries[a].length;
-			//memoryMap.used[a] = false;
-			//memoryMap.next = NULL;
+			memoryMap.address[memoryMapCount] = (void*)memoryEntries[a].base;
+			memoryMap.length[memoryMapCount] = memoryEntries[a].length;
+
+			memoryMapCount++;
 		}
 	}
 
-	bool Init(void* _pageDirectory, void* _memoryEntries, unsigned _memoryEntriesCount)
+	bool Init(void* _memoryEntries, unsigned _memoryEntriesCount)
 	{
 		PutString("Memory init...\n");
-
-		//__asm("xchg %%bx, %%bx\n" : : : "bx");
-
-		pageDirectory = (PageDirectory*)(unsigned(_pageDirectory) | 0x80000000);
-
-		//PutHex((unsigned)_pageDirectory); for(;;);
 
 		memoryEntries = (MemoryInfo_t*)(((unsigned)_memoryEntries) | 0x80000000);
 		memoryEntriesCount = _memoryEntriesCount;	
 
-		PutString("= DIS =\n");
 		DisableFirstMegabyteMapping();
-		PutString("= /DIS =\n");
-
 		SortEntries();
 		FixEntries();
 		CreateMemoryMap();
 
 		return true;
-	}
-
-	void Quit()
-	{
-		// LOL, never happens...
 	}
 
 	void InsertMemoryMapEntry(void* address, unsigned length)
@@ -221,8 +170,15 @@ namespace Memory
 			currentMap = currentMap->next;
 		}
 
+		// TODO: add allocating and inserting new memory map after last one
+
 		PutString("=== Insert memory entry failed! ===");
 		for(;;);
+	}
+
+	void MergeMemoryMap()
+	{
+		// TODO:
 	}
 
 	void* AllocPhys(unsigned allocSize)
@@ -235,8 +191,17 @@ namespace Memory
 		MemoryMap* currentMap = &memoryMap;
 		while(currentMap != nullptr && !allocatedAddress)
 		{
+			PutString("Searching...\n");
 			for(unsigned a = 0; a < sizeof(currentMap->used); a++)
 			{
+				PutString( currentMap->used[a] ? "u " : "F " );
+				PutHex((unsigned)currentMap->address[a]);
+				PutString(" - ");
+				PutHex((unsigned)currentMap->length[a]);
+				PutString("\n");
+				if(currentMap->address[a] == 0)
+					continue;
+
 				if(!currentMap->used[a] && currentMap->length[a] >= allocSize)
 				{
 					allocatedAddress = currentMap->address[a];
@@ -255,6 +220,8 @@ namespace Memory
 			currentMap = currentMap->next;
 		}
 
+		// TODO: zeroing memory?
+
 		return allocatedAddress;
 	}
 
@@ -268,6 +235,10 @@ namespace Memory
 				if(currentMap->address[a] == address)
 				{
 					currentMap->used[a] = false;
+
+					// TODO: maybe some counter, not to merge everytime
+					MergeMemoryMap();
+
 					return;
 				}
 			}
@@ -277,7 +248,7 @@ namespace Memory
 		for(;;);
 	}
 
-	void MapPhys(void* physAddress, void* logicAddress)
+	void Map(void* physAddress, void* logicAddress)
 	{
 		if(!physAddress || !logicAddress)
 		{
@@ -287,33 +258,18 @@ namespace Memory
 
 		PutString("Mapping "); PutHex((unsigned)physAddress); PutString(" -> "); PutHex((unsigned)logicAddress); PutString("\n");
 
-		//PageDirectory* pd = pageDirectory;
-		
 		unsigned directoryIndex = ((unsigned)logicAddress) >> 22;
 		unsigned tableIndex = (((unsigned)logicAddress) >> 12) & 0x3ff;
 
 		PutString("Index: "); PutHex(directoryIndex); PutString(" -> "); PutHex(tableIndex); PutString("\n");
 
-		PageDirectoryEntry* pde = (PageDirectoryEntry*)(0xFFFFF000 | directoryIndex);
+		PageDirectoryEntry* pde = (PageDirectoryEntry*)(0xFFFFF000 | (directoryIndex * 4));
 		PageTable* pt = (PageTable*)(0xFFC00000 | (directoryIndex << 12));
 		PageTableEntry* pte = (PageTableEntry*)(0xFFC00000 | (directoryIndex << 12) | (tableIndex * sizeof(PageDirectoryEntry)));
 
-		//PageTable* ptPhys = (PageTable*)((unsigned)pd->entries[directoryIndex].address << 12);
-		//PageTable* ptLogic = (PageTable*)(0xFFC00000 | (directoryIndex << 12));
-		//if(!ptPhys)
 		if(!pde->address)
 		{
 			PageTable* ptPhys = (PageTable*)AllocPhys(sizeof(PageTable));
-			//memset(pt, 0, sizeof(PageTable));
-			//pd[directoryIndex] = pt;
-
-			PutString("OK");
-//__asm("xchg %%bx, %%bx\n" : : : "bx");
-//memset(pt, 0, 4096);
-			//unsigned* x = (unsigned*)pt;
-			//*x = 0;
-			//for(;;);
-
 			pde->address = ((unsigned)ptPhys) >> 12;
 			pde->flags = PAGE_TABLE_FLAG_PRESENT | PAGE_TABLE_FLAG_READ_WRITE | PAGE_TABLE_FLAG_SUPERVISOR;
 
@@ -324,49 +280,131 @@ namespace Memory
 				"mov %%eax, %%cr3"
 			: : : "eax");
 
-			//unsigned* ptr = (unsigned*)(0xFFC00000 | (directoryIndex << 12));
-
-			//*ptr = 0;
-
-			//unsigned* x = (unsigned*)pt;
-			//*x = 0;
+			PutString("Memset! ");
 			memset(pt, 0, sizeof(PageTable));
-			//for(;;);
-
-			//__asm("xchg %%bx, %%bx\n" : : : "bx");
-
-			//unsigned* x = (unsigned*)(&ptLogic->entries[1023]);
-			//__asm("xchg %%bx, %%bx\n" : : : "bx");
-			//*x = (unsigned)ptPhys | PAGE_TABLE_FLAG_PRESENT | PAGE_TABLE_FLAG_READ_WRITE | PAGE_TABLE_FLAG_SUPERVISOR;
-
-			//ptLogic->entries[1023].address = ((unsigned)ptPhys) >> 12;
-			//ptLogic->entries[1023].flags = PAGE_TABLE_FLAG_PRESENT | PAGE_TABLE_FLAG_READ_WRITE | PAGE_TABLE_FLAG_SUPERVISOR;
-			//__asm("xchg %%bx, %%bx\n" : : : "bx");
+			PutString("Ok~!\n");
 		}
 
 		pte->address = ((unsigned)physAddress >> 12);
 		pte->flags = PAGE_TABLE_FLAG_PRESENT | PAGE_TABLE_FLAG_READ_WRITE | PAGE_TABLE_FLAG_SUPERVISOR;
+	}
 
-		//ptLogic->entries[tableIndex].address = ((unsigned)physAddress >> 12);
-		//ptLogic->entries[tableIndex].flags = PAGE_TABLE_FLAG_PRESENT | PAGE_TABLE_FLAG_READ_WRITE | PAGE_TABLE_FLAG_SUPERVISOR;
+	void Map(void* physAddress, void* logicAddress, unsigned length)
+	{
+		length = (length + 0xFFF) >> 12;
+		while(length)
+		{
+			Map(physAddress, logicAddress);
 
+			//length -= 0x1000;
+			length--;
+			physAddress = (void*)((char *)physAddress + 0x1000);
+			logicAddress = (void*)((char *)logicAddress + 0x1000);
+		}
+	}
 
-		PutString(" Mapped!!! ");
-		// Refresh cr3
-		//__asm(
-		//"mov %%cr3, %%eax \n"
-		//"mov %%eax, %%cr3 \n"
-		//: : : "eax");*/
+	void Unmap(void* logicAddress)
+	{
+		// TODO: unmap
+		// TODO: free page table if empty
+	}
+
+	void* FindFreeLogicalSpace(unsigned size)
+	{
+		PutString("FindFreeLogicalSpace\n");
+
+		// It's for kernel-space only~!
+		size = (size + 0xFFF) & (~0xFFF);
+		unsigned pagesCountNeeded = size >> 12;
+		unsigned pagesCountFree = 0;
+
+		auto abToAddr = [](unsigned a, unsigned b) -> void* {
+			void* addr = (void*)((a << 22) | (b << 12));
+			PutString("  Found~! "); PutHex((unsigned)addr); PutString("\n");
+			return addr;
+		};
+
+		unsigned startA = 512, startB = 0;
+		for(unsigned a = 512; a < 1024; a++)
+		{
+			//if(pageDirectory->entries[a].address != 0)
+			if(pageDirectory->entries[a].IsUsed())
+			{
+				PageTable* pt = (PageTable*)(0xFFC00000 | (a << 12));
+				for(unsigned b = 0; b < 1024; b++)
+				{
+					//if(pt->entries[b].address == 0)
+					if(!pt->entries[b].IsUsed())
+					{
+						pagesCountFree++;
+
+						if(pagesCountFree >= pagesCountNeeded)
+							return abToAddr(a, b);
+					}
+					else
+					{
+						startA = a;
+						startB = b + 1;
+						pagesCountFree = 0;
+					}
+					
+				}
+			}
+			else
+			{
+				pagesCountFree += 1024;
+			}
+			
+			if(pagesCountFree >= pagesCountNeeded)
+				return abToAddr(a, 0);
+		}
 	}
 
 	void* Alloc(unsigned allocSize)
 	{
-		return AllocPhys(allocSize);
+		// TODO: it doesn't need to alloc continuous memory because of mapping...
+
+		allocSize = (allocSize + 0xFFF) & (~0xFFF);
+
+		void* physAddr = AllocPhys(allocSize);
+		if(!physAddr)
+		{
+			PutString("Not enough free memory~!");
+			for(;;);
+
+			return nullptr;
+		}
+
+		void* logicAddr = FindFreeLogicalSpace(allocSize);
+
+		if(!logicAddr)
+		{
+			PutString("Couldn't find free lofical space~!");
+			for(;;);
+
+			FreePhys(physAddr);
+			return nullptr;
+		}
+
+		Map(physAddr, logicAddr, allocSize);
+		return logicAddr;
+	}
+
+	void Free(void* logicAddress)
+	{
+		// TODO
+		//FreePhys(physAddress);
+
+		Unmap(logicAddress);
 	}
 
 	void PrintMemoryMap()
 	{
+		PutString("\n");
 		PutString("===== Memory map =====\n");
+
+		unsigned used = 0;
+		unsigned free = 0;
 
 		MemoryMap* currentMap = &memoryMap;
 		while(currentMap != nullptr)
@@ -381,9 +419,22 @@ namespace Memory
 				PutString(" - ");
 				PutHex(currentMap->length[a]);
 				PutString("\n");
+
+				if(currentMap->used[a])
+					used += currentMap->length[a];
+				else
+					free += currentMap->length[a];
 			}
 
 			currentMap = currentMap->next;
 		}
+
+		PutString("======================\n");
+
+		PutString("Used:  "); PutHex( used ); PutString("\n");
+		PutString("Free:  "); PutHex( free ); /*PutString(" / "); PutHex( used + free );*/ PutString("\n");
+		PutString("Total: "); PutHex( free + used ); PutString("\n");
+
+		PutString("======================\n");
 	}
 }
