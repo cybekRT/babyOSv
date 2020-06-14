@@ -4,8 +4,7 @@ NASM		= nasm -Iinc/ -Isrc/
 ifeq ($(OS),Windows_NT)
 	BOCHS		= D:\Programs\Bochs\bochsdbg-p4-smp.exe -f bochs-win.cfg
 	OUT		= $(PWD)/out
-	GCC		= i386-elf-gcc
-	LD		= i386-elf-ld
+	GCC_PREFIX	= i386-elf-
 	QEMU		= D:\Programs\Qemu\qemu-system-i386.exe
 	DD		= D:\Programs\Cygwin\bin\dd
 	# qemu-system-i386
@@ -13,13 +12,14 @@ ifeq ($(OS),Windows_NT)
 else
 	BOCHS		= bochs -f bochs.cfg
 	OUT		= $(PWD)/out
-	GCC		= /usr/local/osdev/bin/i386-elf-gcc
-	LD		= /usr/local/osdev/bin/i386-elf-ld
+	GCC_PREFIX	= /usr/local/osdev/bin/i386-elf-
 	QEMU		= qemu-system-i386
 	DD		= dd
 	PCEM		= 
 endif
 
+GCC			= $(GCC_PREFIX)gcc
+LD			= $(GCC_PREFIX)ld
 GCC_FLAGS		= -fno-isolate-erroneous-paths-attribute -fno-asynchronous-unwind-tables
 
 all: floppy.img
@@ -38,7 +38,7 @@ out/kernel.elf: out/kmain.o out/kmain_startup.o out/Memory.o
 	$(LD) -nostdlib -nolibc -nostartfiles -nodefaultlibs -m elf_i386 -T src/linker.ld $^ -o $@
 
 out/kernel.bin: out/kernel.elf
-	/usr/local/osdev/bin/i386-elf-objcopy -Obinary $< $@
+	$(GCC_PREFIX)objcopy -Obinary $< $@
 
 out/%.o: src/%.cpp src/linker.ld
 	$(GCC) $(GCC_FLAGS) -Wall -Wextra -Iinc/ -g3 -O0 -m32 -c $< -o $@ 

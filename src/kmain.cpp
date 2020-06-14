@@ -25,10 +25,8 @@ unsigned char HAL_In(unsigned short port)
 	return value;
 }
 
-unsigned char HAL_Out(unsigned short port, unsigned char data)
+void HAL_Out(unsigned short port, unsigned char data)
 {
-	unsigned char value;
-
 	__asm(
 	"mov %0, %%dx \r\n"
 	"mov %1, %%al \r\n"
@@ -36,8 +34,6 @@ unsigned char HAL_Out(unsigned short port, unsigned char data)
 	: 
 	: "r"(port), "r"(data)
 	: "eax", "edx");
-
-	return value;
 }
 
 void PutChar(char c)
@@ -101,11 +97,11 @@ extern "C" void kmain()
 
 	Memory::Init(bootloader_info_ptr->memoryEntries, *bootloader_info_ptr->memoryEntriesCount);
 
-	void* c = Memory::Alloc(1024);
+	void* c = Memory::Alloc(1024 * 512 * 4);
 
 	PutString("Filling memory!\n");
 	unsigned* z = (unsigned*)c;
-	for(unsigned a = 0; a < 256; a++)
+	for(unsigned a = 0; a < 1024 * 512; a++)
 		z[a] = 0xbaadf00d;
 
 	Memory::PrintMemoryMap();

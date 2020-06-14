@@ -77,7 +77,6 @@ namespace Memory
 
 	void FixEntries()
 	{
-		unsigned len = 0;
 		unsigned kEnd = ((unsigned)kernel_end) & 0x7FFFFFFF;
 		for(unsigned a = 0; a < memoryEntriesCount; a++)
 		{
@@ -339,7 +338,7 @@ namespace Memory
 						pagesCountFree++;
 
 						if(pagesCountFree >= pagesCountNeeded)
-							return abToAddr(a, b);
+							return abToAddr(startA, startB);
 					}
 					else
 					{
@@ -356,8 +355,10 @@ namespace Memory
 			}
 			
 			if(pagesCountFree >= pagesCountNeeded)
-				return abToAddr(a, 0);
+				return abToAddr(startA, startB);
 		}
+
+		return nullptr;
 	}
 
 	void* Alloc(unsigned allocSize)
