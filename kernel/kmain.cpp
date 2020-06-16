@@ -101,6 +101,10 @@ void sleep()
 
 extern "C" void kmain()
 {
+	ASSERT(sizeof(u32) == 4, "u32");
+	ASSERT(sizeof(u16) == 2, "u16");
+	ASSERT(sizeof(u8) == 1, "u8");
+
 	unsigned short* data = (unsigned short*)0x800b8000;
 	for(unsigned a = 0; a < 80 * 25 * 2; a++) data[a] = 0x0700;
 

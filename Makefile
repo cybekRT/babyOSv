@@ -20,7 +20,7 @@ endif
 
 GCC			= $(GCC_PREFIX)gcc
 LD			= $(GCC_PREFIX)ld
-GCC_FLAGS		= -fno-isolate-erroneous-paths-attribute -fno-asynchronous-unwind-tables
+GCC_FLAGS		= -include kernel/global.h -std=gnu++1z -fno-isolate-erroneous-paths-attribute -fno-asynchronous-unwind-tables
 
 all: floppy.img
 
