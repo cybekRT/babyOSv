@@ -47,7 +47,7 @@ void PutChar(char c)
 		return;
 	}
 
-	if(p >= 80*25*2)
+	if(p >= 80*24*2)
 	{
 		unsigned short* src = (unsigned short*)0x800b80a0;
 		unsigned short* dst = (unsigned short*)0x800b8000;
@@ -66,7 +66,8 @@ void PutChar(char c)
 	}
 
 	char* vmem = (char*)0x800b8000;
-	vmem[p] = c;
+	vmem[p + 0] = c;
+	vmem[p + 1] = 0x27;
 	p+=2;
 }
 
@@ -90,21 +91,21 @@ void PutHex(unsigned long v)
 	}
 }
 
+void sleep()
+{
+	for(volatile unsigned a = 0; a < 0x1fffffff; a++)
+	{
+		__asm("nop");
+	}
+}
+
 extern "C" void kmain()
 {
 	unsigned short* data = (unsigned short*)0x800b8000;
 	for(unsigned a = 0; a < 80 * 25 * 2; a++) data[a] = 0x0700;
 
 	Memory::Init(bootloader_info_ptr->memoryEntries, *bootloader_info_ptr->memoryEntriesCount);
-
-	void* c = Memory::Alloc(1024 * 512 * 4);
-
-	PutString("Filling memory!\n");
-	unsigned* z = (unsigned*)c;
-	for(unsigned a = 0; a < 1024 * 512; a++)
-		z[a] = 0xbaadf00d;
-
-	Memory::PrintMemoryMap();
+	
 	PutString("Kernel halted~!");
 	for(;;)
 	{

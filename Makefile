@@ -1,5 +1,5 @@
 
-NASM		= nasm -Iinc/ -Isrc/
+NASM		= nasm -Iboot/
 
 ifeq ($(OS),Windows_NT)
 	BOCHS		= D:\Programs\Bochs\bochsdbg-p4-smp.exe -f bochs-win.cfg
@@ -28,22 +28,22 @@ floppy.img: out/boot1.bin out/boot2.bin out/kernel.bin
 	cat $^ out/boot1.bin > $@
 	$(DD) if=/dev/zero of=$@ bs=1 count=0 seek=1474560
 
-out/boot1.bin: src/boot1.asm out/boot2.bin
+out/boot1.bin: boot/boot1.asm out/boot2.bin
 	$(NASM) $< -o $@ -fbin -DBOOT2_SIZE=$(strip $(shell wc -c < out/boot2.bin))
 
-out/boot2.bin: src/boot2.asm out/kernel.bin
+out/boot2.bin: boot/boot2.asm out/kernel.bin
 	$(NASM) $< -fbin -o $@ -DKERNEL_SIZE=$(strip $(shell wc -c < out/kernel.bin))
 
 out/kernel.elf: out/kmain.o out/kmain_startup.o out/Memory.o
-	$(LD) -nostdlib -nolibc -nostartfiles -nodefaultlibs -m elf_i386 -T src/linker.ld $^ -o $@
+	$(LD) -nostdlib -nolibc -nostartfiles -nodefaultlibs -m elf_i386 -T kernel/linker.ld $^ -o $@
 
 out/kernel.bin: out/kernel.elf
 	$(GCC_PREFIX)objcopy -Obinary $< $@
 
-out/%.o: src/%.cpp src/linker.ld
+out/%.o: kernel/%.cpp kernel/linker.ld
 	$(GCC) $(GCC_FLAGS) -Wall -Wextra -Iinc/ -g3 -O0 -m32 -c $< -o $@ 
 
-out/kmain_startup.o: src/kmain_startup.asm
+out/kmain_startup.o: kernel/kmain_startup.asm
 	$(NASM) -felf $< -o $@
 
 clean:

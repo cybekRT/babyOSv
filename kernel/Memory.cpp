@@ -182,7 +182,7 @@ namespace Memory
 
 	void* AllocPhys(unsigned allocSize)
 	{
-		allocSize = (allocSize + 0xfff) & 0x1000;
+		allocSize = (allocSize + 0xFFF) & (~0xFFF);
 
 		PutString("Allocating "); PutHex(allocSize); PutString(" bytes\n");
 		
