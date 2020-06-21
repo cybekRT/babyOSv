@@ -20,7 +20,17 @@ endif
 
 GCC			= $(GCC_PREFIX)gcc
 LD			= $(GCC_PREFIX)ld
-GCC_FLAGS		= -include kernel/global.h -std=gnu++1z -fno-isolate-erroneous-paths-attribute -fno-asynchronous-unwind-tables
+GCC_FLAGS		= -include kernel/global.h -std=gnu++1z -mgeneral-regs-only -fno-isolate-erroneous-paths-attribute -fno-asynchronous-unwind-tables
+
+SOURCES = $(shell find kernel -name *.cpp)
+
+OBJS  = $(SOURCES:kernel/%.cpp=out/%.o)
+DEPS  = $(SOURCES:%.cpp=%.d)
+DEPS := $(DEPS:kernel%=out%)
+
+#x:
+#	echo $(SOURCES)
+#	echo $(DEPS)
 
 all: floppy.img
 
@@ -34,7 +44,7 @@ out/boot1.bin: boot/boot1.asm out/boot2.bin
 out/boot2.bin: boot/boot2.asm out/kernel.bin
 	$(NASM) $< -fbin -o $@ -DKERNEL_SIZE=$(strip $(shell wc -c < out/kernel.bin))
 
-out/kernel.elf: out/kmain.o out/kmain_startup.o out/Memory.o
+out/kernel.elf: out/kmain_startup.o $(OBJS)
 	$(LD) -nostdlib -nolibc -nostartfiles -nodefaultlibs -m elf_i386 -T kernel/linker.ld $^ -o $@
 
 out/kernel.bin: out/kernel.elf
@@ -46,12 +56,18 @@ out/%.o: kernel/%.cpp kernel/linker.ld
 out/kmain_startup.o: kernel/kmain_startup.asm
 	$(NASM) -felf $< -o $@
 
+out/%.d: kernel/%.cpp
+	$(GCC) $(GCC_FLAGS) -c -MD -MF $@ $<
+
+-include $(DEPS)
+
 clean:
 	rm out/* floppy.img || true
 #	$(MAKE) -C src clean
 
 qemu: floppy.img
-	$(QEMU) -fda $< -boot ac -m 32 -monitor stdio
+	$(QEMU) -fda $< -boot ac -m 32 -d int -monitor stdio -no-reboot -no-shutdown 
+	# -no-reboot -no-shutdown 
 
 bochs: floppy.img
 	$(BOCHS) -q

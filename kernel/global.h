@@ -14,4 +14,11 @@ typedef sint16 s16;
 typedef sint8 s8;
 
 //#define ASSERT(x) ASSERT(x, "")
-#define ASSERT(x, y) if(!(x)) { void PutString(const char *); PutString("Assert failed: " y); for(;;){ __asm("cli\nhlt\n"); }; }
+#define ASSERT(x, y) if(!(x)) { PutString("Assert failed: " y); for(;;){ __asm("cli\nhlt\n"); }; }
+
+#define BREAK {__asm("xchg %%bx, %%bx" : : : "bx");}
+#define HALT {for(;;){__asm("cli\nhlt\n");}}
+
+void PutString(const char* s);
+void PutHex(unsigned long v);
+void PutChar(char c);

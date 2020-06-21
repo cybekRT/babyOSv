@@ -34,8 +34,8 @@ struct PageDirectoryEntry
 	unsigned flags : 12;
 	unsigned address : 20;
 
-	void* GetAddress() { return (void*)(address << 12); }
-	void SetAddress(void* address) { this->address = ((unsigned)address) >> 12; } // TODO: add assert
+	//void* GetAddress() { return (void*)(address << 12); }
+	//void SetAddress(void* address) { this->address = ((unsigned)address) >> 12; } // TODO: add assert
 
 	bool IsUsed() { return flags & PAGE_DIRECTORY_FLAG_PRESENT; }
 } __attribute__((packed));
@@ -59,7 +59,7 @@ namespace Memory
 	void FreePhys(void* address);
 
 	// Mapper
-	void Map(void* physAddress, void* logicAddress, unsigned length);
+	void* Map(void* physAddress, void* logicAddress, unsigned length);
 	void Unmap(void* logicAddress);
 	
 	// Logical allocator

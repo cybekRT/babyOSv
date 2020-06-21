@@ -1,5 +1,6 @@
-#include "bootloader_info.h"
-#include "Memory.h"
+#include"bootloader_info.h"
+#include"Memory.h"
+#include"Interrupt.h"
 
 int strlen(const char* str)
 {
@@ -109,6 +110,7 @@ extern "C" void kmain()
 	for(unsigned a = 0; a < 80 * 25 * 2; a++) data[a] = 0x0700;
 
 	Memory::Init(bootloader_info_ptr->memoryEntries, *bootloader_info_ptr->memoryEntriesCount);
+	Interrupt::Init();
 	
 	PutString("Kernel halted~!");
 	for(;;)

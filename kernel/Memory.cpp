@@ -1,8 +1,5 @@
 #include "Memory.h"
 
-void PutString(const char* s);
-void PutHex(unsigned long v);
-void PutChar(char c);
 extern void* kernel_end;
 
 // TODO: stop using bubble sort everywhere! Optimmize sorting algorithms in allocator~!
@@ -247,67 +244,6 @@ namespace Memory
 		for(;;);
 	}
 
-	void Map(void* physAddress, void* logicAddress)
-	{
-		if(!physAddress || !logicAddress)
-		{
-			PutString("=== Failed mapping memory ===");
-			for(;;);
-		}
-
-		PutString("Mapping "); PutHex((unsigned)physAddress); PutString(" -> "); PutHex((unsigned)logicAddress); PutString("\n");
-
-		unsigned directoryIndex = ((unsigned)logicAddress) >> 22;
-		unsigned tableIndex = (((unsigned)logicAddress) >> 12) & 0x3ff;
-
-		PutString("Index: "); PutHex(directoryIndex); PutString(" -> "); PutHex(tableIndex); PutString("\n");
-
-		PageDirectoryEntry* pde = (PageDirectoryEntry*)(0xFFFFF000 | (directoryIndex * 4));
-		PageTable* pt = (PageTable*)(0xFFC00000 | (directoryIndex << 12));
-		PageTableEntry* pte = (PageTableEntry*)(0xFFC00000 | (directoryIndex << 12) | (tableIndex * sizeof(PageDirectoryEntry)));
-
-		if(!pde->address)
-		{
-			PageTable* ptPhys = (PageTable*)AllocPhys(sizeof(PageTable));
-			pde->address = ((unsigned)ptPhys) >> 12;
-			pde->flags = PAGE_TABLE_FLAG_PRESENT | PAGE_TABLE_FLAG_READ_WRITE | PAGE_TABLE_FLAG_SUPERVISOR;
-
-			// Refresh CR3
-			__asm
-			(
-				"mov %%cr3, %%eax \n"
-				"mov %%eax, %%cr3"
-			: : : "eax");
-
-			PutString("Memset! ");
-			memset(pt, 0, sizeof(PageTable));
-			PutString("Ok~!\n");
-		}
-
-		pte->address = ((unsigned)physAddress >> 12);
-		pte->flags = PAGE_TABLE_FLAG_PRESENT | PAGE_TABLE_FLAG_READ_WRITE | PAGE_TABLE_FLAG_SUPERVISOR;
-	}
-
-	void Map(void* physAddress, void* logicAddress, unsigned length)
-	{
-		length = (length + 0xFFF) >> 12;
-		while(length)
-		{
-			Map(physAddress, logicAddress);
-
-			//length -= 0x1000;
-			length--;
-			physAddress = (void*)((char *)physAddress + 0x1000);
-			logicAddress = (void*)((char *)logicAddress + 0x1000);
-		}
-	}
-
-	void Unmap(void* logicAddress)
-	{
-		// TODO: unmap
-		// TODO: free page table if empty
-	}
-
 	void* FindFreeLogicalSpace(unsigned size)
 	{
 		PutString("FindFreeLogicalSpace\n");
@@ -359,6 +295,80 @@ namespace Memory
 		}
 
 		return nullptr;
+	}
+
+	void Map(void* physAddress, void* logicAddress)
+	{
+		if(!physAddress || !logicAddress)
+		{
+			PutString("=== Failed mapping memory ===");
+			for(;;);
+		}
+
+		PutString("Mapping "); PutHex((unsigned)physAddress); PutString(" -> "); PutHex((unsigned)logicAddress); PutString("\n");
+
+		unsigned directoryIndex = ((unsigned)logicAddress) >> 22;
+		unsigned tableIndex = (((unsigned)logicAddress) >> 12) & 0x3ff;
+
+		PutString("Index: "); PutHex(directoryIndex); PutString(" -> "); PutHex(tableIndex); PutString("\n");
+
+		PageDirectoryEntry* pde = (PageDirectoryEntry*)(0xFFFFF000 | (directoryIndex * 4));
+		PageTable* pt = (PageTable*)(0xFFC00000 | (directoryIndex << 12));
+		PageTableEntry* pte = (PageTableEntry*)(0xFFC00000 | (directoryIndex << 12) | (tableIndex * sizeof(PageDirectoryEntry)));
+
+		if(!pde->address)
+		{
+			PageTable* ptPhys = (PageTable*)AllocPhys(sizeof(PageTable));
+			pde->address = ((unsigned)ptPhys) >> 12;
+			pde->flags = PAGE_TABLE_FLAG_PRESENT | PAGE_TABLE_FLAG_READ_WRITE | PAGE_TABLE_FLAG_SUPERVISOR;
+
+			// Refresh CR3
+			__asm
+			(
+				"mov %%cr3, %%eax \n"
+				"mov %%eax, %%cr3"
+			: : : "eax");
+
+			PutString("Memset! ");
+			memset(pt, 0, sizeof(PageTable));
+			PutString("Ok~!\n");
+		}
+
+		pte->address = ((unsigned)physAddress >> 12);
+		pte->flags = PAGE_TABLE_FLAG_PRESENT | PAGE_TABLE_FLAG_READ_WRITE | PAGE_TABLE_FLAG_SUPERVISOR;
+	}
+
+	void* Map(void* physAddress, void* logicAddress, unsigned length)
+	{
+		if(!logicAddress)
+		{
+			logicAddress = FindFreeLogicalSpace(length);
+			if(!logicAddress)
+				return nullptr;
+		}
+
+		length = (length + 0xFFF) >> 12;
+		PutString("Mapping len: "); PutHex(length); PutString("\n");
+
+		void* cPhysAddress = physAddress;
+		void* cLogicAddress = logicAddress;
+		while(length)
+		{
+			Map(cPhysAddress, cLogicAddress);
+
+			//length -= 0x1000;
+			length--;
+			cPhysAddress = (void*)((char *)cPhysAddress + 0x1000);
+			cLogicAddress = (void*)((char *)cLogicAddress + 0x1000);
+		}
+
+		return logicAddress;
+	}
+
+	void Unmap(void* logicAddress)
+	{
+		// TODO: unmap
+		// TODO: free page table if empty
 	}
 
 	void* Alloc(unsigned allocSize)
