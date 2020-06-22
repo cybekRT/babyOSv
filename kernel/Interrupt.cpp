@@ -57,8 +57,6 @@ namespace Interrupt
 		PutString("ISR: ");
 		PutHex((unsigned)ptr);
 		PutString("\n");
-
-		HALT
 	}
 
 	bool Init()

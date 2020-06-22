@@ -68,7 +68,7 @@ void PutChar(char c)
 
 	char* vmem = (char*)0x800b8000;
 	vmem[p + 0] = c;
-	vmem[p + 1] = 0x27;
+	vmem[p + 1] = 0x07;
 	p+=2;
 }
 
@@ -112,6 +112,7 @@ extern "C" void kmain()
 	Memory::Init(bootloader_info_ptr->memoryEntries, *bootloader_info_ptr->memoryEntriesCount);
 	Interrupt::Init();
 	
+	Memory::PrintMemoryMap();
 	PutString("Kernel halted~!");
 	for(;;)
 	{

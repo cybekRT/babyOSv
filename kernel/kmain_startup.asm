@@ -10,6 +10,8 @@ extern __kernel_end
 
 [section .startup]
 main:
+	cli
+
 	pop	dword [bootloader_info_ptr]
 	mov	esp, stack_beg
 

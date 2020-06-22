@@ -75,15 +75,12 @@ Memory_Init:
 	jmp	.fail
 .legacy:
 	; TODO: detect memory size, reserve standard BIOS and GPU ranges
-	cli
-	hlt
-	jmp	.legacy
-	;mov	dword [MEM_MAP_entries], 1
-	;mov	eax, MEM_MAP
-	;mov	dword [eax + MEMMap_t.base], 0x0
-	;mov	dword [eax + MEMMap_t.length], 0xfffff
-	;mov	byte [eax + MEMMap_t.type], 0x1
-	;jmp	.exit
+	mov	dword [MEM_MAP_entries], 1
+	mov	eax, MEM_MAP
+	mov	dword [eax + 0], 0x0
+	mov	dword [eax + 8], 0xfffff
+	mov	byte [eax + 16], 0x1
+	jmp	.exit
 
 %include "boot_read.asm"
 
@@ -122,12 +119,6 @@ GDT_Handle:
 
 [bits 32]
 main32:
-	;mov	ebx, 0xb8000
-	;mov	byte [ebx + 0], 'x'
-	;mov	byte [ebx + 2], 'y'
-	;mov	byte [ebx + 4], 'z'
-	;mov	byte [ebx + 6], ' '
-
 	mov	eax, PageDirectory
 	mov	ebx, PageTable
 	and	ebx, ~0xFFF
@@ -146,6 +137,11 @@ main32:
 	or	eax, 0x80000001
 	mov	cr0, eax
 
+	; Update GDT
+	; TODO: check if this can be done simultaneously with paging
+	or	dword [GDT_Handle + 2], 0x80000000
+	lgdt	[GDT_Handle + 0x80000000]
+
 	push	BootloaderInfo
 	jmp	kmain + 0x80000000
 .halt:
@@ -163,8 +159,6 @@ iend
 times 0x1000 - ($ - $$ + KERNEL_ADDR) db 0
 
 PageDirectory:
-	;dd PAGE_TABLE_ENTRY(PageEntry, PAGE_DIRECTORY_FLAG_PRESENT | PAGE_DIRECTORY_FLAG_READ_WRITE | PAGE_DIRECTORY_FLAG_SUPERVISOR | PAGE_DIRECTORY_FLAG_PAGE_4K)
-	;times 1023 dd 0
 	times 1024 dd 0
 
 PageTable:
