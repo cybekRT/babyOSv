@@ -31,11 +31,15 @@ struct IDT_Entry
 		address_0_15 = a & 0xFFFF;
 		address_16_31 = a >> 16;
 	}
+
+	Interrupt::ISR GetAddress()
+	{
+		return (Interrupt::ISR)((address_16_31 << 16) | address_0_15);
+	}
 } __attribute__((packed));
 
 struct IDT
 {
-	//void (*handlers[256])();
 	IDT_Entry entries[256];
 } __attribute__((packed));
 
@@ -45,6 +49,9 @@ struct IDT_Handle
 	IDT* address;
 } __attribute__((packed));
 
+u8 HAL_In(u16 port);
+void HAL_Out(u16 port, u8 data);
+
 namespace Interrupt
 {
 	IDT_Handle idtHandle;
@@ -52,11 +59,42 @@ namespace Interrupt
 	void* idtPhysical;
 
 	__attribute__ ((interrupt))
-	void Dummy(void* ptr)
+	void ISR_Dummy(void* ptr)
 	{
 		PutString("ISR: ");
 		PutHex((unsigned)ptr);
 		PutString("\n");
+	}
+
+	__attribute__ ((interrupt))
+	void ISR_IRQ_Dummy(void* ptr)
+	{
+		PutString("ISR: ");
+		PutHex((unsigned)ptr);
+		PutString("\n");
+
+		HAL_Out(0x20, 0x20);
+	}
+
+	__attribute__ ((interrupt))
+	void ISR_GPF(void* ptr)
+	{
+		PutString("===== General Protection Fault =====\n");
+
+		u32* p = (u32*)ptr;
+		PutHex(p[0]); PutString("\n");
+		PutHex(p[1]); PutString("\n");
+		PutHex(p[2]); PutString("\n");
+		PutHex(p[3]); PutString("\n");
+		PutHex(p[4]); PutString("\n");
+		PutHex(p[5]); PutString("\n");
+		PutHex(p[6]); PutString("\n");
+		PutHex(p[7]); PutString("\n");
+		PutHex(p[8]); PutString("\n");
+
+		PutHex((u32)ptr);
+
+		HALT
 	}
 
 	bool Init()
@@ -74,10 +112,15 @@ namespace Interrupt
 
 		PutHex((unsigned)idt);
 
-		for(unsigned a = 0; a < sizeof(*idt); a++)
+		for(unsigned a = 0; a < 256; a++)
 		{
-			u8* p = (u8*)idt;
-			p[a] = 0;
+			//u8* p = (u8*)idt;
+			//p[a] = 0;
+			idt->entries[a].address_0_15 = 0;
+			idt->entries[a].address_16_31 = 0;
+			idt->entries[a].selector = 0x8;
+			idt->entries[a].unused = 0;
+			idt->entries[a].flags = IDT_Entry::Flag::IDT_FLAG_32BIT_INT_GATE;
 		}
 
 		idtHandle.size = sizeof(IDT) - 1;
@@ -91,10 +134,35 @@ namespace Interrupt
 		PutHex((unsigned)(&idtHandle));
 		PutString("\n");
 
-		idt->entries[0].SetAddress(Dummy);
+		HAL_Out(PIC0_PORT_CMD, 0x11);
+		HAL_Out(PIC0_PORT_DATA, INT_PIC0_OFFSET);
+		HAL_Out(PIC0_PORT_DATA, 4);
+		HAL_Out(PIC0_PORT_DATA, 1);
+		HAL_Out(PIC1_PORT_CMD, 0x11);
+		HAL_Out(PIC1_PORT_DATA, INT_PIC1_OFFSET);
+		HAL_Out(PIC1_PORT_DATA, 2);
+		HAL_Out(PIC1_PORT_DATA, 1);
+
+		/*idt->entries[0].SetAddress(Dummy);
 		int v = int(IDT_Entry::Flag::IDT_FLAG_32BIT_INT_GATE) | int(IDT_Entry::Flag::IDT_FLAG_ENTRY_PRESENT);
 		idt->entries[0].flags = (IDT_Entry::Flag)v;
-		idt->entries[0].selector = 0x8;
+		idt->entries[0].selector = 0x8;*/
+
+		for(unsigned a = 0; a < 256; a++)
+		{
+			//isr->entries[a].SetAddress();
+			Register(a, (ISR)a);
+		}
+
+		//Register(0, Dummy);
+		//Register(INT_GENERAL_PROTECTION_FAULT, ISR_GPF);
+		Register(INT_DOUBLE_FAULT, ISR_GPF);
+		Register(INT_PAGE_FAULT, ISR_GPF);
+		//Register(INT_DIVISION_BY_ZERO, ISR_GPF);
+
+		Register(IRQ2INT(IRQ_TIMER), ISR_IRQ_Dummy);
+		__asm("sti");
+		for(;;);
 
 		PutString("Flags: ");
 		PutHex((unsigned)idt->entries[0].flags);
@@ -103,18 +171,35 @@ namespace Interrupt
 
 		//__asm("sti");
 BREAK
-		__asm("int $0");
+		//__asm("int $0");
 
 		return true;
 	}
 
-	void Register(u8 index, void(*handler)())
+	void Register(u8 index, Interrupt::ISR isr)
 	{
+		PutString("Registering "); PutHex((u32)index); PutString(" with handler: "); PutHex((u32)isr); PutString("\n");
 
+		idt->entries[index].SetAddress(isr);
+		idt->entries[index].flags |= IDT_Entry::Flag::IDT_FLAG_ENTRY_PRESENT;
 	}
 
 	void Unregister(u8 index)
 	{
+		idt->entries[index].SetAddress(nullptr);
+		idt->entries[index].flags &= ~IDT_Entry::Flag::IDT_FLAG_ENTRY_PRESENT;
+	}
 
+	void Unregister(Interrupt::ISR isr)
+	{
+		for(unsigned a = 0; a < 256; a++)
+		{
+			if(idt->entries[a].GetAddress() == isr)
+			{
+				idt->entries[a].SetAddress(nullptr);
+				idt->entries[a].flags &= ~IDT_Entry::Flag::IDT_FLAG_ENTRY_PRESENT;
+				return;
+			}
+		}
 	}
 }

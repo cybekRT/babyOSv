@@ -9,6 +9,7 @@ ifeq ($(OS),Windows_NT)
 	DD		= D:\Programs\Cygwin\bin\dd
 	# qemu-system-i386
 	PCEM		= D:\Programs\PCem\PCem.exe
+	VBOXMANAGE	= C:/Program\ Files/VirtualBox/VBoxManage.exe
 else
 	BOCHS		= bochs -f bochs.cfg
 	OUT		= $(PWD)/out
@@ -16,6 +17,7 @@ else
 	QEMU		= qemu-system-i386
 	DD		= dd
 	PCEM		= 
+	VBOXMANAGE	= vboxmanage
 endif
 
 GCC			= $(GCC_PREFIX)gcc
@@ -66,7 +68,7 @@ clean:
 #	$(MAKE) -C src clean
 
 qemu: floppy.img
-	$(QEMU) -fda $< -boot ac -m 32 -d int -monitor stdio -no-reboot -no-shutdown 
+	$(QEMU) -fda $< -boot ac -m 32 -d int -monitor stdio -d int -no-reboot -no-shutdown 
 	# -no-reboot -no-shutdown 
 
 bochs: floppy.img
@@ -74,3 +76,6 @@ bochs: floppy.img
 
 pcem: floppy.img
 	$(PCEM)
+
+vbox: floppy.img
+	$(VBOXMANAGE) startvm "babyOSv" -E VBOX_GUI_DBG_AUTO_SHOW=true -E VBOX_GUI_DBG_ENABLED=true
