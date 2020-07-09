@@ -38,6 +38,20 @@ struct IDT_Entry
 	}
 } __attribute__((packed));
 
+#define PIC_CMD_INIT	0x11
+
+#define ICW1_ICW4	0x01		/* ICW4 (not) needed */
+#define ICW1_SINGLE	0x02		/* Single (cascade) mode */
+#define ICW1_INTERVAL4	0x04		/* Call address interval 4 (8) */
+#define ICW1_LEVEL	0x08		/* Level triggered (edge) mode */
+#define ICW1_INIT	0x10		/* Initialization - required! */
+ 
+#define ICW4_8086	0x01		/* 8086/88 (MCS-80/85) mode */
+#define ICW4_AUTO	0x02		/* Auto (normal) EOI */
+#define ICW4_BUF_SLAVE	0x08		/* Buffered mode/slave */
+#define ICW4_BUF_MASTER	0x0C		/* Buffered mode/master */
+#define ICW4_SFNM	0x10		/* Special fully nested (not) */
+
 struct IDT
 {
 	IDT_Entry entries[256];
@@ -79,7 +93,7 @@ namespace Interrupt
 	__attribute__ ((interrupt))
 	void ISR_GPF(void* ptr)
 	{
-		PutString("===== General Protection Fault =====\n");
+		PutString("\n===== General Protection Fault =====\n");
 
 		u32* p = (u32*)ptr;
 		PutHex(p[0]); PutString("\n");
@@ -114,8 +128,6 @@ namespace Interrupt
 
 		for(unsigned a = 0; a < 256; a++)
 		{
-			//u8* p = (u8*)idt;
-			//p[a] = 0;
 			idt->entries[a].address_0_15 = 0;
 			idt->entries[a].address_16_31 = 0;
 			idt->entries[a].selector = 0x8;
@@ -134,14 +146,14 @@ namespace Interrupt
 		PutHex((unsigned)(&idtHandle));
 		PutString("\n");
 
-		HAL_Out(PIC0_PORT_CMD, 0x11);
+		HAL_Out(PIC0_PORT_CMD, PIC_CMD_INIT);
 		HAL_Out(PIC0_PORT_DATA, INT_PIC0_OFFSET);
-		HAL_Out(PIC0_PORT_DATA, 4);
-		HAL_Out(PIC0_PORT_DATA, 1);
-		HAL_Out(PIC1_PORT_CMD, 0x11);
+		HAL_Out(PIC0_PORT_DATA, ICW1_INTERVAL4);
+		HAL_Out(PIC0_PORT_DATA, ICW4_8086);
+		HAL_Out(PIC1_PORT_CMD, PIC_CMD_INIT);
 		HAL_Out(PIC1_PORT_DATA, INT_PIC1_OFFSET);
-		HAL_Out(PIC1_PORT_DATA, 2);
-		HAL_Out(PIC1_PORT_DATA, 1);
+		HAL_Out(PIC1_PORT_DATA, ICW1_SINGLE);
+		HAL_Out(PIC1_PORT_DATA, ICW4_8086);
 
 		/*idt->entries[0].SetAddress(Dummy);
 		int v = int(IDT_Entry::Flag::IDT_FLAG_32BIT_INT_GATE) | int(IDT_Entry::Flag::IDT_FLAG_ENTRY_PRESENT);
@@ -151,7 +163,7 @@ namespace Interrupt
 		for(unsigned a = 0; a < 256; a++)
 		{
 			//isr->entries[a].SetAddress();
-			Register(a, (ISR)a);
+			//Register(a, (ISR)a);
 		}
 
 		//Register(0, Dummy);
@@ -162,7 +174,7 @@ namespace Interrupt
 
 		Register(IRQ2INT(IRQ_TIMER), ISR_IRQ_Dummy);
 		__asm("sti");
-		for(;;);
+		//for(;;);
 
 		PutString("Flags: ");
 		PutHex((unsigned)idt->entries[0].flags);

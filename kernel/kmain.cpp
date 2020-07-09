@@ -1,6 +1,8 @@
 #include"bootloader_info.h"
 #include"Memory.h"
 #include"Interrupt.h"
+#include"Timer.h"
+#include"Keyboard.h"
 
 int strlen(const char* str)
 {
@@ -48,6 +50,8 @@ void PutChar(char c)
 		return;
 	}
 
+	__asm("pushf");
+	__asm("cli");
 	if(p >= 80*24*2)
 	{
 		unsigned short* src = (unsigned short*)0x800b80a0;
@@ -70,6 +74,8 @@ void PutChar(char c)
 	vmem[p + 0] = c;
 	vmem[p + 1] = 0x07;
 	p+=2;
+
+	__asm("popf");
 }
 
 void PutString(const char* s)
@@ -102,6 +108,7 @@ void sleep()
 
 extern "C" void kmain()
 {
+	ASSERT(sizeof(u64) == 8, "u64");
 	ASSERT(sizeof(u32) == 4, "u32");
 	ASSERT(sizeof(u16) == 2, "u16");
 	ASSERT(sizeof(u8) == 1, "u8");
@@ -111,12 +118,30 @@ extern "C" void kmain()
 
 	Memory::Init(bootloader_info_ptr->memoryEntries, *bootloader_info_ptr->memoryEntriesCount);
 	Interrupt::Init();
+	Timer::Init();
+	Keyboard::Init();
 	
 	Memory::PrintMemoryMap();
 	PutString("Kernel halted~!");
+
+	/*for(;;)
+	{
+		Timer::Delay(1000);
+		PutString(".");
+	}*/
+
 	for(;;)
 	{
-		__asm("cli");
+		while(Keyboard::HasData())
+		{
+			auto x = Keyboard::ReadData();
+			PutString("Kbd: "); PutHex(x); PutString("\n");
+
+			Memory::PrintMemoryMap();
+		}
+
+		//__asm("cli");
+		//__asm("sti");
 		__asm("hlt");
 	}
 }

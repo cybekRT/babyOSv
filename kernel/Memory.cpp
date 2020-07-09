@@ -4,6 +4,9 @@ extern void* kernel_end;
 
 // TODO: stop using bubble sort everywhere! Optimmize sorting algorithms in allocator~!
 
+#define ENTER_CRITICAL_SECTION() {__asm("pushf"); __asm("cli");}
+#define EXIT_CRITICAL_SECTION() {__asm("popf");}
+
 void memset(void* ptr, unsigned char c, unsigned len)
 {
 	unsigned char* p = (unsigned char*)ptr;
@@ -148,6 +151,8 @@ namespace Memory
 
 	void InsertMemoryMapEntry(void* address, unsigned length)
 	{
+		ENTER_CRITICAL_SECTION();
+
 		MemoryMap* currentMap = &memoryMap;
 		while(currentMap != nullptr)
 		{
@@ -159,6 +164,7 @@ namespace Memory
 					currentMap->length[a] = length;
 					currentMap->used[a] = true;
 
+					EXIT_CRITICAL_SECTION();
 					return;
 				}
 			}
@@ -174,11 +180,56 @@ namespace Memory
 
 	void MergeMemoryMap()
 	{
+		ENTER_CRITICAL_SECTION();
+
+		PutString("Merging... ");
 		// TODO:
+		MemoryMap* currentMap = &memoryMap;
+		while(currentMap != nullptr)
+		{
+			bool changed;
+
+			do
+			{
+				changed = false;
+				for(unsigned a = 1; a < sizeof(currentMap->used); a++)
+				{
+					if(currentMap->address[a - 1] == 0 || currentMap->address[a] == 0)
+						continue;
+
+					if(!currentMap->used[a - 1] && !currentMap->used[a])
+					{
+						u32 addr1 = (u32)currentMap->address[a - 1];
+						u32 len1 = currentMap->length[a - 1];
+						u32 addr2 = (u32)currentMap->address[a];
+						u32 len2 = currentMap->length[a];
+
+						if(addr1 + len1 == addr2)
+						{
+							changed = true;
+							currentMap->length[a - 1] += len2;
+
+							currentMap->address[a] = 0;
+							currentMap->length[a] = 0;
+
+							PutString("M ");
+						}
+					}
+				}
+			} while(changed);
+
+			currentMap = currentMap->next;
+		}
+
+		PutString("Merged~!\n");
+		// TODO: move entries from next memory map to previous, if there is enough space!
+
+		EXIT_CRITICAL_SECTION();
 	}
 
 	void* AllocPhys(unsigned allocSize)
 	{
+		ENTER_CRITICAL_SECTION();
 		allocSize = (allocSize + 0xFFF) & (~0xFFF);
 
 		PutString("Allocating "); PutHex(allocSize); PutString(" bytes\n");
@@ -187,21 +238,21 @@ namespace Memory
 		MemoryMap* currentMap = &memoryMap;
 		while(currentMap != nullptr && !allocatedAddress)
 		{
-			PutString("Searching...\n");
+			//PutString("Searching...\n");
 			for(unsigned a = 0; a < sizeof(currentMap->used); a++)
 			{
-				PutString( currentMap->used[a] ? "u " : "F " );
+				//PutString( currentMap->used[a] ? "u " : "F " );
 				PutHex((unsigned)currentMap->address[a]);
-				PutString(" - ");
+				//PutString(" - ");
 				PutHex((unsigned)currentMap->length[a]);
-				PutString("\n");
+				//PutString("\n");
 				if(currentMap->address[a] == 0)
 					continue;
 
 				if(!currentMap->used[a] && currentMap->length[a] >= allocSize)
 				{
 					allocatedAddress = currentMap->address[a];
-					PutString("  Address: "); PutHex((unsigned)allocatedAddress); PutString("\n");
+					//PutString("  Address: "); PutHex((unsigned)allocatedAddress); PutString("\n");
 					
 					currentMap->length[a] -= allocSize;
 					currentMap->address[a] = (void*)((unsigned)currentMap->address[a] + allocSize);
@@ -218,11 +269,14 @@ namespace Memory
 
 		// TODO: zeroing memory?
 
+		EXIT_CRITICAL_SECTION();
 		return allocatedAddress;
 	}
 
 	void FreePhys(void* address)
 	{
+		ENTER_CRITICAL_SECTION();
+
 		MemoryMap* currentMap = &memoryMap;
 		while(currentMap != nullptr)
 		{
@@ -235,6 +289,7 @@ namespace Memory
 					// TODO: maybe some counter, not to merge everytime
 					MergeMemoryMap();
 
+					EXIT_CRITICAL_SECTION();
 					return;
 				}
 			}
@@ -246,7 +301,8 @@ namespace Memory
 
 	void* FindFreeLogicalSpace(unsigned size)
 	{
-		PutString("FindFreeLogicalSpace\n");
+		ENTER_CRITICAL_SECTION();
+		//PutString("FindFreeLogicalSpace\n");
 
 		// It's for kernel-space only~!
 		size = (size + 0xFFF) & (~0xFFF);
@@ -255,7 +311,7 @@ namespace Memory
 
 		auto abToAddr = [](unsigned a, unsigned b) -> void* {
 			void* addr = (void*)((a << 22) | (b << 12));
-			PutString("  Found~! "); PutHex((unsigned)addr); PutString("\n");
+			//PutString("  Found~! "); PutHex((unsigned)addr); PutString("\n");
 			return addr;
 		};
 
@@ -274,7 +330,10 @@ namespace Memory
 						pagesCountFree++;
 
 						if(pagesCountFree >= pagesCountNeeded)
+						{
+							EXIT_CRITICAL_SECTION();
 							return abToAddr(startA, startB);
+						}
 					}
 					else
 					{
@@ -291,7 +350,10 @@ namespace Memory
 			}
 			
 			if(pagesCountFree >= pagesCountNeeded)
+			{
+				EXIT_CRITICAL_SECTION();
 				return abToAddr(startA, startB);
+			}
 		}
 
 		return nullptr;
@@ -299,18 +361,19 @@ namespace Memory
 
 	void Map(void* physAddress, void* logicAddress)
 	{
+		ENTER_CRITICAL_SECTION();
 		if(!physAddress || !logicAddress)
 		{
 			PutString("=== Failed mapping memory ===");
 			for(;;);
 		}
 
-		PutString("Mapping "); PutHex((unsigned)physAddress); PutString(" -> "); PutHex((unsigned)logicAddress); PutString("\n");
+		//PutString("Mapping "); PutHex((unsigned)physAddress); PutString(" -> "); PutHex((unsigned)logicAddress); PutString("\n");
 
 		unsigned directoryIndex = ((unsigned)logicAddress) >> 22;
 		unsigned tableIndex = (((unsigned)logicAddress) >> 12) & 0x3ff;
 
-		PutString("Index: "); PutHex(directoryIndex); PutString(" -> "); PutHex(tableIndex); PutString("\n");
+		//PutString("Index: "); PutHex(directoryIndex); PutString(" -> "); PutHex(tableIndex); PutString("\n");
 
 		PageDirectoryEntry* pde = (PageDirectoryEntry*)(0xFFFFF000 | (directoryIndex * 4));
 		PageTable* pt = (PageTable*)(0xFFC00000 | (directoryIndex << 12));
@@ -329,17 +392,20 @@ namespace Memory
 				"mov %%eax, %%cr3"
 			: : : "eax");
 
-			PutString("Memset! ");
+			//PutString("Memset! ");
 			memset(pt, 0, sizeof(PageTable));
-			PutString("Ok~!\n");
+			//PutString("Ok~!\n");
 		}
 
 		pte->address = ((unsigned)physAddress >> 12);
 		pte->flags = PAGE_TABLE_FLAG_PRESENT | PAGE_TABLE_FLAG_READ_WRITE | PAGE_TABLE_FLAG_SUPERVISOR;
+
+		EXIT_CRITICAL_SECTION();
 	}
 
 	void* Map(void* physAddress, void* logicAddress, unsigned length)
 	{
+		ENTER_CRITICAL_SECTION();
 		if(!logicAddress)
 		{
 			logicAddress = FindFreeLogicalSpace(length);
@@ -348,7 +414,7 @@ namespace Memory
 		}
 
 		length = (length + 0xFFF) >> 12;
-		PutString("Mapping len: "); PutHex(length); PutString("\n");
+		//PutString("Mapping len: "); PutHex(length); PutString("\n");
 
 		void* cPhysAddress = physAddress;
 		void* cLogicAddress = logicAddress;
@@ -362,17 +428,42 @@ namespace Memory
 			cLogicAddress = (void*)((char *)cLogicAddress + 0x1000);
 		}
 
+		EXIT_CRITICAL_SECTION();
 		return logicAddress;
+	}
+
+	PageDirectory* GetLogicPageDirectory()
+	{
+		return (PageDirectory*)0xFFFFFC00;
+	}
+
+	PageTable* GetLogicPageTable(u16 index)
+	{
+		return (PageTable*)(0xFFC00000 | (index << 12));
 	}
 
 	void Unmap(void* logicAddress)
 	{
+		ENTER_CRITICAL_SECTION();
+
 		// TODO: unmap
 		// TODO: free page table if empty
+
+		auto dirIndex = ((u32)logicAddress) >> 22;
+		auto tableIndex = (((u32)logicAddress) >> 12) & 0x3ff;
+		
+		auto pageTable = GetLogicPageTable(dirIndex);
+		auto entry = &pageTable->entries[tableIndex];
+		
+		entry->address = 0;
+		entry->flags &= ~PAGE_TABLE_FLAG_PRESENT;
+
+		EXIT_CRITICAL_SECTION();
 	}
 
 	void* Alloc(unsigned allocSize)
 	{
+		ENTER_CRITICAL_SECTION();
 		// TODO: it doesn't need to alloc continuous memory because of mapping...
 
 		allocSize = (allocSize + 0xFFF) & (~0xFFF);
@@ -390,7 +481,7 @@ namespace Memory
 
 		if(!logicAddr)
 		{
-			PutString("Couldn't find free lofical space~!");
+			PutString("Couldn't find free logical space~!");
 			for(;;);
 
 			FreePhys(physAddr);
@@ -398,15 +489,30 @@ namespace Memory
 		}
 
 		Map(physAddr, logicAddr, allocSize);
+
+		EXIT_CRITICAL_SECTION();
 		return logicAddr;
 	}
 
 	void Free(void* logicAddress)
 	{
-		// TODO
-		//FreePhys(physAddress);
+		ENTER_CRITICAL_SECTION();
 
+		// TODO
+		auto dirIndex = ((u32)logicAddress) >> 22;
+		auto tableIndex = (((u32)logicAddress) >> 12) & 0x3ff;
+		
+		auto pageTable = GetLogicPageTable(dirIndex);
+		auto entry = &pageTable->entries[tableIndex];
+		auto physAddress = entry->GetAddress();
+
+		PutString("Freeing phys memory!\n");
+		FreePhys(physAddress);
+
+		PutString("Unmapping memory!\n");
 		Unmap(logicAddress);
+
+		EXIT_CRITICAL_SECTION();
 	}
 
 	void PrintMemoryMap()

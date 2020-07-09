@@ -34,7 +34,7 @@ struct PageDirectoryEntry
 	unsigned flags : 12;
 	unsigned address : 20;
 
-	//void* GetAddress() { return (void*)(address << 12); }
+	void* GetAddress() { return (void*)(address << 12); }
 	//void SetAddress(void* address) { this->address = ((unsigned)address) >> 12; } // TODO: add assert
 
 	bool IsUsed() { return flags & PAGE_DIRECTORY_FLAG_PRESENT; }

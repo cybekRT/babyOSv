@@ -5,7 +5,7 @@ ifeq ($(OS),Windows_NT)
 	BOCHS		= D:\Programs\Bochs\bochsdbg-p4-smp.exe -f bochs-win.cfg
 	OUT		= $(PWD)/out
 	GCC_PREFIX	= i386-elf-
-	QEMU		= D:\Programs\Qemu\qemu-system-i386.exe
+	QEMU		= D:/Programs/Qemu/qemu-system-i386.exe
 	DD		= D:\Programs\Cygwin\bin\dd
 	# qemu-system-i386
 	PCEM		= D:\Programs\PCem\PCem.exe
@@ -68,7 +68,8 @@ clean:
 #	$(MAKE) -C src clean
 
 qemu: floppy.img
-	$(QEMU) -fda $< -boot ac -m 32 -d int -monitor stdio -d int -no-reboot -no-shutdown 
+	$(QEMU) -fda $< -boot ac -m 32 -d int -monitor stdio 2> /dev/null
+	#-d int -no-reboot -no-shutdown 
 	# -no-reboot -no-shutdown 
 
 bochs: floppy.img

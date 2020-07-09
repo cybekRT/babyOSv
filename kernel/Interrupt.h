@@ -100,4 +100,15 @@ namespace Interrupt
 		else
 			return 0xFF;
 	}
+
+	inline void AckIRQ()
+	{
+		__asm(
+		"mov $0x20, %%dx \r\n"
+		"mov $0x20, %%al \r\n"
+		"out %%al, %%dx \r\n"
+		: 
+		:
+		: "eax", "edx");
+	}
 }
