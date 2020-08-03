@@ -4,9 +4,6 @@ extern void* kernel_end;
 
 // TODO: stop using bubble sort everywhere! Optimmize sorting algorithms in allocator~!
 
-#define ENTER_CRITICAL_SECTION() {__asm("pushf"); __asm("cli");}
-#define EXIT_CRITICAL_SECTION() {__asm("popf");}
-
 void memset(void* ptr, unsigned char c, unsigned len)
 {
 	unsigned char* p = (unsigned char*)ptr;
@@ -178,9 +175,63 @@ namespace Memory
 		for(;;);
 	}
 
+	template<typename T>
+	void Swap(T &a, T &b)
+	{
+		T old = a;
+		a = b;
+		b = old;
+	}
+
+	void SortMemoryMap()
+	{
+		ENTER_CRITICAL_SECTION();
+
+		PutString("Sorting... ");
+		// TODO:
+		MemoryMap* currentMap = &memoryMap;
+		while(currentMap != nullptr)
+		{
+			bool changed;
+
+			do
+			{
+				changed = false;
+				for(unsigned a = 1; a < sizeof(currentMap->used); a++)
+				{
+					if(currentMap->address[a] == 0)
+						continue;
+
+					if(currentMap->address[a] < currentMap->address[a - 1])
+					{
+						auto oldAddr = currentMap->address[a - 1];
+						currentMap->address[a - 1] = currentMap->address[a];
+						currentMap->address[a] = oldAddr;
+
+						auto oldUsed = currentMap->used[a - 1];
+						currentMap->used[a - 1] = currentMap->used[a];
+						currentMap->used[a] = oldUsed;
+
+						auto oldLen = currentMap->length[a - 1];
+						currentMap->length[a - 1] = currentMap->length[a];
+						currentMap->length[a] = oldLen;
+
+						//Swap(currentMap->address[a - 1]. currentMap->address[a]);
+					}
+				}
+			} while(changed);
+
+			currentMap = currentMap->next;
+		}
+
+		EXIT_CRITICAL_SECTION();
+	}
+
 	void MergeMemoryMap()
 	{
 		ENTER_CRITICAL_SECTION();
+
+		SortMemoryMap();
 
 		PutString("Merging... ");
 		// TODO:
@@ -242,9 +293,9 @@ namespace Memory
 			for(unsigned a = 0; a < sizeof(currentMap->used); a++)
 			{
 				//PutString( currentMap->used[a] ? "u " : "F " );
-				PutHex((unsigned)currentMap->address[a]);
+				//PutHex((unsigned)currentMap->address[a]);
 				//PutString(" - ");
-				PutHex((unsigned)currentMap->length[a]);
+				//PutHex((unsigned)currentMap->length[a]);
 				//PutString("\n");
 				if(currentMap->address[a] == 0)
 					continue;
@@ -517,6 +568,8 @@ namespace Memory
 
 	void PrintMemoryMap()
 	{
+		ENTER_CRITICAL_SECTION();
+
 		PutString("\n");
 		PutString("===== Memory map =====\n");
 
@@ -553,5 +606,108 @@ namespace Memory
 		PutString("Total: "); PutHex( free + used ); PutString("\n");
 
 		PutString("======================\n");
+		EXIT_CRITICAL_SECTION();
+	}
+
+	struct MallocHeader
+	{
+		u32 length;
+		MallocHeader* next;
+		u8 padding[8];
+	} __attribute__((packed));
+
+	MallocHeader* mallocPage = nullptr;
+
+	bool MallocResize(unsigned bytes)
+	{
+		u32 totalSize = ((bytes + sizeof(MallocHeader)) + 0xFFF) & (~0xFFF);
+		auto newHeader = (MallocHeader*)Alloc(totalSize); // TODO: use pages count
+		if(!newHeader)
+			return false;
+
+		newHeader->length = totalSize - sizeof(MallocHeader);
+		newHeader->next = nullptr;
+
+		if(mallocPage == nullptr)
+		{
+			mallocPage = newHeader;
+		}
+		else
+		{
+			auto ptr = mallocPage;
+			while(ptr->next != nullptr)
+				ptr = ptr->next;
+
+			ptr->next = newHeader;
+		}
+
+		return true;
+	}
+
+	void* Malloc(unsigned bytes)
+	{
+		bytes = (bytes + 3) & (~3);
+		
+		ENTER_CRITICAL_SECTION();
+		PutString("Malloc: "); PutHex(bytes); PutString("\n");
+		EXIT_CRITICAL_SECTION();
+
+		if(mallocPage == nullptr)
+		{
+			PutString("Malloc resize...\n");
+			if(!MallocResize(bytes))
+				return nullptr;
+		}
+
+		// First fit
+		auto ptr = mallocPage;
+		auto prevPtr = (MallocHeader*)nullptr;
+		while(ptr)
+		{
+			PutString("Cur len: "); PutHex(ptr->length); PutString(" >=? "); PutHex(bytes); PutString("\n");
+			if(ptr->length >= bytes)
+			{
+				if(ptr->length >= bytes + sizeof(MallocHeader))
+				{
+					PutString("A ");
+					auto oldLength = ptr->length;
+					auto oldNext = ptr->next;
+					auto newHeader = (MallocHeader*)(((char*)ptr) + bytes);
+
+					ptr->length = bytes;
+					ptr->next = newHeader;
+
+					newHeader->length = oldLength - bytes - sizeof(MallocHeader);
+					newHeader->next = oldNext;
+				}
+				else
+				{
+					PutString("B ");
+				}
+
+				if(prevPtr)
+					prevPtr->next = ptr->next;
+				else
+					mallocPage = ptr->next;
+
+				return (void*)(ptr + 1);
+			}
+
+			if(ptr->next == nullptr)
+			{
+				//if(!MallocResize(bytes))
+				//	return nullptr;
+			}
+
+			prevPtr = ptr;
+			ptr = ptr->next;
+		}
+
+		return nullptr;
+	}
+
+	void Mfree(void* ptr)
+	{
+
 	}
 }

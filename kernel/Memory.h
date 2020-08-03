@@ -65,4 +65,7 @@ namespace Memory
 	// Logical allocator
 	void* Alloc(unsigned allocSize);
 	void Free(void* ptr);
+
+	void* Malloc(unsigned bytes);
+	void Mfree(void* ptr);
 }

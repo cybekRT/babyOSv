@@ -41,17 +41,20 @@ void HAL_Out(unsigned short port, unsigned char data)
 
 void PutChar(char c)
 {
+	ENTER_CRITICAL_SECTION();
+
 	static int p = 0;
 
 	if(c == '\n')
 	{
 		p += 160;
 		p -= p % 160;
+		EXIT_CRITICAL_SECTION();
 		return;
 	}
 
-	__asm("pushf");
-	__asm("cli");
+	//__asm("pushf");
+	//__asm("cli");
 	if(p >= 80*24*2)
 	{
 		unsigned short* src = (unsigned short*)0x800b80a0;
@@ -75,7 +78,8 @@ void PutChar(char c)
 	vmem[p + 1] = 0x07;
 	p+=2;
 
-	__asm("popf");
+	//__asm("popf");
+	EXIT_CRITICAL_SECTION();
 }
 
 void PutString(const char* s)
@@ -117,12 +121,24 @@ extern "C" void kmain()
 	for(unsigned a = 0; a < 80 * 25 * 2; a++) data[a] = 0x0700;
 
 	Memory::Init(bootloader_info_ptr->memoryEntries, *bootloader_info_ptr->memoryEntriesCount);
+
+//	u32 stackLength = 8192;
+//	u8* stack = (u8*)Memory::Alloc(stackLength);
+//	__asm("mov %0, %%esp" : : "r"(stack + stackLength));
+//HALT;
 	Interrupt::Init();
 	Timer::Init();
 	Keyboard::Init();
 	
 	Memory::PrintMemoryMap();
 	PutString("Kernel halted~!");
+
+	//PutString("\nAlloc: "); PutHex((u32)Memory::Malloc(7));
+	//PutString("\nAlloc: "); PutHex((u32)Memory::Malloc(32));
+	//PutString("\nAlloc: "); PutHex((u32)Memory::Malloc(512));
+	//PutString("\nAlloc: "); PutHex((u32)Memory::Malloc(7));
+
+	HALT;
 
 	/*for(;;)
 	{
@@ -134,10 +150,11 @@ extern "C" void kmain()
 	{
 		while(Keyboard::HasData())
 		{
-			auto x = Keyboard::ReadData();
+			auto x = 0;//Keyboard::ReadData();
 			PutString("Kbd: "); PutHex(x); PutString("\n");
 
-			Memory::PrintMemoryMap();
+			if(x == 0x32)
+				Memory::PrintMemoryMap();
 		}
 
 		//__asm("cli");
