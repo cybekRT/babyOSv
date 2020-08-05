@@ -59,6 +59,23 @@ public:
 		return itemData;
 	}
 
+	X Front()
+	{
+		ASSERT(!IsEmpty(), "Pop from empty linked list");
+		return data->value;
+	}
+
+	X Back()
+	{
+		ASSERT(!IsEmpty(), "Pop from empty linked list");
+		
+		auto item = data;
+		while(item->next)
+			item = item->next;
+
+		return item->value;
+	}
+
 	bool IsEmpty()
 	{
 		return data == nullptr;

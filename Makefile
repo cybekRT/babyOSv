@@ -11,7 +11,7 @@ ifeq ($(OS),Windows_NT)
 	PCEM		= D:\Programs\PCem\PCem.exe
 	VBOXMANAGE	= C:/Program\ Files/VirtualBox/VBoxManage.exe
 else
-	BOCHS		= bochs -f bochs.cfg
+	BOCHS		= /usr/local/osdev/bin/bochs -f bochs.cfg
 	OUT		= $(PWD)/out
 	GCC_PREFIX	= /usr/local/osdev/bin/i386-elf-
 	QEMU		= qemu-system-i386

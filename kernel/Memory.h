@@ -1,3 +1,5 @@
+#pragma once
+
 enum PageDirectoryFlag
 {
 	PAGE_DIRECTORY_FLAG_PRESENT		= (1 << 0),

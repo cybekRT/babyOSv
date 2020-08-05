@@ -173,6 +173,7 @@ namespace Interrupt
 		//Register(INT_DIVISION_BY_ZERO, ISR_GPF);
 
 		Register(IRQ2INT(IRQ_TIMER), ISR_IRQ_Dummy);
+		Register(IRQ2INT(IRQ_LPT1), ISR_IRQ_Dummy);
 		__asm("sti");
 		//for(;;);
 
@@ -182,7 +183,6 @@ namespace Interrupt
 		//HALT
 
 		//__asm("sti");
-BREAK
 		//__asm("int $0");
 
 		return true;
