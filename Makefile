@@ -72,6 +72,9 @@ qemu: floppy.img
 	#-d int -no-reboot -no-shutdown 
 	# -no-reboot -no-shutdown 
 
+qemu-dbg: floppy.img
+	$(QEMU) -fda $< -boot ac -m 32 -d int -s -S -monitor stdio 2> /dev/null
+
 bochs: floppy.img
 	$(BOCHS) -q
 

@@ -665,15 +665,16 @@ namespace Memory
 		while(ptr)
 		{
 			PutString("Cur len: "); PutHex(ptr->length); PutString(" >=? "); PutHex(bytes); PutString("\n");
+
 			if(ptr->length >= bytes)
 			{
 				if(ptr->length >= bytes + sizeof(MallocHeader))
 				{
 					PutString("A ");
+
 					auto oldLength = ptr->length;
 					auto oldNext = ptr->next;
 					auto newHeader = (MallocHeader*)(((char*)ptr) + bytes);
-
 					ptr->length = bytes;
 					ptr->next = newHeader;
 
@@ -695,8 +696,8 @@ namespace Memory
 
 			if(ptr->next == nullptr)
 			{
-				//if(!MallocResize(bytes))
-				//	return nullptr;
+				if(!MallocResize(bytes))
+					return nullptr;
 			}
 
 			prevPtr = ptr;

@@ -10,7 +10,7 @@ start:
 	mov	cx, (BOOT2_SIZE + 511) / 512
 	mov	bx, 0
 	mov	es, bx
-	mov	bx, KERNEL_ADDR
+	mov	bx, BOOT2_ADDR
 
 .loop:
 	call	ReadSector
@@ -18,7 +18,7 @@ start:
 	add	bx, 512
 	loop	.loop
 
-	jmp	0x0:KERNEL_ADDR
+	jmp	0x0:BOOT2_ADDR
 
 .fail:
 	mov	bx, 0xb800

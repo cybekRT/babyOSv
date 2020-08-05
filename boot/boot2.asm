@@ -1,11 +1,13 @@
 %include "global.inc"
 
 [bits 16]
-[org KERNEL_ADDR]
+[org BOOT2_ADDR]
 
 main16:
 	mov	bx, 0
 	mov	ds, bx
+
+	mov	esp, stackBegin
 
 	; Read kernel.bin
 	mov	ax, (kmain - main16 + 511) / 512 + 1
@@ -156,7 +158,11 @@ istruc bootloader_info
 	at bootloader_info.pageDirectory, dd PageDirectory
 iend
 
-times 0x1000 - ($ - $$ + KERNEL_ADDR) db 0
+stackEnd:
+times 128 db 0
+stackBegin:
+
+times 0x1000 - ($ - $$ + BOOT2_ADDR) db 0
 
 PageDirectory:
 	times 1024 dd 0
@@ -168,10 +174,10 @@ PageTable:
 	%assign i i+4096
 	%endrep
 
-times 0x3000 - KERNEL_ADDR - ($ - $$) db 0
+times KERNEL_ADDR - BOOT2_ADDR - ($ - $$) db 0
 kmain:
 ;	incbin "c/kernel.bin"
 
-%if ($ - $$ + KERNEL_ADDR) >= 0x7c00
+%if (KERNEL_ADDR + KERNEL_SIZE) >= 0x7c00
 	%error "Kernel too big!"
 %endif

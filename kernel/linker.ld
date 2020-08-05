@@ -1,8 +1,7 @@
 ENTRY(main)
 OUTPUT_FORMAT(elf32-i386)
 
-#stack_size = 0x400;
-stack_size = 0x1000;
+stack_size = 0x100;
 
 SECTIONS
 {
@@ -20,7 +19,7 @@ SECTIONS
 		*(COMMON)
 		*(.bss)
 		*(.eh_frame)
-		
+
 		stack_end = .;
 		. = . + stack_size;
 		stack_beg = .;
