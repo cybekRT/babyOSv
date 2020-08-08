@@ -495,9 +495,9 @@ namespace Memory
 
 	void Unmap(void* logicAddress)
 	{
+		ASSERT( (((u32)logicAddress) & 0x3ff) == 0, "Unmapping unaligned address");
 		ENTER_CRITICAL_SECTION();
 
-		// TODO: unmap
 		// TODO: free page table if empty
 
 		auto dirIndex = ((u32)logicAddress) >> 22;
@@ -506,8 +506,17 @@ namespace Memory
 		auto pageTable = GetLogicPageTable(dirIndex);
 		auto entry = &pageTable->entries[tableIndex];
 		
+		ASSERT(entry->flags & PAGE_TABLE_FLAG_PRESENT, "Unmapping absent entry");
+
 		entry->address = 0;
 		entry->flags &= ~PAGE_TABLE_FLAG_PRESENT;
+
+		// Invalidate page
+		// TODO: supported since 486 :(
+		__asm(
+			"invlpg (%0)"
+			: : "r"(logicAddress)
+		);
 
 		EXIT_CRITICAL_SECTION();
 	}
@@ -560,7 +569,7 @@ namespace Memory
 		PutString("Freeing phys memory!\n");
 		FreePhys(physAddress);
 
-		PutString("Unmapping memory!\n");
+		PutString("Unmapping memory: "); PutHex((u32)logicAddress); PutString("\n");
 		Unmap(logicAddress);
 
 		EXIT_CRITICAL_SECTION();
@@ -649,7 +658,7 @@ namespace Memory
 		bytes = (bytes + 3) & (~3);
 		
 		ENTER_CRITICAL_SECTION();
-		PutString("Malloc: "); PutHex(bytes); PutString("\n");
+		// PutString("Malloc: "); PutHex(bytes); PutString("\n");
 		EXIT_CRITICAL_SECTION();
 
 		if(mallocPage == nullptr)
@@ -664,17 +673,17 @@ namespace Memory
 		auto prevPtr = (MallocHeader*)nullptr;
 		while(ptr)
 		{
-			PutString("Cur len: "); PutHex(ptr->length); PutString(" >=? "); PutHex(bytes); PutString("\n");
+			// PutString("Cur len: "); PutHex(ptr->length); PutString(" >=? "); PutHex(bytes); PutString("\n");
 
 			if(ptr->length >= bytes)
 			{
 				if(ptr->length >= bytes + sizeof(MallocHeader))
 				{
-					PutString("A ");
+					// PutString("A ");
 
 					auto oldLength = ptr->length;
 					auto oldNext = ptr->next;
-					auto newHeader = (MallocHeader*)(((char*)ptr) + bytes);
+					auto newHeader = (MallocHeader*)(((char*)ptr) + bytes + sizeof(MallocHeader));
 					ptr->length = bytes;
 					ptr->next = newHeader;
 
@@ -683,7 +692,7 @@ namespace Memory
 				}
 				else
 				{
-					PutString("B ");
+					// PutString("B ");
 				}
 
 				if(prevPtr)
@@ -691,7 +700,7 @@ namespace Memory
 				else
 					mallocPage = ptr->next;
 
-				return (void*)(ptr + 1);
+				return (void*)(ptr + 1); // Return memory after header
 			}
 
 			if(ptr->next == nullptr)

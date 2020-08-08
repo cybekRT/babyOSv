@@ -16,7 +16,8 @@ public:
 
 	void PushBack(X value)
 	{
-		LinkedListItem<X>* item = (LinkedListItem<X>*)Memory::Alloc(sizeof(*item));
+		LinkedListItem<X>* item = (LinkedListItem<X>*)Memory::Malloc(sizeof(*item));
+
 		item->value = value;
 		item->next = nullptr;
 
@@ -29,13 +30,13 @@ public:
 			LinkedListItem<X>* ptr = data;
 			while(ptr->next != nullptr)
 			{
+				ASSERT(ptr != ptr->next, "LinkedList next pointing to itself");
+				
 				ptr = ptr->next;
 			}
 
 			ptr->next = item;
 		}
-
-		PutString("Added data: "); PutHex((u32)item); PutString("\n");
 	}
 
 	/*void Remove(X value)
@@ -55,7 +56,7 @@ public:
 		auto item = data;
 		data = item->next;
 		auto itemData = item->value;
-		Memory::Free(item);
+		Memory::Mfree(item);
 		return itemData;
 	}
 
@@ -83,12 +84,9 @@ public:
 
 	u32 Size()
 	{
-		if(data == nullptr)
-			return 0;
-
-		u32 count = 1;
-		typeof(data) ptr = data;
-		while(ptr->next)
+		u32 count = 0;
+		auto ptr = data;
+		while(ptr)
 		{
 			ptr = ptr->next;
 			count++;

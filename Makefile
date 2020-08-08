@@ -59,12 +59,14 @@ out/kmain_startup.o: kernel/kmain_startup.asm
 	$(NASM) -felf $< -o $@
 
 out/%.d: kernel/%.cpp
-	$(GCC) $(GCC_FLAGS) -c -MD -MF $@ $<
+	$(GCC) $(GCC_FLAGS) -c -MD -MT $(@:%.d=%.o) -MF $@ $<
 
+ifneq ($(MAKECMDGOALS), clean)
 -include $(DEPS)
+endif
 
 clean:
-	rm out/* floppy.img || true
+	rm out/* floppy.img 2>/dev/null || true
 #	$(MAKE) -C src clean
 
 qemu: floppy.img
