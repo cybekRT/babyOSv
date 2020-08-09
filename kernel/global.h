@@ -24,12 +24,10 @@ typedef sint8 s8;
 #define BREAK {__asm("xchg %%bx, %%bx" : : : "bx");}
 #define HALT {for(;;){__asm("cli\nhlt\n");}}
 
-#define ENTER_CRITICAL_SECTION() {__asm("pushf"); __asm("cli");}
-#define EXIT_CRITICAL_SECTION() {__asm("popf");}
-
-void PutString(const char* s);
-void PutHex(unsigned long v);
-void PutChar(char c);
+#define ENTER_CRITICAL_SECTION() //{__asm("pushf"); __asm("cli");}
+#define EXIT_CRITICAL_SECTION() //{__asm("popf");}
 
 u8 HAL_In(u16 port);
 void HAL_Out(u16 port, u8 data);
+
+#include"Terminal.h"
