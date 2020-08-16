@@ -1,0 +1,24 @@
+{
+    "configurations": [
+        {
+            "name": "Mac",
+            "includePath": [
+                "${workspaceFolder}/kernel"
+            ],
+            "defines": [],
+            "macFrameworkPath": [],
+            "intelliSenseMode": "gcc-x86",
+            "compilerPath": "/usr/local/osdev/bin/i386-elf-gcc",
+            "cStandard": "c11",
+            "cppStandard": "gnu++14",
+            "compilerArgs": [
+				"-include kernel/global.h",
+				"-std=gnu++1z",
+				"-mgeneral-regs-only",
+				"-fno-isolate-erroneous-paths-attribute",
+				"-fno-asynchronous-unwind-tables"
+            ]
+        }
+    ],
+    "version": 4
+}
