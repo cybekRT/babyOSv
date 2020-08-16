@@ -1,5 +1,6 @@
 #include"Interrupt.h"
 #include"Memory.h"
+#include"HAL.h"
 
 struct IDT_Entry
 {
@@ -63,9 +64,6 @@ struct IDT_Handle
 	IDT* address;
 } __attribute__((packed));
 
-u8 HAL_In(u16 port);
-void HAL_Out(u16 port, u8 data);
-
 namespace Interrupt
 {
 	IDT_Handle idtHandle;
@@ -87,15 +85,66 @@ namespace Interrupt
 		PutHex((unsigned)ptr);
 		PutString("\n");
 
-		HAL_Out(0x20, 0x20);
+		HAL::Out(0x20, 0x20);
 	}
 
-	__attribute__ ((interrupt))
-	void ISR_GPF(void* ptr)
+	struct ISR_Registers
 	{
+		u32 eip;
+		u32 cs;
+		u32 eflags;
+		u32 esp;
+		u32 ss;
+
+		u32 eax;
+		u32 ebx;
+		u32 ecx;
+		u32 edx;
+		u32 esi;
+		u32 edi;
+		u32 ebp;
+
+		//u16 cs;
+		u16 ds;
+		u16 es;
+		u16 fs;
+		u16 gs;
+	};
+
+	__attribute__ ((interrupt))
+	void ISR_GPF(ISR_Registers* _registers, u32 errorCode)
+	{
+		__asm("cli");
 		PutString("\n===== General Protection Fault =====\n");
 
-		u32* p = (u32*)ptr;
+		//Terminal::Print("");
+
+		ISR_Registers regs = *_registers;
+		__asm("mov %%eax, %0" : "=m"(regs.eax));
+		__asm("mov %%ebx, %0" : "=m"(regs.ebx));
+		__asm("mov %%ecx, %0" : "=m"(regs.ecx));
+		__asm("mov %%edx, %0" : "=m"(regs.edx));
+		__asm("mov %%esi, %0" : "=m"(regs.esi));
+		__asm("mov %%edi, %0" : "=m"(regs.edi));
+		__asm("mov %%ebp, %0" : "=m"(regs.ebp));
+
+		__asm("mov %%ds, %%bx \n mov %%bx, %0" : "=m"(regs.ds) : : "bx");
+		__asm("mov %%es, %%bx \n mov %%bx, %0" : "=m"(regs.es) : : "bx");
+		__asm("mov %%fs, %%bx \n mov %%bx, %0" : "=m"(regs.fs) : : "bx");
+		__asm("mov %%gs, %%bx \n mov %%bx, %0" : "=m"(regs.gs) : : "bx");
+
+		Print("Address: %x:%x\n", regs.cs, regs.eip);
+		Print("Flags:   %x\n", regs.eflags);
+		Print("Stack:   %x:%x, %x\n", regs.ss, regs.esp, regs.ebp);
+
+		Print("EAX: %x, EBX: %x, ECX: %x, EDX: %x\n", regs.eax, regs.ebx, regs.ecx, regs.edx);
+		Print("ESI: %x, EDI: %x\n", regs.esi, regs.edi);
+		Print("DS: %x, ES: %x, FS: %x, GS: %x\n", regs.ds, regs.es, regs.fs, regs.gs);
+
+		HALT;
+
+		u32* p = (u32*)_registers;
+		PutHex(errorCode); PutString("\n");
 		PutHex(p[0]); PutString("\n");
 		PutHex(p[1]); PutString("\n");
 		PutHex(p[2]); PutString("\n");
@@ -106,7 +155,7 @@ namespace Interrupt
 		PutHex(p[7]); PutString("\n");
 		PutHex(p[8]); PutString("\n");
 
-		PutHex((u32)ptr);
+		PutHex((u32)_registers);
 
 		HALT
 	}
@@ -146,14 +195,14 @@ namespace Interrupt
 		PutHex((unsigned)(&idtHandle));
 		PutString("\n");
 
-		HAL_Out(PIC0_PORT_CMD, PIC_CMD_INIT);
-		HAL_Out(PIC0_PORT_DATA, INT_PIC0_OFFSET);
-		HAL_Out(PIC0_PORT_DATA, ICW1_INTERVAL4);
-		HAL_Out(PIC0_PORT_DATA, ICW4_8086);
-		HAL_Out(PIC1_PORT_CMD, PIC_CMD_INIT);
-		HAL_Out(PIC1_PORT_DATA, INT_PIC1_OFFSET);
-		HAL_Out(PIC1_PORT_DATA, ICW1_SINGLE);
-		HAL_Out(PIC1_PORT_DATA, ICW4_8086);
+		HAL::Out(PIC0_PORT_CMD, PIC_CMD_INIT);
+		HAL::Out(PIC0_PORT_DATA, INT_PIC0_OFFSET);
+		HAL::Out(PIC0_PORT_DATA, ICW1_INTERVAL4);
+		HAL::Out(PIC0_PORT_DATA, ICW4_8086);
+		HAL::Out(PIC1_PORT_CMD, PIC_CMD_INIT);
+		HAL::Out(PIC1_PORT_DATA, INT_PIC1_OFFSET);
+		HAL::Out(PIC1_PORT_DATA, ICW1_SINGLE);
+		HAL::Out(PIC1_PORT_DATA, ICW4_8086);
 
 		/*idt->entries[0].SetAddress(Dummy);
 		int v = int(IDT_Entry::Flag::IDT_FLAG_32BIT_INT_GATE) | int(IDT_Entry::Flag::IDT_FLAG_ENTRY_PRESENT);
@@ -168,22 +217,18 @@ namespace Interrupt
 
 		//Register(0, Dummy);
 		//Register(INT_GENERAL_PROTECTION_FAULT, ISR_GPF);
-		Register(INT_DOUBLE_FAULT, ISR_GPF);
-		Register(INT_PAGE_FAULT, ISR_GPF);
+		Register(INT_DOUBLE_FAULT, (ISR)ISR_GPF);
+		Register(INT_PAGE_FAULT, (ISR)ISR_GPF);
 		//Register(INT_DIVISION_BY_ZERO, ISR_GPF);
 
-		Register(IRQ2INT(IRQ_TIMER), ISR_IRQ_Dummy);
+		/*for(unsigned a = 0; a < 16; a++)
+		{
+			Register(IRQ2INT(a), ISR_IRQ_Dummy);
+		}*/
+
+		//Register(IRQ2INT(IRQ_TIMER), ISR_IRQ_Dummy);
 		Register(IRQ2INT(IRQ_LPT1), ISR_IRQ_Dummy);
-		__asm("sti");
-		//for(;;);
-
-		PutString("Flags: ");
-		PutHex((unsigned)idt->entries[0].flags);
-		PutString("\n");
-		//HALT
-
 		//__asm("sti");
-		//__asm("int $0");
 
 		return true;
 	}
@@ -213,5 +258,29 @@ namespace Interrupt
 				return;
 			}
 		}
+	}
+
+	u32 disableCount = 1;
+	void Enable()
+	{
+		ASSERT(disableCount > 0, "Interrupts disableCount == 0");
+
+		disableCount--;
+		if(disableCount == 0)
+		{
+			__asm("sti");
+			Print("Interrupts enabled!\n"); // FIXME: probably bad idea to print here
+		}
+	}
+
+	void Disable()
+	{
+		if(disableCount == 0)
+		{
+			__asm("cli");
+			Print("Interrupts disabled!\n"); // FIXME: probably bad idea to print here
+		}
+
+		disableCount++;
 	}
 }

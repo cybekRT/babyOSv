@@ -1,5 +1,6 @@
 #include"Timer.h"
 #include"Interrupt.h"
+#include"HAL.h"
 
 const u8 PIT_PORT_CHANNEL_0	= 0x40;
 const u8 PIT_PORT_CHANNEL_1	= 0x41;
@@ -45,15 +46,9 @@ namespace Timer
 	{
 		Interrupt::Register(Interrupt::IRQ2INT(Interrupt::IRQ_TIMER), ISR_Timer);
 
-		HAL_Out(PIT_PORT_COMMAND, PIT_COMMAND_CHANNEL_0 | PIT_COMMAND_AMODE_LOHIBYTE | PIT_COMMAND_OPMODE_3 | PIT_COMMAND_BMODE_BINARY);
-		HAL_Out(PIT_PORT_CHANNEL_0, 0xA9);
-		HAL_Out(PIT_PORT_CHANNEL_0, 0x04);
-
-		Print("Testing timer...\n");
-		Print("100ms - "); Delay(100); Print("OK - %u\n", GetTicks());
-		Print("500ms - "); Delay(500); Print("OK - %u\n", GetTicks());
-		Print("1000ms - "); Delay(1000); Print("OK - %u\n", GetTicks());
-		Print("2000ms - "); Delay(2000); Print("OK - %u\n", GetTicks());
+		HAL::Out(PIT_PORT_COMMAND, PIT_COMMAND_CHANNEL_0 | PIT_COMMAND_AMODE_LOHIBYTE | PIT_COMMAND_OPMODE_3 | PIT_COMMAND_BMODE_BINARY);
+		HAL::Out(PIT_PORT_CHANNEL_0, 0xA9);
+		HAL::Out(PIT_PORT_CHANNEL_0, 0x04);
 
 		return true;
 	}
@@ -63,8 +58,19 @@ namespace Timer
 		return ticks;
 	}
 
+	bool tested = false;
 	void Delay(u32 ms)
 	{
+		if(!tested)
+		{
+			tested = true;
+			Print("Testing timer...\n");
+			Print("100ms - "); Delay(100); Print("OK - %u\n", GetTicks());
+			Print("500ms - "); Delay(500); Print("OK - %u\n", GetTicks());
+			Print("1000ms - "); Delay(1000); Print("OK - %u\n", GetTicks());
+			Print("2000ms - "); Delay(2000); Print("OK - %u\n", GetTicks());
+		}
+
 		u64 time = ticks + ms;
 		while(ticks < time)
 		{

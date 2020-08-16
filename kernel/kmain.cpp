@@ -14,32 +14,6 @@ int strlen(const char* str)
 	return len;
 }
 
-unsigned char HAL_In(unsigned short port)
-{
-	unsigned char value;
-
-	__asm(
-	"mov %1, %%dx \r\n"
-	"in %%dx, %%al \r\n"
-	"mov %%al, %0 \r\n"
-	: "=r"(value) 
-	: "r"(port)
-	: "eax", "edx");
-
-	return value;
-}
-
-void HAL_Out(unsigned short port, unsigned char data)
-{
-	__asm(
-	"mov %0, %%dx \r\n"
-	"mov %1, %%al \r\n"
-	"out %%al, %%dx \r\n"
-	: 
-	: "r"(port), "r"(data)
-	: "eax", "edx");
-}
-
 extern "C" void kmain()
 {
 	ASSERT(sizeof(u64) == 8, "u64");
@@ -60,19 +34,28 @@ extern "C" void kmain()
 	Keyboard::Init();
 
 	Print("Test: %x, %d, %u\nAnd newline x: %s", 0xbaadf00d, -67, 631, "Line1\nLine2\nLine3!!!\n");
-	
 	Memory::PrintMemoryMap();
+	Interrupt::Enable();
 	PutString("Kernel halted~!\n");
 
+	//u8* x = (u8*)(0x1234);
+	//*x = 5;
+
+	Keyboard::KeyEvent keyEvent;
 	for(;;)
 	{
-		while(Keyboard::HasData())
+		/*while(Keyboard::HasData())
 		{
 			auto x = Keyboard::ReadData();
 			PutString("Kbd: "); PutHex(x); PutString("\n");
 
 			if(x == 0x32)
 				Memory::PrintMemoryMap();
+		}*/
+
+		while(Keyboard::ReadEvent(&keyEvent))
+		{
+			Print("Type: %x, Mod: %x, Key: %x\n", keyEvent.type, keyEvent.mod, keyEvent.key);
 		}
 
 		__asm("hlt");

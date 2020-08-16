@@ -1,6 +1,7 @@
 namespace Interrupt
 {
 	typedef void(*ISR)(void*);
+	typedef void(*ISR_Exception)(void*, u32);
 
 	bool Init();
 
@@ -111,4 +112,7 @@ namespace Interrupt
 		:
 		: "eax", "edx");
 	}
+
+	void Enable();
+	void Disable();
 }

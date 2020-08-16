@@ -27,7 +27,4 @@ typedef sint8 s8;
 #define ENTER_CRITICAL_SECTION() //{__asm("pushf"); __asm("cli");}
 #define EXIT_CRITICAL_SECTION() //{__asm("popf");}
 
-u8 HAL_In(u16 port);
-void HAL_Out(u16 port, u8 data);
-
 #include"Terminal.h"
