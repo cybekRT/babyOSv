@@ -22,13 +22,17 @@ endif
 
 GCC			= $(GCC_PREFIX)gcc
 LD			= $(GCC_PREFIX)ld
-GCC_FLAGS		= -include kernel/global.h -std=gnu++1z -mgeneral-regs-only -fno-isolate-erroneous-paths-attribute -fno-asynchronous-unwind-tables
+GCC_FLAGS	 = -include kernel/global.h -Ikernel/ -Iout/
+GCC_FLAGS	+= -mgeneral-regs-only -fno-isolate-erroneous-paths-attribute -fno-asynchronous-unwind-tables
+GCC_FLAGS	+= -Wall -Wextra -g3 -O0 -m32 -std=gnu++1z
 
-SOURCES = $(shell find kernel -name *.cpp)
+SOURCES	= $(shell find kernel -name *.cpp)
+AUTOGEN	= out/Keyboard_map.o kernel/Keyboard_map.h
 
-OBJS  = $(SOURCES:kernel/%.cpp=out/%.o)
-DEPS  = $(SOURCES:%.cpp=%.d)
-DEPS := $(DEPS:kernel%=out%)
+OBJS  	 = $(SOURCES:kernel/%.cpp=out/%.o) $(AUTOGEN)
+DEPS  	 = $(SOURCES:%.cpp=%.d)
+DEPS 	:= $(DEPS:kernel%=out%)
+#DEPS	+= $(AUTOGEN)
 
 #x:
 #	echo $(SOURCES)
@@ -53,26 +57,33 @@ out/kernel.bin: out/kernel.elf
 	$(GCC_PREFIX)objcopy -Obinary $< $@
 
 out/%.o: kernel/%.cpp kernel/linker.ld
-	$(GCC) $(GCC_FLAGS) -Wall -Wextra -Iinc/ -g3 -O0 -m32 -c $< -o $@ 
+	$(GCC) $(GCC_FLAGS) -c $< -o $@ 
+
+out/%.o: out/%.cpp kernel/linker.ld
+	$(GCC) $(GCC_FLAGS) -c $< -o $@ 
 
 out/kmain_startup.o: kernel/kmain_startup.asm
 	$(NASM) -felf $< -o $@
 
 out/%.d: kernel/%.cpp
-	$(GCC) $(GCC_FLAGS) -c -MD -MT $(@:%.d=%.o) -MF $@ $<
+	$(GCC) $(GCC_FLAGS) -MM -MT $(@:%.d=%.o) -MF $@ $<
+
+kernel/Keyboard_map.cpp: kernel/Keyboard_map.inc kernel/Keyboard_map.py
+	python3 kernel/Keyboard_map.py $@ $<
+
+kernel/Keyboard_map.h: kernel/Keyboard_map.inc kernel/Keyboard_map.py
+	python3 kernel/Keyboard_map.py $@ $<
 
 ifneq ($(MAKECMDGOALS), clean)
 -include $(DEPS)
 endif
 
 clean:
-	rm out/* floppy.img 2>/dev/null || true
-#	$(MAKE) -C src clean
+	rm out/* $(AUTOGEN) floppy.img 2>/dev/null || true
 
 qemu: floppy.img
 	$(QEMU) -fda $< -boot ac -m 32 -d int -monitor stdio 2> /dev/null
 	#-d int -no-reboot -no-shutdown 
-	# -no-reboot -no-shutdown 
 
 qemu-dbg: floppy.img
 	$(QEMU) -fda $< -boot ac -m 32 -d int -s -S -monitor stdio 2> /dev/null
@@ -85,3 +96,5 @@ pcem: floppy.img
 
 vbox: floppy.img
 	$(VBOXMANAGE) startvm "babyOSv" -E VBOX_GUI_DBG_AUTO_SHOW=true -E VBOX_GUI_DBG_ENABLED=true
+
+.PHONY: all clean qemu qemu-dbg bochs pcem vbox
