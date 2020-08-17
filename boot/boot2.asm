@@ -178,6 +178,6 @@ times KERNEL_ADDR - BOOT2_ADDR - ($ - $$) db 0
 kmain:
 ;	incbin "c/kernel.bin"
 
-%if (KERNEL_ADDR + KERNEL_SIZE) >= 0x7c00
-	%error "Kernel too big!"
-%endif
+;%if (KERNEL_ADDR + KERNEL_SIZE) >= 0x7c00
+;	%error "Kernel too big!"
+;%endif
