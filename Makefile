@@ -26,13 +26,12 @@ GCC_FLAGS	 = -include kernel/global.h -Ikernel/ -Iout/
 GCC_FLAGS	+= -mgeneral-regs-only -fno-isolate-erroneous-paths-attribute -fno-asynchronous-unwind-tables
 GCC_FLAGS	+= -Wall -Wextra -g3 -O0 -m32 -std=gnu++1z
 
-SOURCES	= $(shell find kernel -name *.cpp)
-AUTOGEN	= out/Keyboard_map.o kernel/Keyboard_map.h
+SOURCES	= $(shell find kernel -name *.cpp) kernel/Keyboard_map.cpp
+#AUTOGEN	= kernel/Keyboard_map.cpp kernel/Keyboard_map.h
 
-OBJS  	 = $(SOURCES:kernel/%.cpp=out/%.o) $(AUTOGEN)
+OBJS  	 = $(SOURCES:kernel/%.cpp=out/%.o) 
 DEPS  	 = $(SOURCES:%.cpp=%.d)
 DEPS 	:= $(DEPS:kernel%=out%)
-#DEPS	+= $(AUTOGEN)
 
 #x:
 #	echo $(SOURCES)
@@ -68,7 +67,9 @@ out/kmain_startup.o: kernel/kmain_startup.asm
 out/%.d: kernel/%.cpp
 	$(GCC) $(GCC_FLAGS) -MM -MT $(@:%.d=%.o) -MF $@ $<
 
-kernel/Keyboard_map.cpp: kernel/Keyboard_map.inc kernel/Keyboard_map.py
+out/Keyboard_map.o: kernel/Keyboard_map.cpp kernel/Keyboard_map.h
+
+kernel/Keyboard_map.cpp: kernel/Keyboard_map.inc kernel/Keyboard_map.h kernel/Keyboard_map.py
 	python3 kernel/Keyboard_map.py $@ $<
 
 kernel/Keyboard_map.h: kernel/Keyboard_map.inc kernel/Keyboard_map.py

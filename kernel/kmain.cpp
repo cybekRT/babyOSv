@@ -55,7 +55,7 @@ extern "C" void kmain()
 
 		while(Keyboard::ReadEvent(&keyEvent))
 		{
-			Print("Type: %x, Mod: %x, Key: %x\n", keyEvent.type, keyEvent.mod, keyEvent.key);
+			Print("Type: %x, Mod: %x, Key: %s\n", keyEvent.type, keyEvent.mod, Keyboard::KeyCode2Str(keyEvent.key));
 		}
 
 		__asm("hlt");

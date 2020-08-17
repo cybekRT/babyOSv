@@ -12,11 +12,12 @@ namespace Keyboard
 
 		Total
 	}};
+
+	const char* KeyCode2Str(Keyboard::KeyCode key);
 }}
 """
 
 templateScanCode2Key = """
-
 #include"Keyboard_map.h"
 namespace Keyboard
 {{
@@ -24,17 +25,19 @@ namespace Keyboard
 {}
 	}};
 }}
-
 """
 
 templateKeyCode2Str = """
-char* KeyCode2Str(Keyboard::KeyCode key)
+namespace Keyboard
 {{
-	switch(key)
+	const char* KeyCode2Str(Keyboard::KeyCode key)
 	{{
-{}
-		default:
-			return "Invalid";
+		switch(key)
+		{{
+	{}
+			default:
+				return "Invalid";
+		}}
 	}}
 }}
 """
@@ -101,13 +104,18 @@ print(keysNames)
 
 if pathOut.endswith(".h"):
 	with open(pathOut, "w") as f:
-		f.write("/// File is auto generated!")
+		f.write("/// File is auto generated!\n")
 		f.write("#pragma once\n")
 		f.write(templateKeyEnum.format(",\n\t\t".join(keysNames)))
 elif pathOut.endswith(".cpp"):
 	with open(pathOut, "w") as f:
-		f.write("/// File is auto generated!")
+		f.write("/// File is auto generated!\n")
 		data = ""
 		for v in keys:
 			data = data + "\t\tKeyboard::KeyCode::{},\n".format(v)
 		f.write(templateScanCode2Key.format(data))
+
+		data = ""
+		for v in keysNames:
+			data = data + templateKeyCode2StrPart.format(v, v)
+		f.write(templateKeyCode2Str.format(data))

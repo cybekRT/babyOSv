@@ -154,7 +154,7 @@ namespace Keyboard
 	void ISR_Keyboard(void*)
 	{
 		u8 scanCode = HAL::In(0x60);
-		keys.PushBack(scanCode);
+		//keys.PushBack(scanCode);
 
 		if(scanCode == 0xE0)
 		{

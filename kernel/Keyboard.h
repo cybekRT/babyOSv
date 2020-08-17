@@ -1,7 +1,9 @@
-//#include"Keyboard_map.h"
+#include"Keyboard_map.h"
 
 namespace Keyboard
 {
+	enum class KeyCode;
+
 	struct KeyEvent
 	{
 		enum class Type
@@ -121,8 +123,6 @@ namespace Keyboard
 
 			Total
 		};*/
-
-		enum class KeyCode;
 
 		enum class Mod //: u8
 		{
