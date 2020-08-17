@@ -2,3 +2,7 @@
 *.img
 *.o
 /out
+
+# Auto-generated files
+kernel/Keyboard_map.cpp
+kernel/Keyboard_map.h

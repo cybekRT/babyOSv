@@ -1,7 +1,5 @@
 import sys
 
-#print("Test {}".format(sys.argv[1]))
-
 templateKeyEnum = """
 namespace Keyboard
 {{
@@ -52,8 +50,6 @@ pathIn = sys.argv[2]
 
 keys = ["None"] * 128
 keysNames = []
-#print(keys)
-#print(", ".join(keys))
 
 with open(pathIn, "r") as f:
 	lines = f.readlines()
@@ -76,38 +72,19 @@ for line in lines:
 	if name not in keysNames and name != "None":
 		keysNames.append(name)
 
-	print(parts)
-
 	index = int(parts[0], 16)
 	key = parts[1]
 
 	keys[index] = key
 
-	#print(parts)
-
-	# try:
-	# 	while True:
-	# 		try:
-	# 			line = f.readline()
-	# 		except:
-	# 			break
-
-	# 		args = line.split(" ")
-	# 		print(args)
-	# except Exception as e:
-	# 	print("Exception " + str(e))
-	# 	#pass
-
-#print(keys)
-
-print(keysNames)
-
 if pathOut.endswith(".h"):
+	# Write header file
 	with open(pathOut, "w") as f:
 		f.write("/// File is auto generated!\n")
 		f.write("#pragma once\n")
 		f.write(templateKeyEnum.format(",\n\t\t".join(keysNames)))
 elif pathOut.endswith(".cpp"):
+	# Write source file
 	with open(pathOut, "w") as f:
 		f.write("/// File is auto generated!\n")
 		data = ""
