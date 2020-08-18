@@ -1,6 +1,10 @@
 #include "Memory.h"
+#include "bootloader_info.h"
 
-extern void* kernel_end;
+extern const void* kernel_end;
+extern const void* org_stack_beg;
+extern const void* org_stack_end;
+extern const u32 org_stack_size;
 
 // TODO: stop using bubble sort everywhere! Optimmize sorting algorithms in allocator~!
 
@@ -11,6 +15,15 @@ void memset(void* ptr, unsigned char c, unsigned len)
 	{
 		p[a] = c;
 	}
+}
+
+void memcpy(void* dst, void* src, u32 len)
+{
+	u8* _src = (u8*)src;
+	u8* _dst = (u8*)dst;
+
+	for(unsigned a = 0; a < len; a++)
+		_dst[a] = _src[a];
 }
 
 namespace Memory
@@ -131,17 +144,52 @@ namespace Memory
 		}
 	}
 
-	bool Init(void* _memoryEntries, unsigned _memoryEntriesCount)
+	void CreateKernelStack()
+	{
+		void *newStackBeg = (void*)0xE0000000;
+		const u32 newStackSize = 8192;
+
+		void *stackPhys = AllocPhys(newStackSize);
+		void *stackLog = Map(stackPhys, newStackBeg - newStackSize, newStackSize);
+
+		u32 currentESP;
+		u32 currentEBP;
+		__asm("mov %%esp, %0" : "=r"(currentESP));
+		__asm("mov %%ebp, %0" : "=r"(currentEBP));
+		u32 oldStackBytesUsed = (u32)org_stack_beg - currentESP;
+		u32 oldEBPOffset = (u32)org_stack_beg - currentEBP;
+
+		u32 newESP = (u32)newStackBeg - oldStackBytesUsed;
+		u32 newEBP = (u32)newStackBeg - oldEBPOffset;
+
+		memcpy((void*)newESP, (void*)currentESP, oldStackBytesUsed);
+
+		// Fix stack frames
+		u32* _ebp = (u32*)newEBP;
+		while(*_ebp)
+		{
+			u32 offset = (u32)org_stack_beg - *_ebp;
+			*_ebp = (u32)newStackBeg - offset;
+			_ebp = (u32*)*_ebp;
+		}
+
+		__asm("mov %0, %%esp" : : "r"(newESP));
+		__asm("mov %0, %%ebp" : : "r"(newEBP));
+	}
+
+	bool Init()
 	{
 		PutString("Memory init...\n");
 
-		memoryEntries = (MemoryInfo_t*)(((unsigned)_memoryEntries) | 0x80000000);
-		memoryEntriesCount = _memoryEntriesCount;	
+		memoryEntries = (MemoryInfo_t*)(((unsigned)bootloader_info_ptr->memoryEntries) | 0x80000000);
+		memoryEntriesCount = *bootloader_info_ptr->memoryEntriesCount;	
 
 		DisableFirstMegabyteMapping();
 		SortEntries();
 		FixEntries();
 		CreateMemoryMap();
+
+		CreateKernelStack();
 
 		return true;
 	}
@@ -471,6 +519,7 @@ namespace Memory
 		void* cLogicAddress = logicAddress;
 		while(length)
 		{
+			Print("Mapping %x -> %x\n", cLogicAddress, cPhysAddress);
 			Map(cPhysAddress, cLogicAddress);
 
 			//length -= 0x1000;

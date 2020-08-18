@@ -11,7 +11,14 @@ namespace Keyboard
 		Total
 	}};
 
-	const char* KeyCode2Str(Keyboard::KeyCode key);
+	struct KeyInfo
+	{{
+		const char* name;
+		const u8 asciiLow;
+		const u8 asciiHigh;
+	}};
+
+	//const char* KeyCode2Str(Keyboard::KeyCode key);
 }}
 """
 
@@ -45,11 +52,22 @@ templateKeyCode2StrPart = """
 			return "{}";
 """
 
+templateKeyInfo = """
+namespace Keyboard
+{{
+	KeyInfo keyInfo[] = {{
+		{{ nullptr, 0, 0 }},
+{}
+	}};
+}}
+"""
+
 pathOut = sys.argv[1]
 pathIn = sys.argv[2]
 
 keys = ["None"] * 128
 keysNames = []
+keysInfo = {}
 
 with open(pathIn, "r") as f:
 	lines = f.readlines()
@@ -66,11 +84,32 @@ for line in lines:
 	scancode = parts[0]
 	name = parts[1]
 
+	asciiLow = "0"
+	asciiHigh = "0"
+
+	if len(parts) > 2:
+		asciiLow = "'{}'".format(str(parts[2]).lower())
+		print("x: {}".format(asciiLow))
+		if asciiLow == "\\t":
+			asciiLow = "\t"
+		elif asciiLow == "\\n":
+			asciiLow = "\n"
+		elif asciiLow == "\" \"":
+			asciiLow = " "
+	if len(parts) > 3:
+		asciiHigh = "'{}'".format(parts[3])
+	else:
+		if not asciiLow.startswith("'\\") and asciiLow.lower() != asciiLow.upper():
+			print("     {}".format(asciiLow.startswith("\\")))
+			asciiHigh = asciiLow.upper()
+
 	if len(scancode.split(",")) > 1:
 		continue;
 
 	if name not in keysNames and name != "None":
 		keysNames.append(name)
+
+	keysInfo[name] = ( name, asciiLow, asciiHigh )
 
 	index = int(parts[0], 16)
 	key = parts[1]
@@ -92,7 +131,15 @@ elif pathOut.endswith(".cpp"):
 			data = data + "\t\tKeyboard::KeyCode::{},\n".format(v)
 		f.write(templateScanCode2Key.format(data))
 
+		#data = ""
+		#for v in keysNames:
+		#	data = data + templateKeyCode2StrPart.format(v, v)
+		#f.write(templateKeyCode2Str.format(data))
+
 		data = ""
 		for v in keysNames:
-			data = data + templateKeyCode2StrPart.format(v, v)
-		f.write(templateKeyCode2Str.format(data))
+			name = keysInfo[v][0]
+			asciiLow = keysInfo[v][1]
+			asciiHigh = keysInfo[v][2]
+			data = data + "\t\t{{ \"{}\", {}, {}, }},\n".format(name, asciiLow, asciiHigh)
+		f.write(templateKeyInfo.format(data))

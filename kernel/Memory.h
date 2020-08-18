@@ -53,7 +53,7 @@ typedef PageDirectory PageTable;
 
 namespace Memory
 {
-	bool Init(void* memoryEntries, unsigned memoryEntriesCount);
+	bool Init();
 	void PrintMemoryMap();
 	
 	// Physical allocator

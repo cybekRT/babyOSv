@@ -14,7 +14,7 @@
 0x0C		Minus			-			_
 0x0D		Equal			=			=
 0x0E		Backspace		
-0x0F		Tab				
+0x0F		Tab				\t
 0x10		Q				q			Q
 0x11		W				w			W
 0x12		E				e			E
@@ -39,10 +39,10 @@
 0x25		K				k			K
 0x26		L				l			L
 0x27		Semicolon		;			:
-0x28		SingleQuote		'			"
+0x28		SingleQuote		\'			"
 0x29		BackTick		`			~
 0x2A		LeftShift 		
-0x2B		BackSlash		\
+0x2B		BackSlash		\\
 0x2C		Z				z			Z
 0x2D		X				x			X
 0x2E		C				c			C

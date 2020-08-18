@@ -12,11 +12,19 @@ namespace Terminal
 	void PutChar(char c)
 	{
 		static int p = 0;
+		char* vmem = (char*)0x800b8000;
 
 		if(c == '\n')
 		{
 			p += 160;
 			p -= p % 160;
+			return;
+		}
+		else if(c == '\b')
+		{
+			if(p > 0)
+				p-=2;
+			vmem[p] = 0;
 			return;
 		}
 
@@ -38,7 +46,6 @@ namespace Terminal
 			p -= 160;
 		}
 
-		char* vmem = (char*)0x800b8000;
 		vmem[p + 0] = c;
 		vmem[p + 1] = 0x07;
 		p+=2;
@@ -83,8 +90,8 @@ namespace Terminal
 				{
 					case 'c':
 					{
-						char v = va_arg(args, char);
-						PutChar(c);
+						char v = va_arg(args, u32);
+						PutChar(v);
 
 						break;
 					}

@@ -1,4 +1,3 @@
-#include"bootloader_info.h"
 #include"Terminal.h"
 #include"Memory.h"
 #include"Interrupt.h"
@@ -14,6 +13,20 @@ int strlen(const char* str)
 	return len;
 }
 
+bool strcmp(char* a, char* b)
+{
+	while(*a || *b)
+	{
+		if(*a != *b)
+			return false;
+
+		a++;
+		b++;
+	}
+
+	return true;
+}
+
 extern "C" void kmain()
 {
 	ASSERT(sizeof(u64) == 8, "u64");
@@ -23,12 +36,7 @@ extern "C" void kmain()
 
 	Terminal::Init();
 
-	Memory::Init(bootloader_info_ptr->memoryEntries, *bootloader_info_ptr->memoryEntriesCount);
-
-//	u32 stackLength = 8192;
-//	u8* stack = (u8*)Memory::Alloc(stackLength);
-//	__asm("mov %0, %%esp" : : "r"(stack + stackLength));
-
+	Memory::Init();
 	Interrupt::Init();
 	Timer::Init();
 	Keyboard::Init();
@@ -38,24 +46,54 @@ extern "C" void kmain()
 	Interrupt::Enable();
 	PutString("Kernel halted~!\n");
 
-	//u8* x = (u8*)(0x1234);
-	//*x = 5;
-
+	char tmp[64];
+	u8 tmpX = 0;
 	Keyboard::KeyEvent keyEvent;
+	Print("> ");
 	for(;;)
 	{
-		/*while(Keyboard::HasData())
-		{
-			auto x = Keyboard::ReadData();
-			PutString("Kbd: "); PutHex(x); PutString("\n");
-
-			if(x == 0x32)
-				Memory::PrintMemoryMap();
-		}*/
-
 		while(Keyboard::ReadEvent(&keyEvent))
 		{
-			Print("Type: %x, Mod: %x, Key: %s\n", keyEvent.type, keyEvent.mod, Keyboard::KeyCode2Str(keyEvent.key));
+			if(keyEvent.type == Keyboard::KeyType::Released)
+				continue;
+
+			if(keyEvent.key == Keyboard::KeyCode::Backspace)
+			{
+				if(tmpX > 0)
+				{
+					tmpX--;
+					tmp[tmpX] = 0;
+					Print("\b");
+				}
+			}
+			else if(keyEvent.key == Keyboard::KeyCode::Enter)
+			{
+				tmp[tmpX] = 0;
+
+				if(tmpX > 0)
+				{
+					Print("\nExecuting: %s", tmp);
+
+					if(strcmp(tmp, "mem"))
+					{
+						Memory::PrintMemoryMap();
+					}
+					else if(strcmp(tmp, "fail"))
+					{
+						u8* x = (u8*)0x1234;
+						*x = 5;
+					}
+				}
+				Print("\n> ");
+
+				tmpX = 0;
+			}
+			else if(keyEvent.ascii)
+			{
+				tmp[tmpX] = keyEvent.ascii;
+				tmpX++;
+				Print("%c", keyEvent.ascii);
+			}
 		}
 
 		__asm("hlt");

@@ -1,7 +1,7 @@
 ENTRY(main)
 OUTPUT_FORMAT(elf32-i386)
 
-stack_size = 0x100;
+__stack_size = 0x100;
 
 SECTIONS
 {
@@ -20,9 +20,9 @@ SECTIONS
 		*(.bss)
 		*(.eh_frame)
 
-		stack_end = .;
-		. = . + stack_size;
-		stack_beg = .;
+		__stack_end = .;
+		. = . + __stack_size;
+		__stack_beg = .;
 	}
 
 	__kernel_end = .;

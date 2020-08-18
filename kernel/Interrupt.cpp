@@ -93,8 +93,6 @@ namespace Interrupt
 		u32 eip;
 		u32 cs;
 		u32 eflags;
-		u32 esp;
-		u32 ss;
 
 		u32 eax;
 		u32 ebx;
@@ -102,13 +100,14 @@ namespace Interrupt
 		u32 edx;
 		u32 esi;
 		u32 edi;
+		u32 esp;
 		u32 ebp;
 
-		//u16 cs;
 		u16 ds;
 		u16 es;
 		u16 fs;
 		u16 gs;
+		u16 ss;
 	};
 
 	__attribute__ ((interrupt))
@@ -117,8 +116,6 @@ namespace Interrupt
 		__asm("cli");
 		PutString("\n===== General Protection Fault =====\n");
 
-		//Terminal::Print("");
-
 		ISR_Registers regs = *_registers;
 		__asm("mov %%eax, %0" : "=m"(regs.eax));
 		__asm("mov %%ebx, %0" : "=m"(regs.ebx));
@@ -126,12 +123,14 @@ namespace Interrupt
 		__asm("mov %%edx, %0" : "=m"(regs.edx));
 		__asm("mov %%esi, %0" : "=m"(regs.esi));
 		__asm("mov %%edi, %0" : "=m"(regs.edi));
+		__asm("mov %%esp, %0" : "=m"(regs.esp));
 		__asm("mov %%ebp, %0" : "=m"(regs.ebp));
 
 		__asm("mov %%ds, %%bx \n mov %%bx, %0" : "=m"(regs.ds) : : "bx");
 		__asm("mov %%es, %%bx \n mov %%bx, %0" : "=m"(regs.es) : : "bx");
 		__asm("mov %%fs, %%bx \n mov %%bx, %0" : "=m"(regs.fs) : : "bx");
 		__asm("mov %%gs, %%bx \n mov %%bx, %0" : "=m"(regs.gs) : : "bx");
+		__asm("mov %%ss, %%bx \n mov %%bx, %0" : "=m"(regs.ss) : : "bx");
 
 		Print("Address: %x:%x\n", regs.cs, regs.eip);
 		Print("Flags:   %x\n", regs.eflags);
@@ -142,22 +141,6 @@ namespace Interrupt
 		Print("DS: %x, ES: %x, FS: %x, GS: %x\n", regs.ds, regs.es, regs.fs, regs.gs);
 
 		HALT;
-
-		u32* p = (u32*)_registers;
-		PutHex(errorCode); PutString("\n");
-		PutHex(p[0]); PutString("\n");
-		PutHex(p[1]); PutString("\n");
-		PutHex(p[2]); PutString("\n");
-		PutHex(p[3]); PutString("\n");
-		PutHex(p[4]); PutString("\n");
-		PutHex(p[5]); PutString("\n");
-		PutHex(p[6]); PutString("\n");
-		PutHex(p[7]); PutString("\n");
-		PutHex(p[8]); PutString("\n");
-
-		PutHex((u32)_registers);
-
-		HALT
 	}
 
 	bool Init()

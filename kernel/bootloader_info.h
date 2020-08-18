@@ -6,4 +6,3 @@ typedef struct
 } __attribute((__packed__)) bootloader_info_t;
 
 extern bootloader_info_t* bootloader_info_ptr;
-extern unsigned* kernel_end;
