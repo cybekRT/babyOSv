@@ -3,6 +3,8 @@
 #include"Interrupt.h"
 #include"Timer.h"
 #include"Keyboard.h"
+#include"ISA_DMA.hpp"
+#include"Floppy.hpp"
 
 int strlen(const char* str)
 {
@@ -45,6 +47,9 @@ extern "C" void kmain()
 	Memory::PrintMemoryMap();
 	Interrupt::Enable();
 	PutString("Kernel halted~!\n");
+
+	ISA_DMA::Init();
+	Floppy::Init();
 
 	char tmp[64];
 	u8 tmpX = 0;

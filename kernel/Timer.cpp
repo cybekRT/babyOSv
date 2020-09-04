@@ -61,7 +61,7 @@ namespace Timer
 	bool tested = false;
 	void Delay(u32 ms)
 	{
-		if(!tested)
+		/*if(!tested)
 		{
 			tested = true;
 			Print("Testing timer...\n");
@@ -69,7 +69,7 @@ namespace Timer
 			Print("500ms - "); Delay(500); Print("OK - %u\n", GetTicks());
 			Print("1000ms - "); Delay(1000); Print("OK - %u\n", GetTicks());
 			Print("2000ms - "); Delay(2000); Print("OK - %u\n", GetTicks());
-		}
+		}*/
 
 		u64 time = ticks + ms;
 		while(ticks < time)

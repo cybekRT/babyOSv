@@ -23,6 +23,7 @@ typedef sint8 s8;
 
 #define BREAK {__asm("xchg %%bx, %%bx" : : : "bx");}
 #define HALT {for(;;){__asm("cli\nhlt\n");}}
+#define FAIL(msg) { Print("\n\nAssert failed: " msg "\n\n"); __asm("int $0"); }
 
 #define ENTER_CRITICAL_SECTION() //{__asm("pushf"); __asm("cli");}
 #define EXIT_CRITICAL_SECTION() //{__asm("popf");}

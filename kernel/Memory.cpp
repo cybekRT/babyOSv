@@ -519,7 +519,7 @@ namespace Memory
 		void* cLogicAddress = logicAddress;
 		while(length)
 		{
-			Print("Mapping %x -> %x\n", cLogicAddress, cPhysAddress);
+			Print("Mapping %x -> %x\n", cPhysAddress, cLogicAddress);
 			Map(cPhysAddress, cLogicAddress);
 
 			//length -= 0x1000;

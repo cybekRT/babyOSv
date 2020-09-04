@@ -95,6 +95,7 @@ namespace Terminal
 
 						break;
 					}
+					case 'p':
 					case 'x':
 					{
 						char tmp[9] = {};
@@ -131,8 +132,18 @@ namespace Terminal
 						} while(v > 0);
 						
 						buf--;
-						for(unsigned a = 0; ; buf--)
+
+						do
 						{
+							PutChar(*buf--);
+						} while(buf > tmp);
+						
+
+						/*for(unsigned a = 0; ; buf--)
+						{
+							if(a > 10)
+								FAIL("wtf");
+
 							char t = tmp[a];
 							tmp[a] = *buf;
 							*buf = t;
@@ -141,7 +152,7 @@ namespace Terminal
 								break;
 						}
 
-						PutString(tmp);
+						PutString(tmp);*/
 
 						break;
 					}
