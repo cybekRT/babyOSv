@@ -140,7 +140,11 @@ namespace Interrupt
 		Print("ESI: %x, EDI: %x\n", regs.esi, regs.edi);
 		Print("DS: %x, ES: %x, FS: %x, GS: %x\n", regs.ds, regs.es, regs.fs, regs.gs);
 
-		HALT;
+		__asm("cli");
+		for(;;)
+		{
+			HALT;
+		}
 	}
 
 	bool Init()

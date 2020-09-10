@@ -22,7 +22,8 @@ typedef sint8 s8;
 #define ASSERT(x, y) if(!(x)) { PutString("Assert failed: " y); for(;;){ __asm("cli\nhlt\n"); }; }
 
 #define BREAK {__asm("xchg %%bx, %%bx" : : : "bx");}
-#define HALT {for(;;){__asm("cli\nhlt\n");}}
+//#define HALT_INF {for(;;){__asm("cli\nhlt\n");}}
+#define HALT { __asm("hlt"); }
 #define FAIL(msg) { Print("\n\nAssert failed: " msg "\n\n"); __asm("int $0"); }
 
 #define ENTER_CRITICAL_SECTION() //{__asm("pushf"); __asm("cli");}
