@@ -1,3 +1,5 @@
+#pragma once
+
 #include"Memory.h"
 
 template<class X>

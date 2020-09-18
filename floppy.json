@@ -1,0 +1,9 @@
+{
+	"label": "babyOS",
+	"bootloader": "out/boot1.bin",  
+	"/": {
+			"boot.bin": "out/boot2.bin",
+			"kernel.bin": "out/kernel.bin",
+},
+	"output": "floppy.img"
+}

@@ -1,3 +1,4 @@
+%define OS_NAME 'babyOSv   v0.1'
 BOOT2_ADDR	equ 0xC00
 KERNEL_ADDR equ 0x3000
 

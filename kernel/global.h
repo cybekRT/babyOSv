@@ -30,3 +30,9 @@ typedef sint8 s8;
 #define EXIT_CRITICAL_SECTION() //{__asm("popf");}
 
 #include"Terminal.h"
+
+enum class Status
+{
+	Success = 0,
+	Fail = 1,
+};

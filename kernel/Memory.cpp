@@ -331,7 +331,8 @@ namespace Memory
 		ENTER_CRITICAL_SECTION();
 		allocSize = (allocSize + 0xFFF) & (~0xFFF);
 
-		PutString("Allocating "); PutHex(allocSize); PutString(" bytes\n");
+		//PutString("Allocating "); PutHex(allocSize); PutString(" bytes\n");
+		Print("Allocating %d bytes\n", allocSize);
 		
 		void* allocatedAddress = nullptr;
 		MemoryMap* currentMap = &memoryMap;
@@ -519,7 +520,7 @@ namespace Memory
 		void* cLogicAddress = logicAddress;
 		while(length)
 		{
-			Print("Mapping %x -> %x\n", cPhysAddress, cLogicAddress);
+			//Print("Mapping %x -> %x\n", cPhysAddress, cLogicAddress);
 			Map(cPhysAddress, cLogicAddress);
 
 			//length -= 0x1000;

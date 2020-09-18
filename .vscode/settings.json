@@ -2,5 +2,6 @@
 {
 	"editor.fontFamily": "DejaVu Sans Mono",
 	"editor.tabSize": 4,
-	"editor.insertSpaces": false	
+	"editor.insertSpaces": false,
+	"editor.renderWhitespace": "none"
 }

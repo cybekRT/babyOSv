@@ -27,6 +27,7 @@ else
 	DD			= dd
 	PCEM		= echo "Everyone loves Catalina..."
 	VBOXMANAGE	= vboxmanage
+	CFS			= ../cFS/cFS-cli/cFS-cli
 endif
 
 ####################
@@ -69,15 +70,20 @@ DEPS	:= $(DEPS:kernel%=out%)
 
 all: floppy.img
 
-floppy.img: out/boot1.bin out/boot2.bin out/kernel.bin
-	cat $^ out/boot1.bin > $@
-	$(DD) if=/dev/zero of=$@ bs=1 count=0 seek=1474560
+floppy.img: out/boot1.bin out/boot2.bin out/kernel.bin floppy.json
+	$(CFS) floppy.json
+#	cat $^ out/boot1.bin > $@
+#	$(DD) if=/dev/zero of=$@ bs=1 count=0 seek=1474560
 
-out/boot1.bin: boot/boot1.asm out/boot2.bin
-	$(NASM) $(NASM_FLAGS) $< -o $@ -l out/boot1.lst -fbin -DBOOT2_SIZE=$(strip $(shell wc -c < out/boot2.bin))
+out/boot1.bin: boot/boot1.asm 
+#out/boot2.bin
+	$(NASM) $(NASM_FLAGS) $< -o $@ -l out/boot1.lst -fbin 
+	#-DBOOT2_SIZE=$(strip $(shell wc -c < out/boot2.bin))
 
-out/boot2.bin: boot/boot2.asm out/kernel.bin
-	$(NASM) $(NASM_FLAGS) $< -fbin -o $@ -l out/boot2.lst -DKERNEL_SIZE=$(strip $(shell wc -c < out/kernel.bin))
+out/boot2.bin: boot/boot2.asm 
+#out/kernel.bin
+	$(NASM) $(NASM_FLAGS) $< -fbin -o $@ -l out/boot2.lst 
+	#-DKERNEL_SIZE=$(strip $(shell wc -c < out/kernel.bin))
 
 out/kernel.elf: out/kmain_startup.o $(OBJS)
 	$(LD) -nostdlib -nolibc -nostartfiles -nodefaultlibs -m elf_i386 -T kernel/linker.ld $^ -o $@

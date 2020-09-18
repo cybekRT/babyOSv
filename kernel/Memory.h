@@ -51,6 +51,9 @@ typedef PageDirectoryEntry PageTableEntry;
 
 typedef PageDirectory PageTable;
 
+void memset(void* ptr, unsigned char c, unsigned len);
+void memcpy(void* dst, void* src, u32 len);
+
 namespace Memory
 {
 	bool Init();

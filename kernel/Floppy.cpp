@@ -3,6 +3,7 @@
 #include"ISA_DMA.hpp"
 #include"Interrupt.h"
 #include"Timer.h"
+#include"Block.hpp"
 #include<stdarg.h>
 
 namespace Floppy
@@ -109,6 +110,7 @@ namespace Floppy
 		FDD_CMD_OPTION_SKIP			= 0x20
 	};
 
+	extern Block::BlockInfo info;
 	void* dmaPhys;
 	void* dmaLogic;
 	volatile u8 irqReceived = 0;
@@ -277,8 +279,6 @@ namespace Floppy
 		u8 dataRate = (u8)DataRateSelectType::FDD_DSR_TYPE_144;
 		PortOut(IOPort::FDD_REG_CONF_CONTROL, dataRate);
 
-		//Timer::Delay(1000);
-
 		// Un-reset
 		reg.driveSelect = DOR_DSel::FDD_DOR_DSELA;
 		reg.reset = 1;
@@ -286,16 +286,11 @@ namespace Floppy
 		reg.motorA = 0;
 
 		irqReceived = 0;
-
 		PortOut(IOPort::FDD_REG_DIGITAL_OUT, *regPtr);
-
-		//while(!irqReceived);
 		WaitIRQ();
 
 		for(unsigned a = 0; a < 4; a++)
 		{
-			//Print("Sensing...\n");
-			//WriteData(Command::FDD_CMD_SENSE_INTERRUPT);
 			Exec(Command::FDD_CMD_SENSE_INTERRUPT);
 			ReadData();
 			ReadData();
@@ -312,7 +307,6 @@ namespace Floppy
 
 		irqReceived = 0;
 		Exec(Command::FDD_CMD_RECALIBRATE, 1, 0x00);
-		//while(!irqReceived);
 		WaitIRQ();
 
 		Exec(Command::FDD_CMD_SENSE_INTERRUPT);
@@ -352,10 +346,10 @@ namespace Floppy
 		static u8 tmpBuffer[512];
 		Read(0, tmpBuffer);
 
-		//Print("Tmp: %x %x\n", tmpBuffer[510], tmpBuffer[511]);
-
 		if(tmpBuffer[510] != 0x55 || tmpBuffer[511] != 0xAA)
 			FAIL("reading floppy");
+
+		Block::Register(&info);
 
 		Print("Initialized floppy...\n");
 		return true;
@@ -367,10 +361,8 @@ namespace Floppy
 
 		irqReceived = 0;
 		Exec(Command::FDD_CMD_SEEK, 2, 0x00, track);
-		//while(!irqReceived);
 		WaitIRQ();
 
-		//Print("Sensing...\n");
 		Exec(Command::FDD_CMD_SENSE_INTERRUPT);
 		u8 status = ReadData();
 		ReadData();
@@ -387,8 +379,6 @@ namespace Floppy
 		u8 cylinder = lba / 18 / 2;
 		u8 head = (lba / 18) % 2;
 		u8 sector = lba % 18 + 1;
-
-		//Print("LBA %x -> CHS %x %x %x\n", lba, cylinder, head, sector);
 
 		Seek(cylinder);
 
@@ -412,8 +402,6 @@ namespace Floppy
 		if(st0 & 0b11000000)
 			FAIL("floppy read status");
 
-		//Print("Floppy result: %x %x %x %x %x %x %x\n", st0, st1, st2, stc, sth, str, stn);
-
 		MotorOff();
 
 		u8* src = (u8*)dmaLogic;
@@ -423,4 +411,49 @@ namespace Floppy
 			*dst++ = *src++;
 		}
 	}
+
+	u32 _Size(void* dev)
+	{
+		return 2880;
+	}
+
+	u8 _Name(void* dev, u8* buffer)
+	{
+		u8* name = (u8*)"Floppy";
+		for(unsigned a = 0; ; a++)
+		{
+			if(!name[a])
+				return a;
+
+			buffer[a] = name[a];
+		}
+
+		return 0;
+	}
+
+	u32 _BlockSize(void* dev)
+	{
+		return 512;
+	}
+
+	u8 _Read(void* dev, u32 lba, u8* buffer)
+	{
+		Read(lba, (void*)buffer);
+		return 0;
+	}
+
+	u8 _Write(void* dev, u32 lba, u8* buffer)
+	{
+		return 1;
+	}
+
+	Block::BlockInfo info
+	{
+		.dev = nullptr,
+		.Name = _Name,
+		.Size = _Size,
+		.BlockSize = _BlockSize,
+		.Read = _Read,
+		.Write = _Write
+	};
 }

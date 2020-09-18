@@ -3,8 +3,14 @@
 #include"Interrupt.h"
 #include"Timer.h"
 #include"Keyboard.h"
+
 #include"ISA_DMA.hpp"
+
+#include"Block.hpp"
 #include"Floppy.hpp"
+
+#include"FS.hpp"
+#include"FS_FAT12.hpp"
 
 int strlen(const char* str)
 {
@@ -49,7 +55,20 @@ extern "C" void kmain()
 	PutString("Kernel halted~!\n");
 
 	ISA_DMA::Init();
+
+	Block::Init();
 	Floppy::Init();
+
+	FS::Init();
+	FS_FAT12::Init();
+
+	Print("Mounting floppy...\n");
+
+	auto dev = Block::devices.Front();
+	auto fs = FS::filesystems.Front();
+	void* fsPriv;
+
+	fs->Alloc(dev, &fsPriv);
 
 	char tmp[64];
 	u8 tmpX = 0;
