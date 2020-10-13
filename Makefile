@@ -76,9 +76,7 @@ floppy.img: out/boot1.bin out/boot2.bin out/kernel.bin floppy.json
 #	$(DD) if=/dev/zero of=$@ bs=1 count=0 seek=1474560
 
 out/boot1.bin: boot/boot1.asm 
-#out/boot2.bin
 	$(NASM) $(NASM_FLAGS) $< -o $@ -l out/boot1.lst -fbin 
-	#-DBOOT2_SIZE=$(strip $(shell wc -c < out/boot2.bin))
 
 out/boot2.bin: boot/boot2.asm 
 #out/kernel.bin

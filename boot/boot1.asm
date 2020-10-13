@@ -2,7 +2,7 @@
 [org 0x7c00]
 [cpu 386]
 %include "global.inc"
-%include "FAT12.inc"
+;%include "FAT12.inc"
 
 ; CHS
 ; 80, 2, 18
@@ -38,25 +38,28 @@ bootcode:
 	jmp	0:Init
 
 ;;;;; Consts
-FILENAME db "BOOT    BIN"
-ROOT_LOC equ (0x7c00 + 0x200)
-FAT_LOC equ (ROOT_LOC + 0x200)
+;FILENAME db "BOOT    BIN"
+;ROOT_LOC equ 0x500; (0x7c00 + 0x200)
+;FAT_LOC equ (ROOT_LOC + 0x200)
 ;;;;; Variables
-rootSector db 0
-rootSectorEnd db 0
-rootOffset dw 0
-kernelCluster dw 0
-kernelPosition dw BOOT2_ADDR
-fatSector dw 0xFFFF
+;rootSector db 0
+;rootSectorEnd db 0
+;rootOffset dw 0
+;kernelCluster dw 0
+;kernelPosition dw BOOT2_ADDR
+;fatSector dw 0xFFFF
 helloMsg db OS_NAME, 0xA, 0xD, "Loading kernel..."
 helloMsgLen equ ($ - helloMsg)
 db helloMsgLen
 ;;;;;
 
+%include"FAT12_lite.asm"
+
 Init:
 	; CS set to 0x0 with jump, but DS also needs to be set to 0x0...
 	mov	bx, 0
 	mov	ds, bx
+	mov	es, bx
 
 	; Clear screen
 	mov	ax, 3
@@ -69,6 +72,12 @@ Init:
 	mov	dx, 0
 	mov	bp, helloMsg
 	int	10h
+
+	; Copy this sector
+	mov	si, 0x7c00
+	mov	di, BPB_LOC
+	mov	cx, 512
+	rep movsb
 
 	; Calculate last root sector
 	mov	ax, [rootEntries]
@@ -87,7 +96,7 @@ Init:
 	mov	bx, 0
 	mov	ds, bx
 	mov	es, bx
-SearchKernel:
+.SearchKernel:
 	cmp	word [rootOffset], 0
 	jne	.dontRead
 	call	ReadRoot
@@ -99,15 +108,15 @@ SearchKernel:
 	mov	cx, 8+3
 	mov	di, FILENAME
 	repe	cmpsb
-	je	ReadEntry
+	je	.ReadEntry
 
 	add	word [rootOffset], FAT12_DirectoryEntry_size
 	cmp	word [rootOffset], 512
-	jne	SearchKernel
+	jne	.SearchKernel
 	mov	word [rootOffset], 0
-	jmp	SearchKernel
+	jmp	.SearchKernel
 
-ReadEntry:
+.ReadEntry:
 	mov	bx, ROOT_LOC + FAT12_DirectoryEntry.cluster
 	add	bx, [rootOffset]
 	push	word [bx]
@@ -120,140 +129,14 @@ ReadEntry:
 	call	ReadFAT
 	jmp	.loop
 
-ExecuteKernel:
-	jmp	0x0:BOOT2_ADDR ; Execute kernel
 
 Fail:
-	;mov	bx, 0xb800
-	;mov	es, bx
-	;mov	bx, 0
-	;mov	byte [es:bx+0], 'F'
-	;mov	byte [es:bx+2], ' '
-	;jmp	$
-
-; Boot other device...
+	; Boot other device...
 	int	0x18
 
-;;;;; Functions
-ReadRoot:
-	mov	al, [rootSectorEnd]
-
-	cmp	byte [rootSector], al
-	je	Fail
-
-	; LBA 2 CHS
-	movzx	ax, byte [rootSector]
-	inc	byte [rootSector]
-
-	mov	bx, 0
-	mov	es, bx
-	mov	bx, ROOT_LOC
-	jmp	ReadSector
-
-;;;;;
-; Read FAT
-;;;;;
-ReadKernel:
-	mov	ax, word [kernelCluster]
-	sub	ax, 2
-	push	ax
-
-	mov	al, byte [sectorsPerFat] ; trim high-byte
-	mov	cl, [fatsCount]
-	mul	cl
-	push	ax
-
-	mov	ax, [rootEntries]
-	shr	ax, 4
-
-	add	ax, [reservedSectors]
-	pop	bx
-	add	ax, bx
-	pop	bx
-	add	ax, bx
-
-	mov	bx, 0
-	mov	es, bx
-	mov	bx, [kernelPosition]
-
-	call	ReadSector
-	add	word [kernelPosition], 512
-
-	ret
-
-;;;;;
-; Read FAT
-;;;;;
-ReadFAT:
-	mov	ax, [kernelCluster]
-	shr	ax, 9
-	cmp	ax, [fatSector]
-	je	.dontRead
-
-; Read FAT
-	add	ax, [reservedSectors]
-	push	ax
-	mov	bx, 0
-	mov	es, bx
-	mov	bx, FAT_LOC
-	call	ReadSector
-; Read FAT+1
-	pop	ax
-	inc	ax
-	mov	bx, 0
-	mov	es, bx
-	mov	bx, FAT_LOC + 0x200
-	call	ReadSector
-.dontRead:
-	mov	bx, [kernelCluster]
-	shr	bx, 1
-	add	bx, [kernelCluster]
-	and	bx, 0x1ff
-	add	bx, FAT_LOC
-	mov	ax, [bx]
-
-	test	word [kernelCluster], 1
-	jnz	.oddCluster
-	
-	and	ax, 0xfff
-	mov	[kernelCluster], ax
-	ret
-.oddCluster:
-	shr	ax, 4
-	mov	[kernelCluster], ax
-	ret
-
-;;;;;
-; Read sector
-; ax	-	LBA
-; es:bx	-	destination
-;;;;;
-ReadSector:
-	push	bx
-	; LBA 2 CHS
-	mov	bl, [sectorsPerTrack]
-	div	bl
-
-	mov	cl, ah ; Sectors
-	inc	cl
-	xor	ah, ah
-
-	mov	bl, [headsCount]
-	div	bl
-
-	mov	dh, ah ; Heads
-	mov	ch, al ; Cylinders
-
-	;;;;;
-	mov	ah, 02h
-	mov	al, 1
-	mov	dl, [driveNumber]
-	pop	bx
-
-	int	13h
-	jc	Fail
-	ret
+ExecuteKernel:
+	jmp	0x0:BOOT2_ADDR
 
 ;;;;; Padding
-times 510 - ($ - $$) db 0x90
-dw 0xAA55
+;	times 510 - ($ - $$) db 0x90
+	dw 0xAA55
