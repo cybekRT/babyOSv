@@ -30,22 +30,6 @@ struc FAT12_BPB
 	.bootSignature		resb 2
 endstruc
 
-struc FAT12_DirectoryEntry
-	;.name			resb 8+3
-	.name			resb 8
-	.ext			resb 3
-	.attributes		resb 1
-	.reserved		resb 2
-	.createTime		resb 2
-	.createDate		resb 2
-	.accessDate		resb 2
-	.clusterHigh		resb 2
-	.modificationTime	resb 2
-	.modificationDate	resb 2
-	.cluster		resb 2
-	.size			resb 4
-endstruc
-
 ;struc FAT12_Handle
 ;	.driveNumber	resb 1
 ;	.bpbPtr		resb 2

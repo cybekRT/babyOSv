@@ -1,4 +1,8 @@
 init:
+	nop
+	nop
+	nop
+	
 	mov	bx, 0xb800
 	mov	es, bx
 	mov	bx, 0
