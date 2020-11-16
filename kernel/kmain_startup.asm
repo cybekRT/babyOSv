@@ -19,6 +19,7 @@ main:
 	pop	dword [bootloader_info_ptr]
 	mov	esp, __stack_beg
 
+	mov	ebp, 0
 	call	kmain
 
 .halt:

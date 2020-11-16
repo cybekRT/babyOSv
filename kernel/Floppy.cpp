@@ -337,6 +337,9 @@ namespace Floppy
 		dmaLogic = Memory::Map(dmaPhys, nullptr, 4096);
 		Print("Floppy DMA: %p, %p\n", dmaPhys, dmaLogic);
 
+		Memory::PrintMemoryMap();
+		for(;;);
+
 		Interrupt::Register(Interrupt::IRQ2INT(Interrupt::IRQ_FLOPPY), ISR_Floppy);
 
 		Reset();

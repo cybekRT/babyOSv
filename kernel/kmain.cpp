@@ -43,7 +43,6 @@ extern "C" void kmain()
 	ASSERT(sizeof(u8) == 1, "u8");
 
 	Terminal::Init();
-
 	Memory::Init();
 	Interrupt::Init();
 	Timer::Init();
@@ -53,6 +52,8 @@ extern "C" void kmain()
 	Memory::PrintMemoryMap();
 	Interrupt::Enable();
 	PutString("Kernel halted~!\n");
+
+	for(;;);
 
 	ISA_DMA::Init();
 

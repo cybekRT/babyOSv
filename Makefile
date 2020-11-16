@@ -135,11 +135,11 @@ clean:
 	rm out/* $(AUTOGEN) floppy.img 2>/dev/null || true
 
 qemu: floppy.img
-	$(QEMU) -fda $< -boot ac -m 32 -d int -monitor stdio 2> /dev/null
+	$(QEMU) -fda $< -boot ac -m 32 -d int -monitor stdio -d int -d cpu_reset -d guest_errors -no-reboot -no-shutdown 2> /dev/null
 	#-d int -no-reboot -no-shutdown 
 
 qemu-dbg: floppy.img
-	$(QEMU) -fda $< -boot ac -m 32 -d int -s -S -monitor stdio 2> /dev/null
+	$(QEMU) -fda $< -boot ac -m 32 -d int -s -S -monitor stdio -no-reboot -no-shutdown 2> /dev/null
 
 bochs: floppy.img
 	$(BOCHS) -q

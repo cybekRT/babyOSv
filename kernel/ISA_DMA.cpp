@@ -57,6 +57,7 @@ namespace ISA_DMA
 
 	void Start(u8 channel, TransferDir dir, void* physAddress, u16 count)
 	{
+		Print("Phys: %p (%u)\n", physAddress, count);
 		ASSERT((u32)physAddress <= 0xffff, "Invalid DMA address");
 		u16 addr = (u16)(u32)physAddress;
 
