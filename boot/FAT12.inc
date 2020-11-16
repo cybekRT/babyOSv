@@ -30,6 +30,45 @@ struc FAT12_BPB
 	.bootSignature		resb 2
 endstruc
 
+struc BPB_t
+	.jmpCode		resb 3
+	.oem			resb 8
+	.bytesPerSector		resw 1
+	.sectorsPerCluster	resb 1
+	.reservedSectors	resw 1
+	.fatsCount		resb 1
+	.rootEntries		resw 1
+	.totalSectors		resw 1
+	.mediaType		resb 1
+	.sectorsPerFat		resw 1
+	.sectorsPerTrack	resw 1
+	.headsCount		resw 1
+	.hiddenSectors		resd 1
+	.unused			resd 1
+	.driveNumber		resb 1
+	.reserved		resb 1
+	.signature		resb 1
+	.volumeId		resb 4
+	.label			resb 11
+	.systemId		resb 8
+endstruc
+
+struc FAT12_DirectoryEntry
+	;.name			resb 8+3
+	.name			resb 8
+	.ext			resb 3
+	.attributes		resb 1
+	.reserved		resb 2
+	.createTime		resb 2
+	.createDate		resb 2
+	.accessDate		resb 2
+	.clusterHigh		resb 2
+	.modificationTime	resb 2
+	.modificationDate	resb 2
+	.cluster		resb 2
+	.size			resb 4
+endstruc
+
 ;struc FAT12_Handle
 ;	.driveNumber	resb 1
 ;	.bpbPtr		resb 2
