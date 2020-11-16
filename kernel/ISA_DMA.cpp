@@ -57,9 +57,12 @@ namespace ISA_DMA
 
 	void Start(u8 channel, TransferDir dir, void* physAddress, u16 count)
 	{
-		Print("Phys: %p (%u)\n", physAddress, count);
-		ASSERT((u32)physAddress <= 0xffff, "Invalid DMA address");
-		u16 addr = (u16)(u32)physAddress;
+		ASSERT(channel == 2, "Only channel 2 is supported~!");
+		u32 addr = (u32)physAddress;
+
+		u8 channelToPageRegister[] = { 0x87, 0x83, 0x81, 0x82, 0x8F, 0x8B, 0x89, 0x8A };
+
+		ASSERT((addr & 0xffff) + count <= 0xffff, "Invalid DMA address");
 
 		Mask(channel);
 
@@ -67,13 +70,12 @@ namespace ISA_DMA
 
 		PortOut(IOPort::StartAddressRegisterChannel2, addr & 0xff);
 		PortOut(IOPort::StartAddressRegisterChannel2, addr >> 8);
+		PortOut(IOPort::PageAddressRegisterChannel2, addr >> 16);
 
 		ResetFlipFlop();
 
 		PortOut(IOPort::CountRegisterChannel2, count & 0xff);
 		PortOut(IOPort::CountRegisterChannel2, count >> 8);
-
-		PortOut(IOPort::PageAddressRegisterChannel2, 0x00);
 
 		Unmask(channel);
 	}

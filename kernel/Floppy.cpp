@@ -337,9 +337,6 @@ namespace Floppy
 		dmaLogic = Memory::Map(dmaPhys, nullptr, 4096);
 		Print("Floppy DMA: %p, %p\n", dmaPhys, dmaLogic);
 
-		Memory::PrintMemoryMap();
-		for(;;);
-
 		Interrupt::Register(Interrupt::IRQ2INT(Interrupt::IRQ_FLOPPY), ISR_Floppy);
 
 		Reset();
@@ -350,7 +347,10 @@ namespace Floppy
 		Read(0, tmpBuffer);
 
 		if(tmpBuffer[510] != 0x55 || tmpBuffer[511] != 0xAA)
+		{
+			Print("%x %x\n", tmpBuffer[510], tmpBuffer[511]);
 			FAIL("reading floppy");
+		}
 
 		Block::Register(&info);
 
