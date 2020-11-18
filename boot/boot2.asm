@@ -1,5 +1,5 @@
 %include "global.inc"
-;%include "FAT12.inc"
+%include "FAT12.inc"
 
 [bits 16]
 [org BOOT2_ADDR]

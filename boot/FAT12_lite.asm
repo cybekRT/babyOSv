@@ -1,5 +1,3 @@
-%include"FAT12.inc"
-
 fatLBA dw 0
 rootLBA dw 0
 dataLBA dw 0

@@ -13,6 +13,7 @@ ifeq ($(OS),Windows_NT)
 	DD			= D:/Programs/Cygwin/bin/dd
 	PCEM		= D:/Programs/PCem/PCem.exe
 	VBOXMANAGE	= C:/Program\ Files/VirtualBox/VBoxManage.exe
+	CFS			= ../cFS/cFS-cli/cFS-cli
 ####################
 #
 #	MacOS configuration
@@ -72,16 +73,12 @@ all: floppy.img
 
 floppy.img: out/boot1.bin out/boot2.bin out/kernel.bin floppy.json
 	$(CFS) floppy.json
-#	cat $^ out/boot1.bin > $@
-#	$(DD) if=/dev/zero of=$@ bs=1 count=0 seek=1474560
 
 out/boot1.bin: boot/boot1.asm boot/FAT12.inc boot/FAT12_lite.asm
 	$(NASM) $(NASM_FLAGS) $< -o $@ -l out/boot1.lst -fbin 
 
 out/boot2.bin: boot/boot2.asm boot/FAT12.inc boot/FAT12_lite.asm
-#out/kernel.bin
 	$(NASM) $(NASM_FLAGS) $< -fbin -o $@ -l out/boot2.lst 
-	#-DKERNEL_SIZE=$(strip $(shell wc -c < out/kernel.bin))
 
 out/kernel.elf: out/kmain_startup.o $(OBJS)
 	$(LD) -nostdlib -nolibc -nostartfiles -nodefaultlibs -m elf_i386 -T kernel/linker.ld $^ -o $@
