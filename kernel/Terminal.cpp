@@ -136,7 +136,7 @@ namespace Terminal
 						do
 						{
 							PutChar(*buf--);
-						} while(buf > tmp);
+						} while(buf >= tmp);
 						
 
 						/*for(unsigned a = 0; ; buf--)
