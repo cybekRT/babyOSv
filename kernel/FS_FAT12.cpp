@@ -83,13 +83,21 @@ namespace FS_FAT12
 		Print("Sectors per FAT: %d\n", bpb->sectorsPerFat);
 
 		u32 fatSize = bpb->sectorsPerFat * dev->BlockSize(dev);
+		Print("Block size: %u\n", dev->BlockSize(dev));
+		Print("Block size: %d %d %d %d\n", 123, 256, 512, 1024);
 
+		Print("Reading FAT... ");
 		u8* fat = (u8*)Memory::Alloc(fatSize);
-		//dev->Read(dev, 0, info->ebp);
+		for(unsigned a = 0; a < bpb->sectorsPerFat; a++)
+		{
+			dev->Read(dev, bpb->reservedSectors + bpb->hiddenSectors + a, fat + (a * 512));
+		}
+		Print("Done!\n");
 
 		Info* info = (Info*)Memory::Alloc(sizeof(Info));
 		info->dev = dev;
 		info->bpb = bpb;
+		info->fat = fat;
 		*fs = (void*)info;
 
 		return Status::Success;

@@ -115,6 +115,9 @@ namespace Floppy
 	void* dmaLogic;
 	volatile u8 irqReceived = 0;
 
+	u8 currentTrack = 0;
+	u8 motorEnabled = 0;
+
 	__attribute__((interrupt))
 	void ISR_Floppy(void*)
 	{
@@ -178,6 +181,9 @@ namespace Floppy
 
 	void MotorOn()
 	{
+		if(motorEnabled++ > 0)
+			return;
+
 		Print("FDD motor on\n");
 
 		DigitalOutputRegister reg;
@@ -194,6 +200,9 @@ namespace Floppy
 
 	void MotorOff()
 	{
+		if(--motorEnabled > 0)
+			return;
+
 		Print("FDD motor off\n");
 
 		DigitalOutputRegister reg;
@@ -238,19 +247,19 @@ namespace Floppy
 		u8 data[16];
 		data[0] = (u8)cmd;
 
-		Print("Executing command: %x", data[0]);
+		//Print("Executing command: %x", data[0]);
 
 		//WriteData(cmd);
 		for(unsigned a = 0; a < paramsCount; a++)
 		{
 			u8 param = va_arg(args, u32);
-			Print(", %x", param);
+			//Print(", %x", param);
 
 			data[1 + a] = param;
 			//WriteData(param);
 		}
 
-		Print("\n");
+		//Print("\n");
 		va_end(args);
 
 		for(unsigned a = 0; a < 1 + paramsCount; a++)
@@ -360,6 +369,11 @@ namespace Floppy
 
 	void Seek(u8 track)
 	{
+		if(currentTrack == track)
+		{
+			return;
+		}
+
 		Print("Seeking track: %u\n", track);
 
 		irqReceived = 0;
@@ -373,6 +387,8 @@ namespace Floppy
 		MainStatusRegister* reg = (MainStatusRegister*)&status;
 		if(!reg->ndma || reg->rqm)
 			FAIL("floppy seek");
+
+		currentTrack = track;
 	}
 
 	void Read(u16 lba, void* buffer)
@@ -436,6 +452,7 @@ namespace Floppy
 
 	u32 _BlockSize(void* dev)
 	{
+		Print("Flp... ");
 		return 512;
 	}
 
