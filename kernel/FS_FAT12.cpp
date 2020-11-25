@@ -109,6 +109,8 @@ endstruc
 
 	Status Alloc(Block::BlockInfo* dev, void** fs)
 	{
+		dev->Lock(dev);
+
 		BPB* bpb = (BPB*)Memory::Alloc(sizeof(BPB));
 		dev->Read(dev, 0, (u8*)bpb);
 
@@ -138,6 +140,7 @@ endstruc
 
 		*fs = (void*)info;
 
+		dev->Unlock(dev);
 		return Status::Success;
 	}
 
@@ -151,9 +154,7 @@ endstruc
 		Info* info = (Info*)fs;
 		*dir = (Directory*)Memory::Alloc(sizeof(Directory));
 
-		(*dir)->firstCluster = 0;/*info->bpb->reservedSectors 
-					+ info->bpb->hiddenSectors 
-					+ info->bpb->sectorsPerFat * info->bpb->fatsCount;*/
+		(*dir)->firstCluster = 0;
 		(*dir)->currentCluster = (*dir)->firstCluster;
 		(*dir)->dataOffset = 0;
 
@@ -189,8 +190,10 @@ endstruc
 				dir->dataOffset = 0;
 			}
 
+			u32 firstSector = (dir->firstCluster == 0) ? info->firstRootSector : info->firstDataSector - 2;
+
 			Print("Ptr: %p, %p, %p\n", info, info->dev, info->dev->Read);
-			info->dev->Read(info->dev, info->firstRootSector + dir->currentCluster, dir->buffer);
+			info->dev->Read(info->dev, firstSector + dir->currentCluster, dir->buffer);
 			if(dir->currentCluster == 0)
 				dir->dataOffset += 32;
 		}

@@ -406,7 +406,7 @@ namespace Floppy
 		irqReceived = 0;
 		u8 cmd = (u8)FDD_CMD_OPTION_MULTITRACK | (u8)FDD_CMD_OPTION_MFM | (u8)FDD_CMD_OPTION_SKIP | (u8)FDD_CMD_READ_DATA;
 		u8 driveNo = 0;
-		Exec((Command)cmd, 8, driveNo, cylinder, head, sector, 0x02, 0x12, 0x1B, 0xFF);
+		Exec((Command)cmd, 8, (head << 2) | driveNo, cylinder, head, sector, 0x02, 0x12, 0x1B, 0xFF);
 
 		WaitIRQ();
 
@@ -431,11 +431,6 @@ namespace Floppy
 		}
 	}
 
-	u32 _Size(void* dev)
-	{
-		return 2880;
-	}
-
 	u8 _Name(void* dev, u8* buffer)
 	{
 		u8* name = (u8*)"Floppy";
@@ -447,6 +442,23 @@ namespace Floppy
 			buffer[a] = name[a];
 		}
 
+		return 0;
+	}
+
+	u32 _Size(void* dev)
+	{
+		return 2880;
+	}
+
+	u8 _Lock(void* dev)
+	{
+		MotorOn();
+		return 0;
+	}
+
+	u8 _Unlock(void* dev)
+	{
+		MotorOff();
 		return 0;
 	}
 
@@ -472,6 +484,10 @@ namespace Floppy
 		.dev = nullptr,
 		.Name = _Name,
 		.Size = _Size,
+
+		.Lock = _Lock,
+		.Unlock = _Unlock,
+
 		.BlockSize = _BlockSize,
 		.Read = _Read,
 		.Write = _Write

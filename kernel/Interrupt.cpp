@@ -206,6 +206,7 @@ namespace Interrupt
 		//Register(INT_GENERAL_PROTECTION_FAULT, ISR_GPF);
 		Register(INT_DOUBLE_FAULT, (ISR)ISR_GPF);
 		Register(INT_PAGE_FAULT, (ISR)ISR_GPF);
+		Register(INT_INVALID_SEGMENT, (ISR)ISR_GPF);
 		//Register(INT_DIVISION_BY_ZERO, ISR_GPF);
 
 		/*for(unsigned a = 0; a < 16; a++)

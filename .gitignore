@@ -1,6 +1,7 @@
 *.bin
 *.img
 *.o
+.DS_Store
 /out
 
 # Auto-generated files

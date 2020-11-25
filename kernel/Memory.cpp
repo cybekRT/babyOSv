@@ -643,11 +643,15 @@ namespace Memory
 				if(currentMap->address[a] == 0)
 					continue;
 				
-				PutString( (currentMap->used[a] ? "- " : "+ ") );
+				Print("%c %p - %u\n", (currentMap->used[a] ? '-' : '+'), 
+							currentMap->address[a], 
+							currentMap->length[a]);
+
+				/*PutString( (currentMap->used[a] ? "- " : "+ ") );
 				PutHex((unsigned)currentMap->address[a]);
 				PutString(" - ");
 				PutHex(currentMap->length[a]);
-				PutString("\n");
+				PutString("\n");*/
 
 				if(currentMap->used[a])
 					used += currentMap->length[a];
@@ -659,11 +663,7 @@ namespace Memory
 		}
 
 		PutString("======================\n");
-
-		PutString("Used:  "); PutHex( used ); PutString("\n");
-		PutString("Free:  "); PutHex( free ); /*PutString(" / "); PutHex( used + free );*/ PutString("\n");
-		PutString("Total: "); PutHex( free + used ); PutString("\n");
-
+		Print("Used:  %u bytes\nFree:  %u bytes\nTotal: %u bytes\n", used, free, free + used);
 		PutString("======================\n");
 		EXIT_CRITICAL_SECTION();
 	}

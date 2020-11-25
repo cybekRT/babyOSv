@@ -11,6 +11,9 @@ namespace Block
 		u8 (*Name)(void* dev, u8* buffer);
 		u32 (*Size)(void* dev);
 
+		u8 (*Lock)(void* dev);
+		u8 (*Unlock)(void* dev);
+
 		u32 (*BlockSize)(void* dev);
 		u8 (*Read)(void* dev, u32 lba, u8* buffer);
 		u8 (*Write)(void* dev, u32 lba, u8* buffer);
