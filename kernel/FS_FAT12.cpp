@@ -14,7 +14,10 @@ namespace FS
 
 	struct Directory
 	{
-
+		u32 firstCluster;
+		u32 currentCluster;
+		u32 dataOffset;
+		u8 buffer[512];
 	};
 }
 
@@ -47,10 +50,39 @@ namespace FS_FAT12
 		u8 bootSignature[2];
 	} __attribute__((packed));
 
+	/*
+	struc FAT12_DirectoryEntry
+        ;.name                  resb 8+3
+        .name                   resb 8
+        .ext                    resb 3
+        .attributes             resb 1
+        .reserved               resb 2
+        .createTime             resb 2
+        .createDate             resb 2
+        .accessDate             resb 2
+        .clusterHigh            resb 2
+        .modificationTime       resb 2
+        .modificationDate       resb 2
+        .cluster                resb 2
+        .size                   resb 4
+endstruc
+*/
+
+	struct FAT12_DirEntry
+	{
+		u8 name[8];
+		u8 ext[3];
+		u8 attributes;
+		u16 reserved;
+		u16 createTime;
+	} __attribute__((packed));
+
 	struct Info
 	{
 		Block::BlockInfo* dev;
 		BPB* bpb;
+		u32 firstRootSector;
+		u32 firstDataSector;
 		u8* fat;
 	};
 
@@ -65,7 +97,7 @@ namespace FS_FAT12
 	{
 		u8 buffer[512];
 
-		Print("Proving FAT12...\n");
+		Print("Probing FAT12...\n");
 		if(info->Read(info->dev, 0, buffer))
 			return Status::Fail;
 
@@ -98,6 +130,12 @@ namespace FS_FAT12
 		info->dev = dev;
 		info->bpb = bpb;
 		info->fat = fat;
+
+		info->firstRootSector = info->bpb->reservedSectors 
+					+ info->bpb->hiddenSectors 
+					+ info->bpb->sectorsPerFat * info->bpb->fatsCount;
+		info->firstDataSector = info->firstRootSector + info->bpb->rootEntriesCount * 32 / 512;
+
 		*fs = (void*)info;
 
 		return Status::Success;
@@ -108,19 +146,67 @@ namespace FS_FAT12
 
 	}
 
-	Status OpenDirectory(void* fs, u8* path, Directory** dir)
+	Status OpenRoot(void* fs, Directory** dir)
 	{
+		Info* info = (Info*)fs;
+		*dir = (Directory*)Memory::Alloc(sizeof(Directory));
 
+		(*dir)->firstCluster = 0;/*info->bpb->reservedSectors 
+					+ info->bpb->hiddenSectors 
+					+ info->bpb->sectorsPerFat * info->bpb->fatsCount;*/
+		(*dir)->currentCluster = (*dir)->firstCluster;
+		(*dir)->dataOffset = 0;
+
+		return Status::Success;
 	}
 
-	Status CloseDirectory(void* fs, Directory* dir)
+	Status OpenDirectory(void* fs, u8* path, Directory** dir)
 	{
+		Info* info = (Info*)fs;
+	}
 
+	Status CloseDirectory(void* fs, Directory* dir, DirEntry** entry)
+	{
+		Info* info = (Info*)fs;
+
+		if(entry != nullptr)
+		{
+			Memory::Free(entry);
+		}
+
+		Memory::Free(dir);
 	}
 
 	Status ReadDirectory(void* fs, Directory* dir, DirEntry** entry)
 	{
+		Info* info = (Info*)fs;
 
+		if(dir->dataOffset == 0 || dir->dataOffset == 512)
+		{
+			if(dir->dataOffset == 512)
+			{
+				dir->currentCluster++;
+				dir->dataOffset = 0;
+			}
+
+			Print("Ptr: %p, %p, %p\n", info, info->dev, info->dev->Read);
+			info->dev->Read(info->dev, info->firstRootSector + dir->currentCluster, dir->buffer);
+			if(dir->currentCluster == 0)
+				dir->dataOffset += 32;
+		}
+
+		FAT12_DirEntry* fatEntry = (FAT12_DirEntry*)(dir->buffer + dir->dataOffset);
+
+		*entry = (DirEntry*)Memory::Alloc(sizeof(DirEntry) + 8+3+1);
+		(*entry)->type = (fatEntry->attributes & (1 << 4)) ? FS::FileType::Directory : FS::FileType::Normal;
+		for(unsigned a = 0; a < 8 + 3; a++)
+			(*entry)->name[a] = fatEntry->name[a];
+		(*entry)->name[8 + 3] = 0;
+		(*entry)->nameLength = 8 + 3;
+
+		dir->dataOffset += 32;
+
+		return Status::Success;
 	}
 
 	Status ChangeDirectory(void* fs, Directory* dir, DirEntry* entry)
@@ -136,6 +222,7 @@ namespace FS_FAT12
 		.Alloc = Alloc,
 		.Dealloc = Dealloc,
 
+		.OpenRoot = OpenRoot,
 		.OpenDirectory = OpenDirectory,
 		.CloseDirectory = CloseDirectory,
 		

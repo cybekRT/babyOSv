@@ -28,9 +28,9 @@ namespace FS
 		Status (*Alloc)(Block::BlockInfo* info, void** fs);
 		Status (*Dealloc)(Block::BlockInfo* info, void** fs);
 
-		//Status OpenRoot(Directory** dir);
+		Status (*OpenRoot)(void* fs, Directory** dir);
 		Status (*OpenDirectory)(void* fs, u8* path, Directory** dir);
-		Status (*CloseDirectory)(void* fs, Directory* dir);
+		Status (*CloseDirectory)(void* fs, Directory* dir, DirEntry** entry);
 
 		Status (*ReadDirectory)(void* fs, Directory* dir, DirEntry** entry);
 		Status (*ChangeDirectory)(void* fs, Directory* dir, DirEntry* entry);

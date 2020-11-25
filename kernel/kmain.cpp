@@ -70,6 +70,9 @@ extern "C" void kmain()
 
 	fs->Alloc(dev, &fsPriv);
 
+	FS::Directory* dir;
+	fs->OpenRoot(fs, &dir);
+
 	char tmp[64];
 	u8 tmpX = 0;
 	Keyboard::KeyEvent keyEvent;
@@ -106,6 +109,13 @@ extern "C" void kmain()
 					{
 						u8* x = (u8*)0x1234;
 						*x = 5;
+					}
+					else if(strcmp(tmp, "x"))
+					{
+						FS::DirEntry* entry;
+						fs->ReadDirectory(fsPriv, dir, &entry);
+
+						Print("Entry (%x): %s\n", entry->type, entry->name);
 					}
 				}
 				Print("\n> ");
