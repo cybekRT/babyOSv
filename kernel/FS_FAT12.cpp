@@ -264,6 +264,12 @@ endstruc
 	{
 		Print("Changing directory...\n");
 		FAT12_DirEntry* fatEntry = (FAT12_DirEntry*)(dir->buffer + dir->dataOffset);
+
+		if(!(fatEntry->attributes & (u8)Attribute::Directory))
+		{
+			return Status::Fail;
+		}
+
 		dir->firstCluster = dir->currentCluster = fatEntry->cluster;
 		Print("Directory cluster: %x\n", dir->firstCluster);
 		dir->dataOffset = 0;
