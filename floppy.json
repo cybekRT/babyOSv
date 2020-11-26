@@ -4,6 +4,16 @@
 	"/": {
 			"boot.bin": "out/boot2.bin",
 			"kernel.bin": "out/kernel.bin",
-},
+			"boot": {
+				"boot1.asm": "boot/boot1.asm",
+				"boot2.asm": "boot/boot2.asm",
+				"FAT12_lite.asm": "boot/FAT12_lite.asm",
+				"FAT12.inc": "boot/FAT12.inc",
+				"veryveryverylongfilename.yolo": "boot/global.inc"
+			},
+			"kernel": {
+				"kmain.asm": "kernel/kmain_startup.asm",
+			}
+	},
 	"output": "floppy.img"
 }

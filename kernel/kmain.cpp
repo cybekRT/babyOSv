@@ -110,12 +110,19 @@ extern "C" void kmain()
 						u8* x = (u8*)0x1234;
 						*x = 5;
 					}
-					else if(strcmp(tmp, "x"))
+					else if(strcmp(tmp, "r"))
 					{
 						FS::DirEntry* entry;
 						fs->ReadDirectory(fsPriv, dir, &entry);
 
 						Print("Entry (%x): %s\n", entry->type, entry->name);
+					}
+					else if(strcmp(tmp, "c"))
+					{
+						FS::DirEntry* entry = nullptr;
+						fs->ChangeDirectory(fsPriv, dir, entry);
+
+						//Print("Changed to: (%x): %s\n", entry->type, entry->name);
 					}
 				}
 				Print("\n> ");

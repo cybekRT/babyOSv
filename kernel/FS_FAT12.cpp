@@ -17,6 +17,7 @@ namespace FS
 		u32 firstCluster;
 		u32 currentCluster;
 		u32 dataOffset;
+		u8 bufferValid;
 		u8 buffer[512];
 	};
 }
@@ -68,14 +69,57 @@ namespace FS_FAT12
 endstruc
 */
 
+	struct Time
+	{
+		u16	hour : 5;
+		u16	minutes : 6;
+		u16	seconds : 5;
+	} __attribute__((packed));
+
+	struct Date
+	{
+		u16	year : 7;
+		u16	month : 4;
+		u16	day : 5;
+	} __attribute__((packed));
+
+	enum class Attribute
+	{
+		ReadOnly	=	1,
+		Hidden		=	2,
+		System		=	4,
+		VolumeLabel	=	8,
+		Directory	=	16,
+		Archive		=	32,
+		Device		=	64,
+		Reserved	=	128,
+	};
+	inline Attribute operator|(Attribute a, Attribute b) { return (Attribute)(unsigned(a) | unsigned(b) ); }
+
 	struct FAT12_DirEntry
+	{
+		u8		name[8+3];
+		u8		attributes;
+		u8		_reserved;
+		u8		_unused;
+		Time	createTime;
+		Date	createDate;
+		Date	accessDate;
+		u16		clusterHigh;
+		Time	modificationTime;
+		Date	modificationDate;
+		u16		cluster;
+		u32		size;
+	} __attribute__((packed));
+
+	/*struct FAT12_DirEntry
 	{
 		u8 name[8];
 		u8 ext[3];
 		u8 attributes;
 		u16 reserved;
 		u16 createTime;
-	} __attribute__((packed));
+	} __attribute__((packed));*/
 
 	struct Info
 	{
@@ -157,6 +201,7 @@ endstruc
 		(*dir)->firstCluster = 0;
 		(*dir)->currentCluster = (*dir)->firstCluster;
 		(*dir)->dataOffset = 0;
+		(*dir)->bufferValid = 0;
 
 		return Status::Success;
 	}
@@ -182,6 +227,9 @@ endstruc
 	{
 		Info* info = (Info*)fs;
 
+		if(dir->bufferValid)
+			dir->dataOffset += 32;
+
 		if(dir->dataOffset == 0 || dir->dataOffset == 512)
 		{
 			if(dir->dataOffset == 512)
@@ -196,6 +244,8 @@ endstruc
 			info->dev->Read(info->dev, firstSector + dir->currentCluster, dir->buffer);
 			if(dir->currentCluster == 0)
 				dir->dataOffset += 32;
+
+			dir->bufferValid = 1;
 		}
 
 		FAT12_DirEntry* fatEntry = (FAT12_DirEntry*)(dir->buffer + dir->dataOffset);
@@ -207,14 +257,19 @@ endstruc
 		(*entry)->name[8 + 3] = 0;
 		(*entry)->nameLength = 8 + 3;
 
-		dir->dataOffset += 32;
-
 		return Status::Success;
 	}
 
 	Status ChangeDirectory(void* fs, Directory* dir, DirEntry* entry)
 	{
+		Print("Changing directory...\n");
+		FAT12_DirEntry* fatEntry = (FAT12_DirEntry*)(dir->buffer + dir->dataOffset);
+		dir->firstCluster = dir->currentCluster = fatEntry->cluster;
+		Print("Directory cluster: %x\n", dir->firstCluster);
+		dir->dataOffset = 0;
+		dir->bufferValid = 0;
 
+		return Status::Success;
 	}
 
 	FS::FSInfo info = 
