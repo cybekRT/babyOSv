@@ -4,17 +4,23 @@
 
 namespace FS
 {
-	enum class FileType
+	enum class Status
 	{
-		Normal,
-		Directory
+		Success = 0,
+		EOF = 1,
+
+		Undefined = 255
 	};
 
 	struct DirEntry
 	{
-		FileType type;
-		u32 nameLength;
-		u8 name[];
+		bool isValid : 1;
+		bool isDirectory : 1;
+		bool isSymlink : 1;
+		bool isHidden : 1;
+
+		u32 size;
+		u8 name[256];
 	};
 
 	struct Directory;
@@ -29,11 +35,17 @@ namespace FS
 		Status (*Dealloc)(Block::BlockInfo* info, void** fs);
 
 		Status (*OpenRoot)(void* fs, Directory** dir);
-		Status (*OpenDirectory)(void* fs, u8* path, Directory** dir);
-		Status (*CloseDirectory)(void* fs, Directory* dir, DirEntry** entry);
+		Status (*OpenDirectory)(void* fs, Directory* src, Directory** dir);
+		Status (*CloseDirectory)(void* fs, Directory** dir);
+		Status (*RewindDirectory)(void* fs, Directory* dir);
 
-		Status (*ReadDirectory)(void* fs, Directory* dir, DirEntry** entry);
-		Status (*ChangeDirectory)(void* fs, Directory* dir, DirEntry* entry);
+		Status (*ReadDirectory)(void* fs, Directory* dir, DirEntry* entry);
+		Status (*ChangeDirectory)(void* fs, Directory* dir);
+
+		Status (*OpenFile)(void* fs, Directory* dir, File** file);
+		Status (*CloseFile)(void* fs, File** file);
+
+		Status (*ReadFile)(void* fs, File* file, u8* buffer, u32 bufferSize, u32* readCount);
 	};
 
 	extern LinkedList<FSInfo*> filesystems;

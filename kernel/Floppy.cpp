@@ -184,7 +184,7 @@ namespace Floppy
 		if(motorEnabled++ > 0)
 			return;
 
-		Print("FDD motor on\n");
+		//Print("FDD motor on\n");
 
 		DigitalOutputRegister reg;
 		u8* regPtr = (u8*)&reg;
@@ -203,7 +203,7 @@ namespace Floppy
 		if(--motorEnabled > 0)
 			return;
 
-		Print("FDD motor off\n");
+		//Print("FDD motor off\n");
 
 		DigitalOutputRegister reg;
 		u8* regPtr = (u8*)&reg;

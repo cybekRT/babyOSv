@@ -27,6 +27,17 @@ namespace Terminal
 			vmem[p] = 0;
 			return;
 		}
+		else if(c == '\r')
+		{
+			p -= p % 160;
+			return;
+		}
+		else if(c == '\t')
+		{
+			p += 16;
+			p -= p % 16;
+			return;
+		}
 
 		if(p >= 80*24*2)
 		{

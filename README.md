@@ -8,3 +8,5 @@ It is a second attempt, since first babyOS is still in-development, but started 
 # Screenshots
 
 ![](Screenshots/2020-08-17_keyboard_started_working.png)
+
+![](Screenshots/2020-11-29_reading_fat12_dir_and_file.png)

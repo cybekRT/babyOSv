@@ -35,6 +35,8 @@ bool strcmp(char* a, char* b)
 	return true;
 }
 
+u8 tolower(u8 c);
+
 extern "C" void kmain()
 {
 	ASSERT(sizeof(u64) == 8, "u64");
@@ -99,7 +101,7 @@ extern "C" void kmain()
 
 				if(tmpX > 0)
 				{
-					Print("\nExecuting: %s", tmp);
+					Print("\nExecuting: %s\n", tmp);
 
 					if(strcmp(tmp, "mem"))
 					{
@@ -112,17 +114,133 @@ extern "C" void kmain()
 					}
 					else if(strcmp(tmp, "r"))
 					{
-						FS::DirEntry* entry;
+						FS::DirEntry entry;
 						fs->ReadDirectory(fsPriv, dir, &entry);
 
-						Print("Entry (%x): %s\n", entry->type, entry->name);
+						Print("Entry (%x): %s\n", entry.isDirectory, entry.name);
 					}
 					else if(strcmp(tmp, "c"))
 					{
 						FS::DirEntry* entry = nullptr;
-						fs->ChangeDirectory(fsPriv, dir, entry);
+						fs->ChangeDirectory(fsPriv, dir);
 
 						//Print("Changed to: (%x): %s\n", entry->type, entry->name);
+					}
+					else if(strcmp(tmp, "dir"))
+					{
+						dev->Lock(dev);
+
+						FS::DirEntry entry;
+						fs->RewindDirectory(fsPriv, dir);
+
+						Print("Directory content:\n");
+						while(fs->ReadDirectory(fsPriv, dir, &entry) != FS::Status::EOF)
+						{
+							if(!entry.isValid)
+								continue;
+
+							Print("<DATE>\t<HOUR>\t%s\t%u\t%s\n", (entry.isDirectory) ? "DIR" : "", entry.size, entry.name);
+						}
+
+						fs->RewindDirectory(fsPriv, dir);
+						dev->Unlock(dev);
+					}
+					else if(strlen(tmp) > 3 && tmp[0] == 'c' && tmp[1] == 'd' && tmp[2] == ' ')
+					{
+						u8 path[256];
+						u8* dst = path;
+						bool foundAny = false;
+						for(unsigned a = 3; a < strlen(tmp); a++)
+						{
+							if(tmp[a] != ' ')
+							{
+								(*dst++) = tolower(tmp[a]);
+								foundAny = true;
+							}
+							else if(foundAny)
+								break;
+						}
+
+						(*dst) = 0;
+
+						FS::DirEntry entry;
+						fs->RewindDirectory(fsPriv, dir);
+
+						bool changed = false;
+						while(fs->ReadDirectory(fsPriv, dir, &entry) != FS::Status::EOF)
+						{
+							if(!entry.isValid)
+								continue;
+
+							if(strcmp((char*)path, (char*)entry.name))
+							{
+								if(fs->ChangeDirectory(fsPriv, dir) == FS::Status::Success)
+									changed = true;
+								break;
+							}
+						}
+
+						if(changed)
+							Print("Changed to: %s\n", path);
+						else
+							Print("Directory \"%s\" not found!\n", path);
+					}
+					else if(strlen(tmp) > 4 && tmp[0] == 'c' && tmp[1] == 'a' && tmp[2] == 't' && tmp[3] == ' ')
+					{
+						u8 path[256];
+						u8* dst = path;
+						bool foundAny = false;
+						for(unsigned a = 4; a < strlen(tmp); a++)
+						{
+							if(tmp[a] != ' ')
+							{
+								(*dst++) = tolower(tmp[a]);
+								foundAny = true;
+							}
+							else if(foundAny)
+								break;
+						}
+
+						(*dst) = 0;
+
+						FS::DirEntry entry;
+						fs->RewindDirectory(fsPriv, dir);
+
+						FS::File* file = nullptr;
+						while(fs->ReadDirectory(fsPriv, dir, &entry) != FS::Status::EOF)
+						{
+							if(!entry.isValid || entry.isDirectory)
+								continue;
+
+							if(strcmp((char*)path, (char*)entry.name))
+							{
+								fs->OpenFile(fs, dir, &file);
+								break;
+							}
+						}
+
+						if(file)
+							Print("Found file: %s\n", path);
+						else
+							Print("File \"%s\" not found!\n", path);
+
+						u32 readCount;
+						u32 bufSize = 512;
+						u8 buf[bufSize];
+						FS::Status s;
+						while((s = fs->ReadFile(fsPriv, file, buf, bufSize, &readCount)) == FS::Status::Success)
+						{
+							for(unsigned a = 0; a < readCount; a++)
+							{
+								Print("%c", buf[a]);
+							}
+						}
+
+						fs->CloseFile(fs, &file);
+					}
+					else
+					{
+						Print("Invalid command...\n");
 					}
 				}
 				Print("\n> ");

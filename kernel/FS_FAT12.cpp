@@ -1,15 +1,45 @@
 #include"FS.hpp"
 #include"Memory.h"
 
+//using FS::Status;
 using FS::File;
 using FS::Directory;
 using FS::DirEntry;
+
+u8 tolower(u8 c)
+{
+	if(c >= 'A' && c <= 'Z')
+	{
+		return c - ('A' - 'a');
+	}
+	else
+	{
+		return c;
+	}
+}
+
+u8 toupper(u8 c)
+{
+	if(c >= 'a' && c <= 'z')
+	{
+		return c - ('a' - 'A');
+	}
+	else
+	{
+		return c;
+	}
+}
 
 namespace FS
 {
 	struct File
 	{
-
+		u32 firstCluster;
+		u32 currentCluster;
+		u32 totalDataOffset; // Total data offset, not position in buffer
+		u32 size;
+		u8 bufferValid;
+		u8 buffer[512];
 	};
 
 	struct Directory
@@ -130,6 +160,37 @@ endstruc
 		u8* fat;
 	};
 
+	/*
+	 *
+	 *  Helper functions
+	 *
+	 */
+
+	u16 NextCluster(void* fs, u16 cluster)
+	{
+		Info* info = (Info*)fs;
+
+		u32 fatOffset = cluster + (cluster >> 1);
+		Print("Fat offset: %x - %x\n", cluster, fatOffset);
+		u16 nextCluster = *(u16*)(info->fat + fatOffset);
+
+		if(cluster & 1)
+			nextCluster = nextCluster >> 4;
+		else
+			nextCluster = nextCluster & 0xfff;
+
+		if(nextCluster >= 0xFF8) // Last one...
+			nextCluster = 0;
+
+		return nextCluster;
+	}
+
+	/*
+	 *
+	 *  Probe
+	 *
+	 */
+
 	u32 Name(u8* buffer)
 	{
 		char name[] = "FAT12";
@@ -137,21 +198,21 @@ endstruc
 		return sizeof(name);
 	}
 
-	Status Probe(Block::BlockInfo* info)
+	FS::Status Probe(Block::BlockInfo* info)
 	{
 		u8 buffer[512];
 
 		Print("Probing FAT12...\n");
 		if(info->Read(info->dev, 0, buffer))
-			return Status::Fail;
+			return FS::Status::Undefined;
 
 		if(buffer[0] == 0xEB && buffer[2] == 0x90)
-			return Status::Success;
+			return FS::Status::Success;
 
-		return Status::Fail;
+		return FS::Status::Undefined;
 	}
 
-	Status Alloc(Block::BlockInfo* dev, void** fs)
+	FS::Status Alloc(Block::BlockInfo* dev, void** fs)
 	{
 		dev->Lock(dev);
 
@@ -185,15 +246,21 @@ endstruc
 		*fs = (void*)info;
 
 		dev->Unlock(dev);
-		return Status::Success;
+		return FS::Status::Success;
 	}
 
-	Status Dealloc(Block::BlockInfo* info, void** fs)
+	FS::Status Dealloc(Block::BlockInfo* info, void** fs)
 	{
 
 	}
 
-	Status OpenRoot(void* fs, Directory** dir)
+	/*
+	 *
+	 *  Directory
+	 *
+	 */
+
+	FS::Status OpenRoot(void* fs, Directory** dir)
 	{
 		Info* info = (Info*)fs;
 		*dir = (Directory*)Memory::Alloc(sizeof(Directory));
@@ -203,27 +270,43 @@ endstruc
 		(*dir)->dataOffset = 0;
 		(*dir)->bufferValid = 0;
 
-		return Status::Success;
+		return FS::Status::Success;
 	}
 
-	Status OpenDirectory(void* fs, u8* path, Directory** dir)
+	FS::Status OpenDirectory(void* fs, Directory* src, Directory** dir)
 	{
 		Info* info = (Info*)fs;
+		*dir = (Directory*)Memory::Alloc(sizeof(Directory));
+
+		(*dir)->firstCluster = src->firstCluster;
+		(*dir)->currentCluster = src->currentCluster;
+		(*dir)->dataOffset = src->dataOffset;
+		(*dir)->bufferValid = src->bufferValid;
+		memcpy((*dir)->buffer, src->buffer, sizeof(src->buffer));
+
+		return FS::Status::Success;
 	}
 
-	Status CloseDirectory(void* fs, Directory* dir, DirEntry** entry)
+	FS::Status CloseDirectory(void* fs, Directory** dir)
 	{
 		Info* info = (Info*)fs;
 
-		if(entry != nullptr)
-		{
-			Memory::Free(entry);
-		}
+		Memory::Free(*dir);
+		*dir = nullptr;
 
-		Memory::Free(dir);
+		return FS::Status::Success;
 	}
 
-	Status ReadDirectory(void* fs, Directory* dir, DirEntry** entry)
+	FS::Status RewindDirectory(void* fs, Directory* dir)
+	{
+		dir->currentCluster = dir->firstCluster;
+		dir->dataOffset = 0;
+		dir->bufferValid = 0;
+
+		return FS::Status::Success;
+	}
+
+	FS::Status ReadDirectory(void* fs, Directory* dir, DirEntry* entry)
 	{
 		Info* info = (Info*)fs;
 
@@ -234,13 +317,28 @@ endstruc
 		{
 			if(dir->dataOffset == 512)
 			{
-				dir->currentCluster++;
+				if(dir->firstCluster == 0)
+					dir->currentCluster++;
+				else
+					dir->currentCluster = NextCluster(fs, dir->currentCluster);
+
 				dir->dataOffset = 0;
+			}
+
+			if(dir->firstCluster == 0 && dir->currentCluster >= (info->bpb->rootEntriesCount * 32 / 512))
+			{
+				dir->bufferValid = 0;
+				return FS::Status::EOF;
+			}
+
+			if(dir->firstCluster != 0 && dir->currentCluster == 0)
+			{
+				dir->bufferValid = 0;
+				return FS::Status::EOF;
 			}
 
 			u32 firstSector = (dir->firstCluster == 0) ? info->firstRootSector : info->firstDataSector - 2;
 
-			Print("Ptr: %p, %p, %p\n", info, info->dev, info->dev->Read);
 			info->dev->Read(info->dev, firstSector + dir->currentCluster, dir->buffer);
 			if(dir->currentCluster == 0)
 				dir->dataOffset += 32;
@@ -250,24 +348,48 @@ endstruc
 
 		FAT12_DirEntry* fatEntry = (FAT12_DirEntry*)(dir->buffer + dir->dataOffset);
 
-		*entry = (DirEntry*)Memory::Alloc(sizeof(DirEntry) + 8+3+1);
-		(*entry)->type = (fatEntry->attributes & (1 << 4)) ? FS::FileType::Directory : FS::FileType::Normal;
-		for(unsigned a = 0; a < 8 + 3; a++)
-			(*entry)->name[a] = fatEntry->name[a];
-		(*entry)->name[8 + 3] = 0;
-		(*entry)->nameLength = 8 + 3;
+		entry->isDirectory = fatEntry->attributes & (u8)Attribute::Directory;
+		entry->isSymlink = 0;
+		entry->isValid = (fatEntry->name[0] != 0 && fatEntry->name[0] != ' ');
+		entry->size = fatEntry->size;
 
-		return Status::Success;
+		u8* dst = entry->name;
+		for(unsigned a = 0; a < 8; a++)
+		{
+			u8 c = fatEntry->name[a];
+			if(c == ' ')
+				break;
+
+			(*dst++) = tolower(c);
+		}
+
+		if(fatEntry->name[8] != ' ')
+		{
+			(*dst++) = '.';
+			for(unsigned a = 0; a < 3; a++)
+			{
+				u8 c = fatEntry->name[8 + a];
+				if(c == ' ')
+					break;
+
+				(*dst++) = tolower(c);
+			}
+		}
+
+		(*dst) = 0;
+
+		return FS::Status::Success;
 	}
 
-	Status ChangeDirectory(void* fs, Directory* dir, DirEntry* entry)
+	FS::Status ChangeDirectory(void* fs, Directory* dir)
 	{
 		Print("Changing directory...\n");
 		FAT12_DirEntry* fatEntry = (FAT12_DirEntry*)(dir->buffer + dir->dataOffset);
 
 		if(!(fatEntry->attributes & (u8)Attribute::Directory))
 		{
-			return Status::Fail;
+			Print("Not a directory!!\n");
+			return FS::Status::Undefined;
 		}
 
 		dir->firstCluster = dir->currentCluster = fatEntry->cluster;
@@ -275,8 +397,116 @@ endstruc
 		dir->dataOffset = 0;
 		dir->bufferValid = 0;
 
-		return Status::Success;
+		return FS::Status::Success;
 	}
+
+	/*
+	 *
+	 *  File
+	 *
+	 */
+
+	FS::Status OpenFile(void* fs, Directory* dir, File** file)
+	{
+		Info* info = (Info*)fs;
+		FAT12_DirEntry* fatEntry = (FAT12_DirEntry*)(dir->buffer + dir->dataOffset);
+
+		(*file) = (File*)Memory::Alloc(sizeof(File));
+
+		(*file)->firstCluster = fatEntry->cluster;
+		(*file)->currentCluster = (*file)->firstCluster;
+
+		(*file)->totalDataOffset = 0;
+		(*file)->bufferValid = 0;
+		(*file)->size = fatEntry->size;
+
+		return FS::Status::Success;
+	}
+
+	FS::Status CloseFile(void* fs, File** file)
+	{
+		Info* info = (Info*)fs;
+
+		Memory::Free(*file);
+		(*file) = nullptr;
+
+		return FS::Status::Success;
+	}
+
+	FS::Status ReadFile(void* fs, File* file, u8* buffer, u32 bufferSize, u32* readCount)
+	{
+		Info* info = (Info*)fs;
+
+		(*readCount) = 0;
+
+		if(file->totalDataOffset >= file->size)
+			return FS::Status::EOF;
+
+		if(file->totalDataOffset > 0 && (file->totalDataOffset % sizeof(file->buffer)) == 0)
+		{
+			file->currentCluster = NextCluster(fs, file->currentCluster);
+			file->bufferValid = 0;
+		}
+
+		if(file->currentCluster == 0)
+			return FS::Status::EOF;
+
+		if(!file->bufferValid)
+		{
+			u32 sector = info->firstDataSector + file->currentCluster - 2;
+			info->dev->Read(info->dev, sector, file->buffer);
+			file->bufferValid = 1;
+		}
+
+		// If there's need to read more data than in internal buffer, divide to 2 separate calls
+		u32 inBuffer = sizeof(file->buffer) - (file->totalDataOffset % sizeof(file->buffer));
+		if(inBuffer > bufferSize)
+		{
+			Print("\n----- Subreading... -----\n");
+			u32 subread;
+			auto s1 = ReadFile(fs, file, buffer, inBuffer, &subread);
+			(*readCount) += subread;
+
+			if(s1 != FS::Status::Success)
+				return s1;
+
+			auto s2 = ReadFile(fs, file, buffer + subread, bufferSize - subread, &subread);
+			(*readCount) += subread;
+
+			if(s2 == FS::Status::EOF)
+				return s1;
+
+			return s2;
+		}
+
+		// Otherwise, read from internal buffer
+
+		u32 offset = (file->totalDataOffset % sizeof(file->buffer));
+		for(unsigned a = 0; a < bufferSize; a++)
+		{
+			if(file->totalDataOffset >= file->size)
+			{
+				//return FS::Status::EOF;
+				break;
+			}
+
+			buffer[a] = file->buffer[offset + a];
+
+			file->totalDataOffset++;
+			(*readCount)++;
+		}
+
+		if((*readCount) == 0)
+			return FS::Status::EOF;
+
+		return FS::Status::Success;
+	}
+
+	/*
+	 *
+	 *  FSInfo
+	 *
+	 */
 
 	FS::FSInfo info = 
 	{
@@ -289,9 +519,15 @@ endstruc
 		.OpenRoot = OpenRoot,
 		.OpenDirectory = OpenDirectory,
 		.CloseDirectory = CloseDirectory,
+		.RewindDirectory = RewindDirectory,
 		
 		.ReadDirectory = ReadDirectory,
 		.ChangeDirectory = ChangeDirectory,
+
+		.OpenFile = OpenFile,
+		.CloseFile = CloseFile,
+
+		.ReadFile = ReadFile,
 	};
 
 	bool Init()
