@@ -406,8 +406,10 @@ namespace Floppy
 		irqReceived = 0;
 		u8 cmd = (u8)FDD_CMD_OPTION_MULTITRACK | (u8)FDD_CMD_OPTION_MFM | (u8)FDD_CMD_OPTION_SKIP | (u8)FDD_CMD_READ_DATA;
 		u8 driveNo = 0;
+		Print("Exec cmd; ");
 		Exec((Command)cmd, 8, (head << 2) | driveNo, cylinder, head, sector, 0x02, 0x12, 0x1B, 0xFF);
 
+		Print("Wait IRQ; ");
 		WaitIRQ();
 
 		u8 st0 = ReadData();
@@ -417,6 +419,8 @@ namespace Floppy
 		u8 sth = ReadData();
 		u8 str = ReadData();
 		u8 stn = ReadData();
+
+		Print("Finished~!\n");
 
 		if(st0 & 0b11000000)
 			FAIL("floppy read status");

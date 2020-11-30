@@ -5,7 +5,7 @@
 using FS::File;
 using FS::Directory;
 using FS::DirEntry;
-
+#include"Timer.h"
 u8 tolower(u8 c)
 {
 	if(c >= 'A' && c <= 'Z')
@@ -171,7 +171,7 @@ endstruc
 		Info* info = (Info*)fs;
 
 		u32 fatOffset = cluster + (cluster >> 1);
-		Print("Fat offset: %x - %x\n", cluster, fatOffset);
+		//Print("Fat offset: %x - %x\n", cluster, fatOffset);
 		u16 nextCluster = *(u16*)(info->fat + fatOffset);
 
 		if(cluster & 1)
@@ -435,6 +435,7 @@ endstruc
 
 	FS::Status ReadFile(void* fs, File* file, u8* buffer, u32 bufferSize, u32* readCount)
 	{
+		static u32 ttttt = 0;
 		Info* info = (Info*)fs;
 
 		(*readCount) = 0;
@@ -442,17 +443,26 @@ endstruc
 		if(file->totalDataOffset >= file->size)
 			return FS::Status::EOF;
 
-		if(file->totalDataOffset > 0 && (file->totalDataOffset % sizeof(file->buffer)) == 0)
+		/*if(file->totalDataOffset > 0 && (file->totalDataOffset % sizeof(file->buffer)) == 0)
 		{
 			file->currentCluster = NextCluster(fs, file->currentCluster);
 			file->bufferValid = 0;
-		}
+		}*/
 
-		if(file->currentCluster == 0)
-			return FS::Status::EOF;
+		//if(file->currentCluster == 0)
+		//	return FS::Status::EOF;
 
 		if(!file->bufferValid)
 		{
+			if(file->totalDataOffset > 0)
+			{
+				file->currentCluster = NextCluster(fs, file->currentCluster);
+				//file->bufferValid = 0;
+
+				if(file->currentCluster == 0)
+					return FS::Status::EOF;
+			}
+
 			u32 sector = info->firstDataSector + file->currentCluster - 2;
 			info->dev->Read(info->dev, sector, file->buffer);
 			file->bufferValid = 1;
@@ -460,28 +470,62 @@ endstruc
 
 		// If there's need to read more data than in internal buffer, divide to 2 separate calls
 		u32 inBuffer = sizeof(file->buffer) - (file->totalDataOffset % sizeof(file->buffer));
-		if(inBuffer > bufferSize)
+		if(bufferSize > inBuffer)
 		{
-			Print("\n----- Subreading... -----\n");
+			Print("\n----- Subreading... (%u / %u) -----\n", inBuffer, bufferSize);
+
+			//Timer::Delay(50);
 			u32 subread;
 			auto s1 = ReadFile(fs, file, buffer, inBuffer, &subread);
 			(*readCount) += subread;
 
 			if(s1 != FS::Status::Success)
+			{
+				Print("S1 = %x\n", s1);
 				return s1;
+			}
+
+			for(unsigned a = 0; a < bufferSize; )
+			{
+				u32 curSize = (bufferSize - (*readCount) > sizeof(file->buffer) ? sizeof(file->buffer) : bufferSize - (*readCount));
+				Print(".");
+				auto s2 = ReadFile(fs, file, buffer + (*readCount), curSize, &subread);
+				Print("Read: %u\n", subread);
+				a += subread;
+				(*readCount) += subread;
+
+				if(s2 != FS::Status::Success)
+				{
+					Print("Fail!\n");
+					return s2;
+				}
+			}
+
+			Print("OK!\n");
+			return FS::Status::Success;
 
 			auto s2 = ReadFile(fs, file, buffer + subread, bufferSize - subread, &subread);
 			(*readCount) += subread;
 
 			if(s2 == FS::Status::EOF)
+			{
+				Print("S2 EOF = %x, %x\n", s1, s2);
 				return s1;
+			}
 
+			//Print("S2 = %x\n", s1);
 			return s2;
 		}
+		else
+		{
+			Print("no subread: %u %u\n", inBuffer, bufferSize);
+		}
+		
 
 		// Otherwise, read from internal buffer
 
 		u32 offset = (file->totalDataOffset % sizeof(file->buffer));
+		Print("Offset: %u, %u\n", offset, bufferSize);
 		for(unsigned a = 0; a < bufferSize; a++)
 		{
 			if(file->totalDataOffset >= file->size)
@@ -490,14 +534,24 @@ endstruc
 				break;
 			}
 
+			//Print("%u, %u, %u\n", a, offset, offset+a);
 			buffer[a] = file->buffer[offset + a];
 
 			file->totalDataOffset++;
 			(*readCount)++;
 		}
 
+		if(file->totalDataOffset % sizeof(file->buffer) == 0)
+			file->bufferValid = 0;
+
+		ttttt += *readCount;
+		Print("Total: %u\n", ttttt);
+
 		if((*readCount) == 0)
+		{
+			Print("EOF\n");
 			return FS::Status::EOF;
+		}
 
 		return FS::Status::Success;
 	}

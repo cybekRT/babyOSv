@@ -73,7 +73,44 @@ extern "C" void kmain()
 	fs->Alloc(dev, &fsPriv);
 
 	FS::Directory* dir;
-	fs->OpenRoot(fs, &dir);
+	fs->OpenRoot(fsPriv, &dir);
+
+	{
+		Print("Searching splash\n");
+		FS::DirEntry entry;
+		while(fs->ReadDirectory(fsPriv, dir, &entry) == FS::Status::Success)
+		{
+			if(strcmp((char*)entry.name, "splash"))
+			{
+				Print("Found~!\n");
+				FS::File* f;
+				fs->OpenFile(fsPriv, dir, &f);
+
+				u8* dst = (u8*)(0x80000000 | 0xA0000);
+				u32 r;
+				Print("Reading!!!!\n");
+				dev->Lock(dev);
+				/*for(unsigned a = 0; a < 64000; a+=512)
+				{
+					u8 buf[512];
+					fs->ReadFile(fsPriv, f, buf, 512, &r);
+					memcpy(dst, buf, 512);
+					dst += 512;
+				}*/
+				fs->ReadFile(fsPriv, f, dst, 64000, &r);
+				dev->Unlock(dev);
+				/*for(unsigned a = 0; a < 64000; a++)
+				{
+					dst[a] = a;
+				}*/
+				Print("Read %u bytes!\n", r);
+
+				break;
+			}
+		}
+	}
+
+	for(;;);
 
 	char tmp[64];
 	u8 tmpX = 0;

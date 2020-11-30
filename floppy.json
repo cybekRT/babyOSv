@@ -13,7 +13,8 @@
 			},
 			"kernel": {
 				"kmain.asm": "kernel/kmain_startup.asm",
-			}
+			},
+			"splash": "splash.raw"
 	},
 	"output": "floppy.img"
 }

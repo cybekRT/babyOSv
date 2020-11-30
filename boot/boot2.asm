@@ -10,6 +10,9 @@ main16:
 
 	mov	esp, stackBegin
 
+	mov	ax, 13h
+	;int	10h
+
 	call	FindKernel
 	call	ReadKernel
 
