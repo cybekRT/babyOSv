@@ -75,7 +75,7 @@ extern "C" void kmain()
 	FS::Directory* dir;
 	fs->OpenRoot(fsPriv, &dir);
 
-	{
+	/*{
 		Print("Searching splash\n");
 		FS::DirEntry entry;
 		while(fs->ReadDirectory(fsPriv, dir, &entry) == FS::Status::Success)
@@ -89,28 +89,15 @@ extern "C" void kmain()
 				u8* dst = (u8*)(0x80000000 | 0xA0000);
 				u32 r;
 				Print("Reading!!!!\n");
-				dev->Lock(dev);
-				/*for(unsigned a = 0; a < 64000; a+=512)
-				{
-					u8 buf[512];
-					fs->ReadFile(fsPriv, f, buf, 512, &r);
-					memcpy(dst, buf, 512);
-					dst += 512;
-				}*/
 				fs->ReadFile(fsPriv, f, dst, 64000, &r);
-				dev->Unlock(dev);
-				/*for(unsigned a = 0; a < 64000; a++)
-				{
-					dst[a] = a;
-				}*/
 				Print("Read %u bytes!\n", r);
 
 				break;
 			}
 		}
-	}
+	}*/
 
-	for(;;);
+	//for(;;);
 
 	char tmp[64];
 	u8 tmpX = 0;
@@ -262,7 +249,7 @@ extern "C" void kmain()
 							Print("File \"%s\" not found!\n", path);
 
 						u32 readCount;
-						u32 bufSize = 512;
+						const u32 bufSize = 512;
 						u8 buf[bufSize];
 						FS::Status s;
 						while((s = fs->ReadFile(fsPriv, file, buf, bufSize, &readCount)) == FS::Status::Success)
@@ -294,4 +281,6 @@ extern "C" void kmain()
 
 		__asm("hlt");
 	}
+
+	for(;;);
 }
