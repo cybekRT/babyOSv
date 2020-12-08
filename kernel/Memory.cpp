@@ -189,7 +189,7 @@ namespace Memory
 		FixEntries();
 		CreateMemoryMap();
 
-		CreateKernelStack();
+		//CreateKernelStack();
 
 		return true;
 	}

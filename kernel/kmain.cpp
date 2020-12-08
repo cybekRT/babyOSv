@@ -3,6 +3,7 @@
 #include"Interrupt.h"
 #include"Timer.h"
 #include"Keyboard.h"
+#include"Thread.hpp"
 
 #include"ISA_DMA.hpp"
 
@@ -37,6 +38,15 @@ bool strcmp(char* a, char* b)
 
 u8 tolower(u8 c);
 
+void YoLo()
+{
+	for(;;)
+	{
+		Terminal::Print("^");
+		Timer::Delay(1000);
+	}
+}
+
 extern "C" void kmain()
 {
 	ASSERT(sizeof(u64) == 8, "u64");
@@ -50,6 +60,10 @@ extern "C" void kmain()
 	Interrupt::Init();
 	Timer::Init();
 	Keyboard::Init();
+	Thread::Init();
+
+	Thread::Thread* testThread;
+	Thread::Create(&testThread, YoLo, (u8*)"YoLo");
 
 	Print("Test: %x, %d, %u\nAnd newline x: %s", 0xbaadf00d, -67, 631, "Line1\nLine2\nLine3!!!\n");
 	Memory::PrintMemoryMap();
