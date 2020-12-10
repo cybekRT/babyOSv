@@ -46,10 +46,30 @@ public:
 
 	}*/
 
-	/*void Remove(LinkedListItem<X> item)
+	void Remove(LinkedListItem<X>* item)
 	{
+		if(data == item)
+		{
+			data = item->next;
+			Memory::Mfree(item);
+			return;
+		}
 
-	}*/
+		LinkedListItem<X>* ptrPrev = nullptr;
+		LinkedListItem<X>* ptr = data;
+		while(data)
+		{
+			if(ptr == item)
+			{
+				ptrPrev->next = item->next;
+				Memory::Mfree(item);
+				return;
+			}
+
+			ptrPrev = data;
+			data = data->next;
+		}
+	}
 
 	X PopFront()
 	{

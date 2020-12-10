@@ -33,7 +33,7 @@ const u8 PIT_COMMAND_BMODE_BCD		= 0b1 << 0;
 
 namespace Timer
 {
-	volatile u64 ticks = 0;
+	volatile Time ticks = 0;
 
 	__attribute__((interrupt))
 	void ISR_Timer(void*)
@@ -64,13 +64,13 @@ namespace Timer
 		return true;
 	}
 
-	u64 GetTicks()
+	Time GetTicks()
 	{
 		return ticks;
 	}
 
 	bool tested = false;
-	void Delay(u32 ms)
+	void Delay(Time ms)
 	{
 		/*if(!tested)
 		{
@@ -82,7 +82,7 @@ namespace Timer
 			Print("2000ms - "); Delay(2000); Print("OK - %u\n", GetTicks());
 		}*/
 
-		u64 time = ticks + ms;
+		Time time = ticks + ms;
 		while(ticks < time)
 		{
 			__asm("int $0xff");

@@ -35,4 +35,5 @@ enum class Status
 {
 	Success = 0,
 	Fail = 1,
+	Timeout,
 };

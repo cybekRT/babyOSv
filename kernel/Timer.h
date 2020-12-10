@@ -1,7 +1,9 @@
 namespace Timer
 {
+	typedef u64 Time;
+
 	bool Init();
 
 	u64 GetTicks();
-	void Delay(u32 ms);
+	void Delay(Time ms);
 }

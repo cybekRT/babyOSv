@@ -2,6 +2,7 @@
 #include"Memory.h"
 #include"LinkedList.h"
 #include"Interrupt.h"
+#include"Timer.h"
 
 extern const void* kernel_end;
 extern const void* org_stack_beg;
@@ -13,6 +14,98 @@ namespace Thread
 {
 	Thread* currentThread = nullptr;
 	LinkedList<Thread*> threads;
+
+	struct SignalInfo
+	{
+		Signal signal;
+		Timer::Time raisedTime;
+		Timer::Time timeout;
+	};
+
+	LinkedList<SignalInfo> raisedSignals;
+	u32 lastThreadId = 0;
+
+	struct Thread2Signal
+	{
+		Thread* thread;
+		Signal* signal;
+
+		Timer::Time sleepTime;
+		Timer::Time timeout;
+	};
+
+	LinkedList<Thread2Signal> waitingThreads;
+
+	void Awaker()
+	{
+		for(;;)
+		{
+			//while(!raisedSignals.IsEmpty())
+			for(unsigned a = 0; a < raisedSignals.Size(); a++)
+			{
+				SignalInfo sigInfo = raisedSignals.PopFront();
+				Signal sig = sigInfo.signal;
+
+				if(Timer::GetTicks() < sigInfo.raisedTime + sigInfo.timeout)
+				{
+					Terminal::Print("== %d %d %d ==\n", (u32)Timer::GetTicks(), (u32)sigInfo.raisedTime, (u32)sigInfo.timeout);
+					//raisedSignals.PushBack(sigInfo);
+				}
+
+				Terminal::Print("Received signal: %u : %u\n", sig.type, sig.addr);
+
+				auto t2s = waitingThreads.data;
+				while(t2s)
+				{
+					bool sigMatch = t2s->value.signal->type == sig.type && t2s->value.signal->addr == sig.addr;
+					bool timeout = (Timer::GetTicks() >= t2s->value.sleepTime + t2s->value.timeout);
+
+					if(sigMatch || timeout)
+					{
+						if(sigMatch)
+							(*t2s->value.signal) = sig;
+						else if(timeout)
+							(*t2s->value.signal) = Signal { .type = Signal::Type::Timeout, .addr = 0 };
+
+						Terminal::Print("Waking thread: %s\n", t2s->value.thread->name);
+
+						t2s->value.thread->state = State::Running;
+						threads.PushBack(t2s->value.thread);
+
+						auto item = t2s;
+						t2s = t2s->next;
+						waitingThreads.Remove(item);
+					}
+					else
+						t2s = t2s->next;
+				}
+			}
+
+			auto t2s = waitingThreads.data;
+			while(t2s)
+			{
+				bool timeout = (Timer::GetTicks() >= t2s->value.sleepTime + t2s->value.timeout);
+
+				if(timeout)
+				{
+					(*t2s->value.signal) = Signal { .type = Signal::Type::Timeout, .addr = 0 };
+
+					Terminal::Print("Waking thread by timeout: %s\n", t2s->value.thread->name);
+
+					t2s->value.thread->state = State::Running;
+					threads.PushBack(t2s->value.thread);
+
+					auto item = t2s;
+					t2s = t2s->next;
+					waitingThreads.Remove(item);
+				}
+				else
+					t2s = t2s->next;
+			}
+
+			NextThread();
+		}
+	}
 
 	void CreateKernelStack(Thread* thread)
 	{
@@ -50,20 +143,25 @@ namespace Thread
 		__asm("mov %0, %%ebp" : : "r"(newEBP));
 	}
 
+	Thread* awakerThread;
 	bool Init()
 	{
 		Interrupt::Disable();
 		Thread* thread = (Thread*)Memory::Alloc(sizeof(Thread));
 
 		thread->process = nullptr;
-		//thread->name[0] = 0;
+		thread->id = 0;
 		memcpy(thread->name, (void*)"kmain", 6);
+		thread->state = State::Running;
+
 		thread->stackSize = 8192;
 		//thread->stack = Memory::Alloc(thread->stackSize);
 		CreateKernelStack(thread);
 
 		threads.PushBack(thread);
 		currentThread = thread;
+
+		Create(&awakerThread, Awaker, (u8*)"Awaker");
 
 		Interrupt::Enable();
 		return true;
@@ -77,11 +175,13 @@ namespace Thread
 		thread->stack = (void*)ptr;
 	}
 
-	u32 regsDump[(u32)Register::Count];
+	//u32 regsDump[(u32)Register::Count];
 	__attribute((naked)) void NextThread()
 	{
 		if(currentThread == nullptr)
 			__asm("ret");
+
+		Interrupt::Disable();
 
 		__asm("pushl %eax");
 		__asm("pushl %ebx");
@@ -100,7 +200,9 @@ namespace Thread
 		__asm("mov %%esp, %0" : "=a"(currentThread->stack));
 
 		// Change thread
-		threads.PushBack(currentThread);
+		if(currentThread->state == State::Running)
+			threads.PushBack(currentThread);
+
 		currentThread = threads.PopFront();
 
 		//Terminal::Print("Switching to: %s\n", currentThread->name);
@@ -121,23 +223,31 @@ namespace Thread
 		__asm("popl %ebx");
 		__asm("popl %eax");
 
+		Interrupt::Enable();
+
 		__asm("ret");
 	}
 
 	__attribute((naked)) void ThreadStart()
 	{
-		Terminal::Print("XD\n");
+		currentThread->state = State::Running;
+
 		__asm("xchg %bx, %bx");
 		__asm("iret");
+
+		// TODO return code
 	}
 
 	Status Create(Thread** thread, void (*entry)(), u8* name)
 	{
-		Interrupt::Disable();
+		//Interrupt::Disable();
 		(*thread) = (Thread*)Memory::Alloc(sizeof(Thread));
 
 		(*thread)->process = nullptr;
+		(*thread)->id = (++lastThreadId);
 		memcpy((*thread)->name, name, strlen((char*)name)+1);
+		(*thread)->state = State::Running;
+
 		(*thread)->stackSize = 8192;
 		(*thread)->stackBottom = Memory::Alloc((*thread)->stackSize);
 		(*thread)->stack = (*thread)->stackBottom + (*thread)->stackSize;
@@ -169,10 +279,11 @@ namespace Thread
 		Push((*thread), 0x10);
 		Push((*thread), 0x10);
 
+		Interrupt::Disable();
 		threads.PushBack((*thread));
 		Terminal::Print("Created thread: %s\n", (*thread)->name);
-
 		Interrupt::Enable();
+
 		return Status::Success;
 	}
 
@@ -182,5 +293,29 @@ namespace Thread
 			(*code) = -1;
 
 		return Status::Fail;
+	}
+
+	Status RaiseSignal(Signal signal, Timer::Time timeout)
+	{
+		raisedSignals.PushBack(SignalInfo { .signal = signal, .raisedTime = Timer::GetTicks(), .timeout = timeout });
+	}
+
+	Status WaitForSignal(Signal signal, Timer::Time timeout)
+	{
+		Interrupt::Disable();
+
+		Terminal::Print("Thread %s waiting for signal %d:%d...\n", currentThread->name, signal.type, signal.addr);
+		currentThread->state = State::Waiting;
+		waitingThreads.PushBack(Thread2Signal { .thread = currentThread, .signal = &signal, .sleepTime = Timer::GetTicks(), .timeout = timeout } );
+
+		Interrupt::Enable();
+		NextThread();
+
+		Terminal::Print("Awaken by timeout: %d\n", signal.type == Signal::Type::Timeout);
+
+		if(signal.type == Signal::Type::Timeout)
+			return Status::Timeout;
+
+		return Status::Success;
 	}
 }

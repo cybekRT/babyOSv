@@ -133,6 +133,10 @@ namespace Interrupt
 		__asm("mov %%gs, %%bx \n mov %%bx, %0" : "=m"(regs.gs) : : "bx");
 		__asm("mov %%ss, %%bx \n mov %%bx, %0" : "=m"(regs.ss) : : "bx");
 
+		regs.cs = _registers->cs;
+		regs.eip = _registers->eip;
+		regs.eflags = _registers->eflags;
+
 		Print("Address: %x:%x\n", regs.cs, regs.eip);
 		Print("Flags:   %x\n", regs.eflags);
 		Print("Stack:   %x:%x, %x\n", regs.ss, regs.esp, regs.ebp);
@@ -257,8 +261,8 @@ namespace Interrupt
 		disableCount--;
 		if(disableCount == 0)
 		{
+			//Print("Interrupts enabled!\n"); // FIXME: probably bad idea to print here
 			__asm("sti");
-			Print("Interrupts enabled!\n"); // FIXME: probably bad idea to print here
 		}
 	}
 
@@ -267,7 +271,9 @@ namespace Interrupt
 		if(disableCount == 0)
 		{
 			__asm("cli");
-			Print("Interrupts disabled!\n"); // FIXME: probably bad idea to print here
+			//void *addr = __builtin_extract_return_addr (__builtin_return_address (0));
+			//Print("Interrupts disabled: %p!\n", addr); // FIXME: probably bad idea to print here
+			//Print("Interrupts disabled!\n"); // FIXME: probably bad idea to print here
 		}
 
 		disableCount++;

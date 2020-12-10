@@ -68,9 +68,9 @@ extern "C" void kmain()
 	Memory::Init();
 
 	Interrupt::Init();
+	Thread::Init();
 	Timer::Init();
 	Keyboard::Init();
-	Thread::Init();
 
 	Thread::Thread* testThread;
 	Thread::Thread* halterThread;
@@ -99,7 +99,7 @@ extern "C" void kmain()
 	FS::Directory* dir;
 	fs->OpenRoot(fsPriv, &dir);
 
-#if 0
+#if 1
 	{
 		Print("Searching splash\n");
 		FS::DirEntry entry;
@@ -131,6 +131,7 @@ extern "C" void kmain()
 	Print("> ");
 	for(;;)
 	{
+		//Print(".");
 		while(Keyboard::ReadEvent(&keyEvent))
 		{
 			if(keyEvent.type == Keyboard::KeyType::Released)

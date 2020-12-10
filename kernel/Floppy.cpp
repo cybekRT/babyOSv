@@ -4,6 +4,7 @@
 #include"Interrupt.h"
 #include"Timer.h"
 #include"Block.hpp"
+#include"Thread.hpp"
 #include<stdarg.h>
 
 namespace Floppy
@@ -122,8 +123,9 @@ namespace Floppy
 	void ISR_Floppy(void*)
 	{
 		irqReceived = 1;
-
+		Thread::RaiseSignal(Thread::Signal { .type = Thread::Signal::Type::IRQ, .addr = Interrupt::IRQ_FLOPPY }, 0);
 		Interrupt::AckIRQ();
+		Terminal::Print("Raised floppy IRQ\n");
 	}
 
 	u8 PortIn(IOPort port)
@@ -173,9 +175,15 @@ namespace Floppy
 
 	void WaitIRQ()
 	{
+		/*Terminal::Print("Waiting for floppy irq...\n");
+		//Timer::Delay(1000);
+		Thread::WaitForSignal(Thread::Signal { .type = Thread::Signal::Type::IRQ, .addr = Interrupt::IRQ_FLOPPY }, -1);
+
+		Terminal::Print("Awaken!!\n");*/
+
 		while(!irqReceived)
 		{
-			HALT;
+			__asm("hlt");
 		}
 	}
 
@@ -298,6 +306,7 @@ namespace Floppy
 		PortOut(IOPort::FDD_REG_DIGITAL_OUT, *regPtr);
 		WaitIRQ();
 
+		Terminal::Print("Sensing...\n");
 		for(unsigned a = 0; a < 4; a++)
 		{
 			Exec(Command::FDD_CMD_SENSE_INTERRUPT);
@@ -408,8 +417,17 @@ namespace Floppy
 		u8 driveNo = 0;
 
 		Exec((Command)cmd, 8, (head << 2) | driveNo, cylinder, head, sector, 0x02, 0x12, 0x1B, 0xFF);
-		WaitIRQ();
+		//WaitIRQ();
+		if(Thread::WaitForSignal(Thread::Signal { .type = Thread::Signal::Type::IRQ, .addr = Interrupt::IRQ_FLOPPY }, 200) != Status::Success)
+		{
+			Print("Floppy timed out...\n");
 
+			Init();
+
+			return;
+		}
+
+		Print("Reading status...\n");
 		u8 st0 = ReadData();
 		u8 st1 = ReadData();
 		u8 st2 = ReadData();

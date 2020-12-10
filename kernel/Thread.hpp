@@ -1,3 +1,5 @@
+#include"Timer.h"
+
 class Process;
 
 namespace Thread
@@ -25,10 +27,36 @@ namespace Thread
 		Count
 	};
 
+	struct Signal
+	{
+		enum Type
+		{
+			None = 0,
+			IRQ,
+			Timer,
+
+			Custom = 250,
+			Timeout = 255,
+		};
+
+		Type type;
+		u32 addr;
+	};
+
+	enum State
+	{
+		Created,
+		Running,
+		Waiting,
+		Zombie,
+	};
+
 	struct Thread
 	{
 		Process* process;
+		u32 id;
 		u8 name[32];
+		State state;
 
 		void* stackBottom;
 		void* stack;
@@ -42,4 +70,7 @@ namespace Thread
 
 	Status Create(Thread** thread, void (*entry)(), u8* name);
 	Status Join(Thread** thread, int* code);
+
+	Status RaiseSignal(Signal signal, Timer::Time timeout = 0);
+	Status WaitForSignal(Signal signal, Timer::Time timeout = (Timer::Time)-1);
 }
