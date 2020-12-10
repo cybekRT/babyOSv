@@ -72,7 +72,7 @@ DEPS	:= $(DEPS:kernel%=out%)
 all: floppy.img
 
 floppy.img: out/boot1.bin out/boot2.bin out/kernel.bin floppy.json
-	$(CFS) floppy.json
+	$(CFS) floppy.json >/dev/null
 
 out/boot1.bin: boot/boot1.asm boot/FAT12.inc boot/FAT12_lite.asm
 	$(NASM) $(NASM_FLAGS) $< -o $@ -l out/boot1.lst -fbin 
@@ -107,10 +107,10 @@ out/%.d: kernel/%.cpp
 out/Keyboard_map.o: kernel/Keyboard_map.cpp kernel/Keyboard_map.h
 
 kernel/Keyboard_map.cpp: kernel/Keyboard_map.inc kernel/Keyboard_map.h kernel/Keyboard_map.py
-	python3 kernel/Keyboard_map.py $@ $<
+	python3 kernel/Keyboard_map.py $@ $< >/dev/null
 
 kernel/Keyboard_map.h: kernel/Keyboard_map.inc kernel/Keyboard_map.py
-	python3 kernel/Keyboard_map.py $@ $<
+	python3 kernel/Keyboard_map.py $@ $< >/dev/null
 
 ####################
 #
@@ -132,7 +132,7 @@ clean:
 	rm out/* $(AUTOGEN) floppy.img 2>/dev/null || true
 
 qemu: floppy.img
-	$(QEMU) -fda $< -boot ac -m 32 -d int -monitor stdio -d int -d cpu_reset -d guest_errors -no-reboot -no-shutdown 2> /dev/null
+	$(QEMU) -fda $< -boot ac -m 8 -d int -monitor stdio -d int -d cpu_reset -d guest_errors -no-reboot -no-shutdown 2> /dev/null
 	#-d int -no-reboot -no-shutdown 
 
 qemu-dbg: floppy.img

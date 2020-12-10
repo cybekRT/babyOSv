@@ -75,7 +75,6 @@ Init:
 	jmp	Fail
 
 ExecuteKernel:
-	xchg bx, bx
 	jmp	0x0:BOOT2_ADDR
 
 Fail:

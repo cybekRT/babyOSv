@@ -40,10 +40,20 @@ u8 tolower(u8 c);
 
 void YoLo()
 {
+	u8* p = (u8*)(0x800B8001);
 	for(;;)
 	{
-		Terminal::Print("^");
-		Timer::Delay(1000);
+		//Terminal::Print("^");
+		(*p)++;
+		Timer::Delay(500);
+	}
+}
+
+void Halter()
+{
+	for(;;)
+	{
+		__asm("hlt");
 	}
 }
 
@@ -63,10 +73,10 @@ extern "C" void kmain()
 	Thread::Init();
 
 	Thread::Thread* testThread;
+	Thread::Thread* halterThread;
 	Thread::Create(&testThread, YoLo, (u8*)"YoLo");
+	Thread::Create(&halterThread, Halter, (u8*)"Halter");
 
-	Print("Test: %x, %d, %u\nAnd newline x: %s", 0xbaadf00d, -67, 631, "Line1\nLine2\nLine3!!!\n");
-	Memory::PrintMemoryMap();
 	Interrupt::Enable();
 	PutString("Kernel halted~!\n");
 
@@ -89,7 +99,8 @@ extern "C" void kmain()
 	FS::Directory* dir;
 	fs->OpenRoot(fsPriv, &dir);
 
-	/*{
+#if 0
+	{
 		Print("Searching splash\n");
 		FS::DirEntry entry;
 		while(fs->ReadDirectory(fsPriv, dir, &entry) == FS::Status::Success)
@@ -109,13 +120,14 @@ extern "C" void kmain()
 				break;
 			}
 		}
-	}*/
-
-	//for(;;);
+		for(;;);
+	}
+#endif
 
 	char tmp[64];
 	u8 tmpX = 0;
 	Keyboard::KeyEvent keyEvent;
+	Print("=== If you need help, write \"help\" ===\n");
 	Print("> ");
 	for(;;)
 	{
@@ -141,7 +153,17 @@ extern "C" void kmain()
 				{
 					Print("\nExecuting: %s\n", tmp);
 
-					if(strcmp(tmp, "mem"))
+					if(strcmp(tmp, "help"))
+					{
+						Terminal::Print("=== Available commands:               ===\n");
+						Terminal::Print("=== dir - lists current directory     ===\n");
+						Terminal::Print("=== cd <x> - enters <x> directory     ===\n");
+						Terminal::Print("=== cat <x> - reads <x> file          ===\n");
+						Terminal::Print("=== mem - prints current memory usage ===\n");
+						Terminal::Print("=== fail - kernel panic               ===\n");
+						Terminal::Print("\n");
+					}
+					else if(strcmp(tmp, "mem"))
 					{
 						Memory::PrintMemoryMap();
 					}

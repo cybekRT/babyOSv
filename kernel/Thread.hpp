@@ -30,6 +30,7 @@ namespace Thread
 		Process* process;
 		u8 name[32];
 
+		void* stackBottom;
 		void* stack;
 		u32 stackSize;
 

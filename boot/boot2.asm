@@ -169,7 +169,6 @@ main32:
 	lgdt	[GDT_Handle + 0x80000000]
 
 	push	BootloaderInfo
-	xchg bx, bx
 	jmp	kmain + 0x80000000
 .halt:
 	cli

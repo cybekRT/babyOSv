@@ -113,10 +113,11 @@ namespace Interrupt
 	__attribute__ ((interrupt))
 	void ISR_GPF(ISR_Registers* _registers, u32 errorCode)
 	{
+		static ISR_Registers regs;
 		__asm("cli");
 		PutString("\n===== General Protection Fault =====\n");
 
-		ISR_Registers regs = *_registers;
+		//ISR_Registers regs = *_registers;
 		__asm("mov %%eax, %0" : "=m"(regs.eax));
 		__asm("mov %%ebx, %0" : "=m"(regs.ebx));
 		__asm("mov %%ecx, %0" : "=m"(regs.ecx));
@@ -270,5 +271,13 @@ namespace Interrupt
 		}
 
 		disableCount++;
+	}
+	
+	bool IsEnabled()
+	{
+		u32 v;
+		__asm("pushf \r\n pop %0" : "=r"(v) : : "memory");
+
+		return !!(v & 0x200);
 	}
 }

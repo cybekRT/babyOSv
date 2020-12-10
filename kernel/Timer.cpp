@@ -29,6 +29,8 @@ const u8 PIT_COMMAND_OPMODE_3_ALT	= 0b11 << 1 ;//
 const u8 PIT_COMMAND_BMODE_BINARY	= 0b0 << 0;
 const u8 PIT_COMMAND_BMODE_BCD		= 0b1 << 0;
 
+#include"Thread.hpp"
+
 namespace Timer
 {
 	volatile u64 ticks = 0;
@@ -40,11 +42,20 @@ namespace Timer
 		ticks++;
 
 		Interrupt::AckIRQ();
+
+		Thread::NextThread();
+	}
+
+	__attribute__((interrupt))
+	void ISR_255(void*)
+	{
+		Thread::NextThread();
 	}
 
 	bool Init()
 	{
 		Interrupt::Register(Interrupt::IRQ2INT(Interrupt::IRQ_TIMER), ISR_Timer);
+		Interrupt::Register(255, ISR_255);
 
 		HAL::Out(PIT_PORT_COMMAND, PIT_COMMAND_CHANNEL_0 | PIT_COMMAND_AMODE_LOHIBYTE | PIT_COMMAND_OPMODE_3 | PIT_COMMAND_BMODE_BINARY);
 		HAL::Out(PIT_PORT_CHANNEL_0, 0xA9);
@@ -74,7 +85,7 @@ namespace Timer
 		u64 time = ticks + ms;
 		while(ticks < time)
 		{
-			__asm("hlt");
+			__asm("int $0xff");
 		}
 	}
 }

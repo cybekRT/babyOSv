@@ -144,7 +144,7 @@ namespace Memory
 		}
 	}
 
-	void CreateKernelStack()
+	/*void CreateKernelStack()
 	{
 		void *newStackBeg = (void*)0xE0000000;
 		const u32 newStackSize = 8192;
@@ -175,7 +175,7 @@ namespace Memory
 
 		__asm("mov %0, %%esp" : : "r"(newESP));
 		__asm("mov %0, %%ebp" : : "r"(newEBP));
-	}
+	}*/
 
 	bool Init()
 	{
@@ -189,15 +189,11 @@ namespace Memory
 		FixEntries();
 		CreateMemoryMap();
 
-		//CreateKernelStack();
-
 		return true;
 	}
 
 	void InsertMemoryMapEntry(void* address, unsigned length)
 	{
-		ENTER_CRITICAL_SECTION();
-
 		MemoryMap* currentMap = &memoryMap;
 		while(currentMap != nullptr)
 		{
@@ -209,7 +205,6 @@ namespace Memory
 					currentMap->length[a] = length;
 					currentMap->used[a] = true;
 
-					EXIT_CRITICAL_SECTION();
 					return;
 				}
 			}
@@ -219,6 +214,7 @@ namespace Memory
 
 		// TODO: add allocating and inserting new memory map after last one
 
+		//PrintMemoryMap();
 		PutString("=== Insert memory entry failed! ===");
 		for(;;);
 	}
@@ -233,8 +229,6 @@ namespace Memory
 
 	void SortMemoryMap()
 	{
-		ENTER_CRITICAL_SECTION();
-
 		PutString("Sorting... ");
 		// TODO:
 		MemoryMap* currentMap = &memoryMap;
@@ -271,14 +265,10 @@ namespace Memory
 
 			currentMap = currentMap->next;
 		}
-
-		EXIT_CRITICAL_SECTION();
 	}
 
 	void MergeMemoryMap()
 	{
-		ENTER_CRITICAL_SECTION();
-
 		SortMemoryMap();
 
 		PutString("Merging... ");
@@ -322,37 +312,26 @@ namespace Memory
 
 		PutString("Merged~!\n");
 		// TODO: move entries from next memory map to previous, if there is enough space!
-
-		EXIT_CRITICAL_SECTION();
 	}
 
 	void* AllocPhys(unsigned allocSize)
 	{
-		ENTER_CRITICAL_SECTION();
 		allocSize = (allocSize + 0xFFF) & (~0xFFF);
 
-		//PutString("Allocating "); PutHex(allocSize); PutString(" bytes\n");
 		Print("Allocating %d bytes\n", allocSize);
 		
 		void* allocatedAddress = nullptr;
 		MemoryMap* currentMap = &memoryMap;
 		while(currentMap != nullptr && !allocatedAddress)
 		{
-			//PutString("Searching...\n");
 			for(unsigned a = 0; a < sizeof(currentMap->used); a++)
 			{
-				//PutString( currentMap->used[a] ? "u " : "F " );
-				//PutHex((unsigned)currentMap->address[a]);
-				//PutString(" - ");
-				//PutHex((unsigned)currentMap->length[a]);
-				//PutString("\n");
 				if(currentMap->address[a] == 0)
 					continue;
 
 				if(!currentMap->used[a] && currentMap->length[a] >= allocSize)
 				{
 					allocatedAddress = currentMap->address[a];
-					//PutString("  Address: "); PutHex((unsigned)allocatedAddress); PutString("\n");
 					
 					currentMap->length[a] -= allocSize;
 					currentMap->address[a] = (void*)((unsigned)currentMap->address[a] + allocSize);
@@ -368,15 +347,11 @@ namespace Memory
 		}
 
 		// TODO: zeroing memory?
-
-		EXIT_CRITICAL_SECTION();
 		return allocatedAddress;
 	}
 
 	void FreePhys(void* address)
 	{
-		ENTER_CRITICAL_SECTION();
-
 		MemoryMap* currentMap = &memoryMap;
 		while(currentMap != nullptr)
 		{
@@ -389,7 +364,6 @@ namespace Memory
 					// TODO: maybe some counter, not to merge everytime
 					MergeMemoryMap();
 
-					EXIT_CRITICAL_SECTION();
 					return;
 				}
 			}
@@ -401,9 +375,6 @@ namespace Memory
 
 	void* FindFreeLogicalSpace(unsigned size)
 	{
-		ENTER_CRITICAL_SECTION();
-		//PutString("FindFreeLogicalSpace\n");
-
 		// It's for kernel-space only~!
 		size = (size + 0xFFF) & (~0xFFF);
 		unsigned pagesCountNeeded = size >> 12;
@@ -411,29 +382,23 @@ namespace Memory
 
 		auto abToAddr = [](unsigned a, unsigned b) -> void* {
 			void* addr = (void*)((a << 22) | (b << 12));
-			//PutString("  Found~! "); PutHex((unsigned)addr); PutString("\n");
 			return addr;
 		};
 
 		unsigned startA = 512, startB = 0;
 		for(unsigned a = 512; a < 1024; a++)
 		{
-			//if(pageDirectory->entries[a].address != 0)
 			if(pageDirectory->entries[a].IsUsed())
 			{
 				PageTable* pt = (PageTable*)(0xFFC00000 | (a << 12));
 				for(unsigned b = 0; b < 1024; b++)
 				{
-					//if(pt->entries[b].address == 0)
 					if(!pt->entries[b].IsUsed())
 					{
 						pagesCountFree++;
 
 						if(pagesCountFree >= pagesCountNeeded)
-						{
-							EXIT_CRITICAL_SECTION();
 							return abToAddr(startA, startB);
-						}
 					}
 					else
 					{
@@ -450,10 +415,7 @@ namespace Memory
 			}
 			
 			if(pagesCountFree >= pagesCountNeeded)
-			{
-				EXIT_CRITICAL_SECTION();
 				return abToAddr(startA, startB);
-			}
 		}
 
 		return nullptr;
@@ -461,19 +423,14 @@ namespace Memory
 
 	void Map(void* physAddress, void* logicAddress)
 	{
-		ENTER_CRITICAL_SECTION();
 		if(!physAddress || !logicAddress)
 		{
 			PutString("=== Failed mapping memory ===");
 			for(;;);
 		}
 
-		//PutString("Mapping "); PutHex((unsigned)physAddress); PutString(" -> "); PutHex((unsigned)logicAddress); PutString("\n");
-
 		unsigned directoryIndex = ((unsigned)logicAddress) >> 22;
 		unsigned tableIndex = (((unsigned)logicAddress) >> 12) & 0x3ff;
-
-		//PutString("Index: "); PutHex(directoryIndex); PutString(" -> "); PutHex(tableIndex); PutString("\n");
 
 		PageDirectoryEntry* pde = (PageDirectoryEntry*)(0xFFFFF000 | (directoryIndex * 4));
 		PageTable* pt = (PageTable*)(0xFFC00000 | (directoryIndex << 12));
@@ -492,20 +449,15 @@ namespace Memory
 				"mov %%eax, %%cr3"
 			: : : "eax");
 
-			//PutString("Memset! ");
 			memset(pt, 0, sizeof(PageTable));
-			//PutString("Ok~!\n");
 		}
 
 		pte->address = ((unsigned)physAddress >> 12);
 		pte->flags = PAGE_TABLE_FLAG_PRESENT | PAGE_TABLE_FLAG_READ_WRITE | PAGE_TABLE_FLAG_SUPERVISOR;
-
-		EXIT_CRITICAL_SECTION();
 	}
 
 	void* Map(void* physAddress, void* logicAddress, unsigned length)
 	{
-		ENTER_CRITICAL_SECTION();
 		if(!logicAddress)
 		{
 			logicAddress = FindFreeLogicalSpace(length);
@@ -514,13 +466,11 @@ namespace Memory
 		}
 
 		length = (length + 0xFFF) >> 12;
-		//PutString("Mapping len: "); PutHex(length); PutString("\n");
 
 		void* cPhysAddress = physAddress;
 		void* cLogicAddress = logicAddress;
 		while(length)
 		{
-			//Print("Mapping %x -> %x\n", cPhysAddress, cLogicAddress);
 			Map(cPhysAddress, cLogicAddress);
 
 			//length -= 0x1000;
@@ -529,7 +479,6 @@ namespace Memory
 			cLogicAddress = (void*)((char *)cLogicAddress + 0x1000);
 		}
 
-		EXIT_CRITICAL_SECTION();
 		return logicAddress;
 	}
 
@@ -546,7 +495,6 @@ namespace Memory
 	void Unmap(void* logicAddress)
 	{
 		ASSERT( (((u32)logicAddress) & 0x3ff) == 0, "Unmapping unaligned address");
-		ENTER_CRITICAL_SECTION();
 
 		// TODO: free page table if empty
 
@@ -567,13 +515,10 @@ namespace Memory
 			"invlpg (%0)"
 			: : "r"(logicAddress)
 		);
-
-		EXIT_CRITICAL_SECTION();
 	}
 
 	void* Alloc(unsigned allocSize)
 	{
-		ENTER_CRITICAL_SECTION();
 		// TODO: it doesn't need to alloc continuous memory because of mapping...
 
 		allocSize = (allocSize + 0xFFF) & (~0xFFF);
@@ -588,7 +533,6 @@ namespace Memory
 		}
 
 		void* logicAddr = FindFreeLogicalSpace(allocSize);
-
 		if(!logicAddr)
 		{
 			PutString("Couldn't find free logical space~!");
@@ -599,16 +543,13 @@ namespace Memory
 		}
 
 		Map(physAddr, logicAddr, allocSize);
+		Terminal::Print("  Address: %p\n", logicAddr);
 
-		EXIT_CRITICAL_SECTION();
 		return logicAddr;
 	}
 
 	void Free(void* logicAddress)
 	{
-		ENTER_CRITICAL_SECTION();
-
-		// TODO
 		auto dirIndex = ((u32)logicAddress) >> 22;
 		auto tableIndex = (((u32)logicAddress) >> 12) & 0x3ff;
 		
@@ -621,14 +562,10 @@ namespace Memory
 
 		PutString("Unmapping memory: "); PutHex((u32)logicAddress); PutString("\n");
 		Unmap(logicAddress);
-
-		EXIT_CRITICAL_SECTION();
 	}
 
 	void PrintMemoryMap()
 	{
-		ENTER_CRITICAL_SECTION();
-
 		PutString("\n");
 		PutString("===== Memory map =====\n");
 
@@ -647,12 +584,6 @@ namespace Memory
 							currentMap->address[a], 
 							currentMap->length[a]);
 
-				/*PutString( (currentMap->used[a] ? "- " : "+ ") );
-				PutHex((unsigned)currentMap->address[a]);
-				PutString(" - ");
-				PutHex(currentMap->length[a]);
-				PutString("\n");*/
-
 				if(currentMap->used[a])
 					used += currentMap->length[a];
 				else
@@ -665,7 +596,6 @@ namespace Memory
 		PutString("======================\n");
 		Print("Used:  %u bytes\nFree:  %u bytes\nTotal: %u bytes\n", used, free, free + used);
 		PutString("======================\n");
-		EXIT_CRITICAL_SECTION();
 	}
 
 	struct MallocHeader
@@ -707,10 +637,6 @@ namespace Memory
 	{
 		bytes = (bytes + 3) & (~3);
 		
-		ENTER_CRITICAL_SECTION();
-		// PutString("Malloc: "); PutHex(bytes); PutString("\n");
-		EXIT_CRITICAL_SECTION();
-
 		if(mallocPage == nullptr)
 		{
 			PutString("Malloc resize...\n");
@@ -723,14 +649,10 @@ namespace Memory
 		auto prevPtr = (MallocHeader*)nullptr;
 		while(ptr)
 		{
-			// PutString("Cur len: "); PutHex(ptr->length); PutString(" >=? "); PutHex(bytes); PutString("\n");
-
 			if(ptr->length >= bytes)
 			{
 				if(ptr->length >= bytes + sizeof(MallocHeader))
 				{
-					// PutString("A ");
-
 					auto oldLength = ptr->length;
 					auto oldNext = ptr->next;
 					auto newHeader = (MallocHeader*)(((char*)ptr) + bytes + sizeof(MallocHeader));
@@ -740,21 +662,21 @@ namespace Memory
 					newHeader->length = oldLength - bytes - sizeof(MallocHeader);
 					newHeader->next = oldNext;
 				}
-				else
-				{
-					// PutString("B ");
-				}
 
 				if(prevPtr)
 					prevPtr->next = ptr->next;
 				else
 					mallocPage = ptr->next;
 
+				ptr->next = nullptr;
+
+				//Terminal::Print("Malloc %u bytes!\n", bytes);
 				return (void*)(ptr + 1); // Return memory after header
 			}
 
 			if(ptr->next == nullptr)
 			{
+				PutString("Malloc resize...\n");
 				if(!MallocResize(bytes))
 					return nullptr;
 			}
@@ -768,6 +690,37 @@ namespace Memory
 
 	void Mfree(void* ptr)
 	{
-		// TODO: ...
+		MallocHeader* hdr = &((MallocHeader*)ptr)[-1];
+
+		if(hdr < mallocPage)
+		{
+			hdr->next = mallocPage;
+			mallocPage = hdr;
+		}
+		else
+		{
+			auto ptr = mallocPage;
+			auto prevPtr = (MallocHeader*)nullptr;
+			while(ptr)
+			{
+				if(ptr->next > hdr)
+				{
+					hdr->next = ptr->next;
+					ptr->next = hdr;
+					
+					break;
+				}
+
+				prevPtr = ptr;
+				ptr = ptr->next;
+			}
+
+			if(ptr == nullptr)
+			{
+				prevPtr->next = hdr;
+				hdr->next = nullptr;
+			}
+		}
+		// TODO: merge entries
 	}
 }

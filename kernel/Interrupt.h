@@ -115,4 +115,5 @@ namespace Interrupt
 
 	void Enable();
 	void Disable();
+	bool IsEnabled();
 }

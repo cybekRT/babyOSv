@@ -1,6 +1,7 @@
 #include"Thread.hpp"
 #include"Memory.h"
 #include"LinkedList.h"
+#include"Interrupt.h"
 
 extern const void* kernel_end;
 extern const void* org_stack_beg;
@@ -19,7 +20,8 @@ namespace Thread
 		const u32 newStackSize = thread->stackSize;
 
 		void *stackPhys = Memory::AllocPhys(newStackSize);
-		thread->stack = Memory::Map(stackPhys, newStackBeg - newStackSize, newStackSize);
+		thread->stackBottom = Memory::Map(stackPhys, newStackBeg - newStackSize, newStackSize);
+		//thread->stack = newStackBeg; 
 
 		u32 currentESP;
 		u32 currentEBP;
@@ -30,6 +32,8 @@ namespace Thread
 
 		u32 newESP = (u32)newStackBeg - oldStackBytesUsed;
 		u32 newEBP = (u32)newStackBeg - oldEBPOffset;
+
+		thread->stack = (void*)newESP;
 
 		memcpy((void*)newESP, (void*)currentESP, oldStackBytesUsed);
 
@@ -48,10 +52,12 @@ namespace Thread
 
 	bool Init()
 	{
+		Interrupt::Disable();
 		Thread* thread = (Thread*)Memory::Alloc(sizeof(Thread));
 
 		thread->process = nullptr;
-		thread->name[0] = 0;
+		//thread->name[0] = 0;
+		memcpy(thread->name, (void*)"kmain", 6);
 		thread->stackSize = 8192;
 		//thread->stack = Memory::Alloc(thread->stackSize);
 		CreateKernelStack(thread);
@@ -59,52 +65,82 @@ namespace Thread
 		threads.PushBack(thread);
 		currentThread = thread;
 
+		Interrupt::Enable();
 		return true;
+	}
+
+	void Push(Thread* thread, u32 v)
+	{
+		u32* ptr = (u32*)thread->stack;
+		ptr--;
+		(*ptr) = v;
+		thread->stack = (void*)ptr;
 	}
 
 	u32 regsDump[(u32)Register::Count];
 	__attribute((naked)) void NextThread()
 	{
-		// Dump old registers
-		__asm("mov (%%esp), %0" : "=a"(regsDump[(u32)Register::EIP]));
+		if(currentThread == nullptr)
+			__asm("ret");
 
-		__asm("mov %%eax, %0" : "=a"(regsDump[(u32)Register::EAX]));
-		__asm("mov %%ebx, %0" : "=a"(regsDump[(u32)Register::EBX]));
-		__asm("mov %%ecx, %0" : "=a"(regsDump[(u32)Register::ECX]));
-		__asm("mov %%edx, %0" : "=a"(regsDump[(u32)Register::EDX]));
+		__asm("pushl %eax");
+		__asm("pushl %ebx");
+		__asm("pushl %ecx");
+		__asm("pushl %edx");
 
-		__asm("mov %%esi, %0" : "=a"(regsDump[(u32)Register::ESI]));
-		__asm("mov %%edi, %0" : "=a"(regsDump[(u32)Register::EDI]));
-		__asm("mov %%esp, %0" : "=a"(regsDump[(u32)Register::ESP]));
-		__asm("mov %%ebp, %0" : "=a"(regsDump[(u32)Register::EBP]));
+		__asm("pushl %esi");
+		__asm("pushl %edi");
+		__asm("pushl %ebp");
 
-		__asm("mov %%cs, %0" : "=a"(regsDump[(u32)Register::CS]));
-		__asm("mov %%ds, %0" : "=a"(regsDump[(u32)Register::DS]));
-		__asm("mov %%es, %0" : "=a"(regsDump[(u32)Register::ES]));
-		__asm("mov %%fs, %0" : "=a"(regsDump[(u32)Register::FS]));
-		__asm("mov %%gs, %0" : "=a"(regsDump[(u32)Register::GS]));
+		__asm("pushl %ds");
+		__asm("pushl %es");
+		__asm("pushl %fs");
+		__asm("pushl %gs");
 
-		// Copy old registers
-		for(unsigned a = 0; a < (u32)Register::Count; a++)
-		{
-			currentThread->regs[a] = regsDump[a];
-		}
+		__asm("mov %%esp, %0" : "=a"(currentThread->stack));
 
 		// Change thread
 		threads.PushBack(currentThread);
 		currentThread = threads.PopFront();
 
+		//Terminal::Print("Switching to: %s\n", currentThread->name);
 
+		__asm("mov %0, %%esp" : : "a"(currentThread->stack));
+
+		__asm("popl %gs");
+		__asm("popl %fs");
+		__asm("popl %es");
+		__asm("popl %ds");
+
+		__asm("popl %ebp");
+		__asm("popl %edi");
+		__asm("popl %esi");
+
+		__asm("popl %edx");
+		__asm("popl %ecx");
+		__asm("popl %ebx");
+		__asm("popl %eax");
+
+		__asm("ret");
+	}
+
+	__attribute((naked)) void ThreadStart()
+	{
+		Terminal::Print("XD\n");
+		__asm("xchg %bx, %bx");
+		__asm("iret");
 	}
 
 	Status Create(Thread** thread, void (*entry)(), u8* name)
 	{
+		Interrupt::Disable();
 		(*thread) = (Thread*)Memory::Alloc(sizeof(Thread));
 
 		(*thread)->process = nullptr;
 		memcpy((*thread)->name, name, strlen((char*)name)+1);
 		(*thread)->stackSize = 8192;
-		(*thread)->stack = Memory::Alloc((*thread)->stackSize);
+		(*thread)->stackBottom = Memory::Alloc((*thread)->stackSize);
+		(*thread)->stack = (*thread)->stackBottom + (*thread)->stackSize;
 
 		for(unsigned a = 0; a < (u32)Register::Count; a++)
 		{
@@ -115,9 +151,28 @@ namespace Thread
 		(*thread)->regs[(u32)Register::CS] = (u32)0x08;
 		(*thread)->regs[(u32)Register::DS] = (u32)0x10;
 
+		Push((*thread), 0x0200);
+		Push((*thread), 0x8);
+		Push((*thread), (u32)entry);
+		Push((*thread), (u32)ThreadStart);
+		
+		Push((*thread), 0);
+		Push((*thread), 0);
+		Push((*thread), 0);
+		Push((*thread), 0);
+		Push((*thread), 0);
+		Push((*thread), 0);
+		Push((*thread), 0);
+
+		Push((*thread), 0x10);
+		Push((*thread), 0x10);
+		Push((*thread), 0x10);
+		Push((*thread), 0x10);
+
 		threads.PushBack((*thread));
 		Terminal::Print("Created thread: %s\n", (*thread)->name);
 
+		Interrupt::Enable();
 		return Status::Success;
 	}
 

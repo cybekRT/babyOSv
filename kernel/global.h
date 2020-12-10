@@ -26,8 +26,8 @@ typedef sint8 s8;
 #define HALT { __asm("hlt"); }
 #define FAIL(msg) { Print("\n\nAssert failed: " msg "\n\n"); __asm("int $0"); }
 
-#define ENTER_CRITICAL_SECTION() //{__asm("pushf"); __asm("cli");}
-#define EXIT_CRITICAL_SECTION() //{__asm("popf");}
+//#define ENTER_CRITICAL_SECTION() //{__asm("pushf"); __asm("cli");}
+//#define EXIT_CRITICAL_SECTION() //{__asm("popf");}
 
 #include"Terminal.h"
 
