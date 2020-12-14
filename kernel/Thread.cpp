@@ -46,11 +46,11 @@ namespace Thread
 				SignalInfo sigInfo = raisedSignals.PopFront();
 				Signal sig = sigInfo.signal;
 
-				if(Timer::GetTicks() < sigInfo.raisedTime + sigInfo.timeout)
+				/*if(Timer::GetTicks() < sigInfo.raisedTime + sigInfo.timeout)
 				{
 					Terminal::Print("== %d %d %d ==\n", (u32)Timer::GetTicks(), (u32)sigInfo.raisedTime, (u32)sigInfo.timeout);
 					//raisedSignals.PushBack(sigInfo);
-				}
+				}*/
 
 				Terminal::Print("Received signal: %u : %u\n", sig.type, sig.addr);
 
@@ -58,7 +58,7 @@ namespace Thread
 				while(t2s)
 				{
 					bool sigMatch = t2s->value.signal->type == sig.type && t2s->value.signal->addr == sig.addr;
-					bool timeout = (Timer::GetTicks() >= t2s->value.sleepTime + t2s->value.timeout);
+					bool timeout = (t2s->value.timeout != (Timer::Time)-1) && (Timer::GetTicks() >= t2s->value.sleepTime + t2s->value.timeout);
 
 					if(sigMatch || timeout)
 					{
@@ -84,7 +84,7 @@ namespace Thread
 			auto t2s = waitingThreads.data;
 			while(t2s)
 			{
-				bool timeout = (Timer::GetTicks() >= t2s->value.sleepTime + t2s->value.timeout);
+				bool timeout = (t2s->value.timeout != (Timer::Time)-1) && (Timer::GetTicks() >= t2s->value.sleepTime + t2s->value.timeout);
 
 				if(timeout)
 				{
@@ -175,13 +175,12 @@ namespace Thread
 		thread->stack = (void*)ptr;
 	}
 
-	//u32 regsDump[(u32)Register::Count];
 	__attribute((naked)) void NextThread()
 	{
-		if(currentThread == nullptr)
+		if(currentThread == nullptr || currentThread->state == State::Unstoppable)
 			__asm("ret");
 
-		Interrupt::Disable();
+		__asm("cli");
 
 		__asm("pushl %eax");
 		__asm("pushl %ebx");
@@ -204,6 +203,7 @@ namespace Thread
 			threads.PushBack(currentThread);
 
 		currentThread = threads.PopFront();
+		currentThread->state = State::Running;
 
 		//Terminal::Print("Switching to: %s\n", currentThread->name);
 
@@ -223,8 +223,6 @@ namespace Thread
 		__asm("popl %ebx");
 		__asm("popl %eax");
 
-		Interrupt::Enable();
-
 		__asm("ret");
 	}
 
@@ -240,7 +238,6 @@ namespace Thread
 
 	Status Create(Thread** thread, void (*entry)(), u8* name)
 	{
-		//Interrupt::Disable();
 		(*thread) = (Thread*)Memory::Alloc(sizeof(Thread));
 
 		(*thread)->process = nullptr;
@@ -295,9 +292,19 @@ namespace Thread
 		return Status::Fail;
 	}
 
+	void SetState(Thread* thread, State state)
+	{
+		if(thread == nullptr)
+			thread = currentThread;
+
+		thread->state = state;
+	}
+
 	Status RaiseSignal(Signal signal, Timer::Time timeout)
 	{
+		Interrupt::Disable();
 		raisedSignals.PushBack(SignalInfo { .signal = signal, .raisedTime = Timer::GetTicks(), .timeout = timeout });
+		Interrupt::Enable();
 	}
 
 	Status WaitForSignal(Signal signal, Timer::Time timeout)
@@ -310,8 +317,6 @@ namespace Thread
 
 		Interrupt::Enable();
 		NextThread();
-
-		Terminal::Print("Awaken by timeout: %d\n", signal.type == Signal::Type::Timeout);
 
 		if(signal.type == Signal::Type::Timeout)
 			return Status::Timeout;

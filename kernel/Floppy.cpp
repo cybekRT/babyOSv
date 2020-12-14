@@ -149,50 +149,33 @@ namespace Floppy
 
 	void WaitForOut()
 	{
-		//Print("FDD wait for out\n");
 		for(;;)
 		{
 			auto reg = ReadMainStatusRegister();
 			if(reg.rqm && !reg.dio)
 				break;
-
-			HALT;
 		}
 	}
 
 	void WaitForIn()
 	{
-		//Print("FDD wait for in\n");
 		for(;;)
 		{
 			auto reg = ReadMainStatusRegister();
 			if(reg.rqm && reg.dio)
 				break;
-
-			HALT;
 		}
 	}
 
 	void WaitIRQ()
 	{
-		/*Terminal::Print("Waiting for floppy irq...\n");
-		//Timer::Delay(1000);
 		Thread::WaitForSignal(Thread::Signal { .type = Thread::Signal::Type::IRQ, .addr = Interrupt::IRQ_FLOPPY }, -1);
-
-		Terminal::Print("Awaken!!\n");*/
-
-		while(!irqReceived)
-		{
-			__asm("hlt");
-		}
 	}
 
 	void MotorOn()
 	{
 		if(motorEnabled++ > 0)
 			return;
-
-		//Print("FDD motor on\n");
 
 		DigitalOutputRegister reg;
 		u8* regPtr = (u8*)&reg;
@@ -210,8 +193,6 @@ namespace Floppy
 	{
 		if(--motorEnabled > 0)
 			return;
-
-		//Print("FDD motor off\n");
 
 		DigitalOutputRegister reg;
 		u8* regPtr = (u8*)&reg;
@@ -255,19 +236,12 @@ namespace Floppy
 		u8 data[16];
 		data[0] = (u8)cmd;
 
-		//Print("Executing command: %x", data[0]);
-
-		//WriteData(cmd);
 		for(unsigned a = 0; a < paramsCount; a++)
 		{
 			u8 param = va_arg(args, u32);
-			//Print(", %x", param);
-
 			data[1 + a] = param;
-			//WriteData(param);
 		}
 
-		//Print("\n");
 		va_end(args);
 
 		for(unsigned a = 0; a < 1 + paramsCount; a++)
@@ -302,7 +276,8 @@ namespace Floppy
 		reg.irq = 1;
 		reg.motorA = 0;
 
-		irqReceived = 0;
+		//irqReceived = 0;
+		Thread::SetState(nullptr, Thread::State::Unstoppable);
 		PortOut(IOPort::FDD_REG_DIGITAL_OUT, *regPtr);
 		WaitIRQ();
 
@@ -323,7 +298,7 @@ namespace Floppy
 
 		MotorOn();
 
-		irqReceived = 0;
+		Thread::SetState(nullptr, Thread::State::Unstoppable);
 		Exec(Command::FDD_CMD_RECALIBRATE, 1, 0x00);
 		WaitIRQ();
 
@@ -353,7 +328,6 @@ namespace Floppy
 
 		dmaPhys = Memory::AllocPhys(4096);
 		dmaLogic = Memory::Map(dmaPhys, nullptr, 4096);
-		Print("Floppy DMA: %p, %p\n", dmaPhys, dmaLogic);
 
 		Interrupt::Register(Interrupt::IRQ2INT(Interrupt::IRQ_FLOPPY), ISR_Floppy);
 
@@ -367,6 +341,15 @@ namespace Floppy
 		if(tmpBuffer[510] != 0x55 || tmpBuffer[511] != 0xAA)
 		{
 			Print("%x %x\n", tmpBuffer[510], tmpBuffer[511]);
+			Print("Dump:\n");
+			for(unsigned a = 0; a < 512; a+=4)
+			{
+				u32 v = (tmpBuffer[a] << 24) | (tmpBuffer[a + 1] << 16) | (tmpBuffer[a + 2] << 8) | (tmpBuffer[a + 3]);
+				Print("%x ", v);
+
+				if(a % 32 == 0)
+					Print("\n");
+			}
 			FAIL("reading floppy");
 		}
 
@@ -385,7 +368,7 @@ namespace Floppy
 
 		Print("Seeking track: %u\n", track);
 
-		irqReceived = 0;
+		Thread::SetState(nullptr, Thread::State::Unstoppable);
 		Exec(Command::FDD_CMD_SEEK, 2, 0x00, track);
 		WaitIRQ();
 
@@ -416,18 +399,11 @@ namespace Floppy
 		u8 cmd = (u8)FDD_CMD_OPTION_MULTITRACK | (u8)FDD_CMD_OPTION_MFM | (u8)FDD_CMD_OPTION_SKIP | (u8)FDD_CMD_READ_DATA;
 		u8 driveNo = 0;
 
+		Print("Exec read (%d %d %d)... ", cylinder, head, sector);
+		Thread::SetState(nullptr, Thread::State::Unstoppable);
 		Exec((Command)cmd, 8, (head << 2) | driveNo, cylinder, head, sector, 0x02, 0x12, 0x1B, 0xFF);
-		//WaitIRQ();
-		if(Thread::WaitForSignal(Thread::Signal { .type = Thread::Signal::Type::IRQ, .addr = Interrupt::IRQ_FLOPPY }, 200) != Status::Success)
-		{
-			Print("Floppy timed out...\n");
+		WaitIRQ();
 
-			Init();
-
-			return;
-		}
-
-		Print("Reading status...\n");
 		u8 st0 = ReadData();
 		u8 st1 = ReadData();
 		u8 st2 = ReadData();
@@ -436,7 +412,7 @@ namespace Floppy
 		u8 str = ReadData();
 		u8 stn = ReadData();
 
-		if(st0 & 0b11000000)
+		if(st0 & 0b11000000 || stn != 0x02)
 			FAIL("floppy read status");
 
 		MotorOff();

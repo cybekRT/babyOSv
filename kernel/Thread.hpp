@@ -49,6 +49,8 @@ namespace Thread
 		Running,
 		Waiting,
 		Zombie,
+
+		Unstoppable
 	};
 
 	struct Thread
@@ -71,6 +73,7 @@ namespace Thread
 	Status Create(Thread** thread, void (*entry)(), u8* name);
 	Status Join(Thread** thread, int* code);
 
+	void SetState(Thread* thread, State state);
 	Status RaiseSignal(Signal signal, Timer::Time timeout = 0);
 	Status WaitForSignal(Signal signal, Timer::Time timeout = (Timer::Time)-1);
 }
