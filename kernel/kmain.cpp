@@ -13,6 +13,8 @@
 #include"FS.hpp"
 #include"FS_FAT12.hpp"
 
+#include"VFS.hpp"
+
 int strlen(const char* str)
 {
 	unsigned len = 0;
@@ -88,6 +90,8 @@ extern "C" void kmain()
 	FS::Init();
 	FS_FAT12::Init();
 
+	VFS::Init();
+
 	Print("Mounting floppy...\n");
 
 	auto dev = Block::devices.Front();
@@ -97,9 +101,10 @@ extern "C" void kmain()
 	fs->Alloc(dev, &fsPriv);
 
 	FS::Directory* dir;
-	fs->OpenRoot(fsPriv, &dir);
+	VFS::OpenRoot(&dir);
+	//fs->OpenRoot(fsPriv, &dir);
 
-#if 1
+#if 0
 	{
 		Print("Searching splash\n");
 		FS::DirEntry entry;
@@ -189,13 +194,15 @@ extern "C" void kmain()
 					}
 					else if(strcmp(tmp, "dir"))
 					{
-						dev->Lock(dev);
+						//dev->Lock(dev);
 
 						FS::DirEntry entry;
-						fs->RewindDirectory(fsPriv, dir);
+						//fs->RewindDirectory(fsPriv, dir);
+						VFS::RewindDirectory(dir);
 
 						Print("Directory content:\n");
-						while(fs->ReadDirectory(fsPriv, dir, &entry) != FS::Status::EOF)
+						//while(fs->ReadDirectory(fsPriv, dir, &entry) != FS::Status::EOF)
+						while(VFS::ReadDirectory(dir, &entry) == Status::Success)
 						{
 							if(!entry.isValid)
 								continue;
@@ -203,8 +210,9 @@ extern "C" void kmain()
 							Print("<DATE>\t<HOUR>\t%s\t%u\t%s\n", (entry.isDirectory) ? "DIR" : "", entry.size, entry.name);
 						}
 
-						fs->RewindDirectory(fsPriv, dir);
-						dev->Unlock(dev);
+						//fs->RewindDirectory(fsPriv, dir);
+						VFS::RewindDirectory(dir);
+						//dev->Unlock(dev);
 					}
 					else if(strlen(tmp) > 3 && tmp[0] == 'c' && tmp[1] == 'd' && tmp[2] == ' ')
 					{
@@ -215,7 +223,8 @@ extern "C" void kmain()
 						{
 							if(tmp[a] != ' ')
 							{
-								(*dst++) = tolower(tmp[a]);
+								//(*dst++) = tolower(tmp[a]);
+								(*dst++) = tmp[a];
 								foundAny = true;
 							}
 							else if(foundAny)
@@ -225,17 +234,20 @@ extern "C" void kmain()
 						(*dst) = 0;
 
 						FS::DirEntry entry;
-						fs->RewindDirectory(fsPriv, dir);
+						//fs->RewindDirectory(fsPriv, dir);
+						VFS::RewindDirectory(dir);
 
 						bool changed = false;
-						while(fs->ReadDirectory(fsPriv, dir, &entry) != FS::Status::EOF)
+						//while(fs->ReadDirectory(fsPriv, dir, &entry) != FS::Status::EOF)
+						while(VFS::ReadDirectory(dir, &entry) == Status::Success)
 						{
 							if(!entry.isValid)
 								continue;
 
 							if(strcmp((char*)path, (char*)entry.name))
 							{
-								if(fs->ChangeDirectory(fsPriv, dir) == FS::Status::Success)
+								//if(fs->ChangeDirectory(fsPriv, dir) == FS::Status::Success)
+								if(VFS::ChangeDirectory(dir) == Status::Success)
 									changed = true;
 								break;
 							}

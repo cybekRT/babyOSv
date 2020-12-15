@@ -223,6 +223,7 @@ namespace Thread
 		__asm("popl %ebx");
 		__asm("popl %eax");
 
+		__asm("sti"); // FIXME why...
 		__asm("ret");
 	}
 
