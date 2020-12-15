@@ -52,7 +52,7 @@ namespace Thread
 					//raisedSignals.PushBack(sigInfo);
 				}*/
 
-				Terminal::Print("Received signal: %u : %u\n", sig.type, sig.addr);
+				//Terminal::Print("Received signal: %u : %u\n", sig.type, sig.addr);
 
 				auto t2s = waitingThreads.data;
 				while(t2s)
@@ -67,7 +67,7 @@ namespace Thread
 						else if(timeout)
 							(*t2s->value.signal) = Signal { .type = Signal::Type::Timeout, .addr = 0 };
 
-						Terminal::Print("Waking thread: %s\n", t2s->value.thread->name);
+						//Terminal::Print("Waking thread: %s\n", t2s->value.thread->name);
 
 						t2s->value.thread->state = State::Running;
 						threads.PushBack(t2s->value.thread);
@@ -90,7 +90,7 @@ namespace Thread
 				{
 					(*t2s->value.signal) = Signal { .type = Signal::Type::Timeout, .addr = 0 };
 
-					Terminal::Print("Waking thread by timeout: %s\n", t2s->value.thread->name);
+					//Terminal::Print("Waking thread by timeout: %s\n", t2s->value.thread->name);
 
 					t2s->value.thread->state = State::Running;
 					threads.PushBack(t2s->value.thread);
@@ -312,7 +312,7 @@ namespace Thread
 	{
 		Interrupt::Disable();
 
-		Terminal::Print("Thread %s waiting for signal %d:%d...\n", currentThread->name, signal.type, signal.addr);
+		//Terminal::Print("Thread %s waiting for signal %d:%d...\n", currentThread->name, signal.type, signal.addr);
 		currentThread->state = State::Waiting;
 		waitingThreads.PushBack(Thread2Signal { .thread = currentThread, .signal = &signal, .sleepTime = Timer::GetTicks(), .timeout = timeout } );
 

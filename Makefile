@@ -59,8 +59,8 @@ NASM_FLAGS	 = -Iboot/
 #
 ####################
 
-OBJS	 = $(SOURCES:kernel/%.cpp=out/%.o) 
-DEPS	 = $(SOURCES:%.cpp=%.d)
+OBJS	 = $(SOURCES:kernel/%.cpp=out/%.o)
+DEPS	 = $(OBJS:%.o=%.d)
 DEPS	:= $(DEPS:kernel%=out%)
 
 ####################
@@ -87,10 +87,10 @@ out/kernel.bin: out/kernel.elf
 	$(GCC_PREFIX)objcopy -Obinary $< $@
 
 out/%.o: kernel/%.cpp kernel/linker.ld
-	$(GCC) $(GCC_FLAGS) -c $< -o $@ 
+	$(GCC) $(GCC_FLAGS) -c $< -o $@
 
 out/%.o: out/%.cpp kernel/linker.ld
-	$(GCC) $(GCC_FLAGS) -c $< -o $@ 
+	$(GCC) $(GCC_FLAGS) -c $< -o $@
 
 out/kmain_startup.o: kernel/kmain_startup.asm
 	$(NASM) $(NASM_FLAGS) -felf $< -o $@

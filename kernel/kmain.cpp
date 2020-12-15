@@ -7,11 +7,11 @@
 
 #include"ISA_DMA.hpp"
 
-#include"Block.hpp"
-#include"Floppy.hpp"
+#include"Block/Block.hpp"
+#include"Block/Floppy.hpp"
 
-#include"FS.hpp"
-#include"FS_FAT12.hpp"
+#include"FS/FS.hpp"
+#include"FS/FS_FAT12.hpp"
 
 #include"VFS.hpp"
 
@@ -178,30 +178,14 @@ extern "C" void kmain()
 						u8* x = (u8*)0x1234;
 						*x = 5;
 					}
-					else if(strcmp(tmp, "r"))
-					{
-						FS::DirEntry entry;
-						fs->ReadDirectory(fsPriv, dir, &entry);
-
-						Print("Entry (%x): %s\n", entry.isDirectory, entry.name);
-					}
-					else if(strcmp(tmp, "c"))
-					{
-						FS::DirEntry* entry = nullptr;
-						fs->ChangeDirectory(fsPriv, dir);
-
-						//Print("Changed to: (%x): %s\n", entry->type, entry->name);
-					}
 					else if(strcmp(tmp, "dir"))
 					{
-						//dev->Lock(dev);
+						dev->Lock(dev);
 
 						FS::DirEntry entry;
-						//fs->RewindDirectory(fsPriv, dir);
 						VFS::RewindDirectory(dir);
 
 						Print("Directory content:\n");
-						//while(fs->ReadDirectory(fsPriv, dir, &entry) != FS::Status::EOF)
 						while(VFS::ReadDirectory(dir, &entry) == Status::Success)
 						{
 							if(!entry.isValid)
@@ -210,9 +194,8 @@ extern "C" void kmain()
 							Print("<DATE>\t<HOUR>\t%s\t%u\t%s\n", (entry.isDirectory) ? "DIR" : "", entry.size, entry.name);
 						}
 
-						//fs->RewindDirectory(fsPriv, dir);
 						VFS::RewindDirectory(dir);
-						//dev->Unlock(dev);
+						dev->Unlock(dev);
 					}
 					else if(strlen(tmp) > 3 && tmp[0] == 'c' && tmp[1] == 'd' && tmp[2] == ' ')
 					{
@@ -234,11 +217,9 @@ extern "C" void kmain()
 						(*dst) = 0;
 
 						FS::DirEntry entry;
-						//fs->RewindDirectory(fsPriv, dir);
 						VFS::RewindDirectory(dir);
 
 						bool changed = false;
-						//while(fs->ReadDirectory(fsPriv, dir, &entry) != FS::Status::EOF)
 						while(VFS::ReadDirectory(dir, &entry) == Status::Success)
 						{
 							if(!entry.isValid)
@@ -246,7 +227,6 @@ extern "C" void kmain()
 
 							if(strcmp((char*)path, (char*)entry.name))
 							{
-								//if(fs->ChangeDirectory(fsPriv, dir) == FS::Status::Success)
 								if(VFS::ChangeDirectory(dir) == Status::Success)
 									changed = true;
 								break;
@@ -267,7 +247,8 @@ extern "C" void kmain()
 						{
 							if(tmp[a] != ' ')
 							{
-								(*dst++) = tolower(tmp[a]);
+								//(*dst++) = tolower(tmp[a]);
+								(*dst++) = tmp[a];
 								foundAny = true;
 							}
 							else if(foundAny)
@@ -277,17 +258,17 @@ extern "C" void kmain()
 						(*dst) = 0;
 
 						FS::DirEntry entry;
-						fs->RewindDirectory(fsPriv, dir);
+						VFS::RewindDirectory(dir);
 
 						FS::File* file = nullptr;
-						while(fs->ReadDirectory(fsPriv, dir, &entry) != FS::Status::EOF)
+						while(VFS::ReadDirectory(dir, &entry) == Status::Success)
 						{
 							if(!entry.isValid || entry.isDirectory)
 								continue;
 
 							if(strcmp((char*)path, (char*)entry.name))
 							{
-								fs->OpenFile(fs, dir, &file);
+								VFS::OpenFile(dir, &file);
 								break;
 							}
 						}
@@ -300,8 +281,9 @@ extern "C" void kmain()
 						u32 readCount;
 						const u32 bufSize = 512;
 						u8 buf[bufSize];
-						FS::Status s;
-						while((s = fs->ReadFile(fsPriv, file, buf, bufSize, &readCount)) == FS::Status::Success)
+						Status s;
+						dev->Lock(dev);
+						while((s = VFS::ReadFile(file, buf, bufSize, &readCount)) == Status::Success)
 						{
 							for(unsigned a = 0; a < readCount; a++)
 							{
@@ -309,7 +291,8 @@ extern "C" void kmain()
 							}
 						}
 
-						fs->CloseFile(fs, &file);
+						dev->Unlock(dev);
+						VFS::CloseFile(&file);
 					}
 					else
 					{

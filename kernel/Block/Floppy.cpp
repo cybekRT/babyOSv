@@ -125,7 +125,7 @@ namespace Floppy
 		irqReceived = 1;
 		Thread::RaiseSignal(Thread::Signal { .type = Thread::Signal::Type::IRQ, .addr = Interrupt::IRQ_FLOPPY }, 0);
 		Interrupt::AckIRQ();
-		Terminal::Print("Raised floppy IRQ\n");
+		//Terminal::Print("Raised floppy IRQ\n");
 	}
 
 	u8 PortIn(IOPort port)
@@ -399,7 +399,7 @@ namespace Floppy
 		u8 cmd = (u8)FDD_CMD_OPTION_MULTITRACK | (u8)FDD_CMD_OPTION_MFM | (u8)FDD_CMD_OPTION_SKIP | (u8)FDD_CMD_READ_DATA;
 		u8 driveNo = 0;
 
-		Print("Exec read (%d %d %d)... ", cylinder, head, sector);
+		//Print("Exec read (%d %d %d)... ", cylinder, head, sector);
 		Thread::SetState(nullptr, Thread::State::Unstoppable);
 		Exec((Command)cmd, 8, (head << 2) | driveNo, cylinder, head, sector, 0x02, 0x12, 0x1B, 0xFF);
 		WaitIRQ();
@@ -430,10 +430,10 @@ namespace Floppy
 		u8* name = (u8*)"Floppy";
 		for(unsigned a = 0; ; a++)
 		{
+			buffer[a] = name[a];
+
 			if(!name[a])
 				return a;
-
-			buffer[a] = name[a];
 		}
 
 		return 0;
