@@ -4,10 +4,6 @@
 #include"Interrupt.h"
 #include"Timer.h"
 
-extern const void* kernel_end;
-extern const void* org_stack_beg;
-extern const void* org_stack_end;
-extern const u32 org_stack_size;
 int strlen(const char* str);
 
 namespace Thread
@@ -120,8 +116,8 @@ namespace Thread
 		u32 currentEBP;
 		__asm("mov %%esp, %0" : "=r"(currentESP));
 		__asm("mov %%ebp, %0" : "=r"(currentEBP));
-		u32 oldStackBytesUsed = (u32)org_stack_beg - currentESP;
-		u32 oldEBPOffset = (u32)org_stack_beg - currentEBP;
+		u32 oldStackBytesUsed = _org_stack_beg - currentESP;
+		u32 oldEBPOffset = _org_stack_beg - currentEBP;
 
 		u32 newESP = (u32)newStackBeg - oldStackBytesUsed;
 		u32 newEBP = (u32)newStackBeg - oldEBPOffset;
@@ -134,7 +130,7 @@ namespace Thread
 		u32* _ebp = (u32*)newEBP;
 		while(*_ebp)
 		{
-			u32 offset = (u32)org_stack_beg - *_ebp;
+			u32 offset = _org_stack_beg - *_ebp;
 			*_ebp = (u32)newStackBeg - offset;
 			_ebp = (u32*)*_ebp;
 		}

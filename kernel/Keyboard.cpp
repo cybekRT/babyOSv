@@ -70,6 +70,12 @@ namespace Keyboard
 			.ascii = ascii
 		};
 
+		// FIXME: debug only
+		if(event.type == KeyType::Pressed && event.key == KeyCode::F12)
+		{
+			__asm("int $0xfe");
+		}
+
 		events.PushBack(event);
 
 		Interrupt::AckIRQ();

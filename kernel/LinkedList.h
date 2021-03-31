@@ -41,11 +41,6 @@ public:
 		}
 	}
 
-	/*void Remove(X value)
-	{
-
-	}*/
-
 	void Remove(LinkedListItem<X>* item)
 	{
 		if(data == item)

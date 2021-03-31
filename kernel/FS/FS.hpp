@@ -1,6 +1,7 @@
 #pragma once
 
 #include"../Block/Block.hpp"
+#include"LinkedList.h"
 
 namespace FS
 {

@@ -26,15 +26,11 @@ namespace ISA_DMA
 		u8* regPtr = (u8*)&reg;
 		*regPtr = PortIn(IOPort::ModeRegister);
 
-		Print("Mode reg: %x %x %x %x %x\n", reg.channel, reg.mode, reg.type, reg.reverse, reg.autoInit);
-		Print("Mode reg: %x\n", *regPtr);
-
 		reg.channel = 3;
 		reg.mode = TransferMode::Block;
 		reg.reverse = 1;
 		reg.autoInit = 1;
 		reg.type = TransferType::MemoryToPeripheral;
-		Print("Mode reg2: %x\n", *regPtr);
 
 		return true;
 	}

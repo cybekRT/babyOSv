@@ -51,6 +51,7 @@ LD			 = $(GCC_PREFIX)ld
 GCC_FLAGS	 = -include kernel/global.h -Ikernel/ -Iout/
 GCC_FLAGS	+= -mgeneral-regs-only -fno-isolate-erroneous-paths-attribute -fno-asynchronous-unwind-tables
 GCC_FLAGS	+= -Wall -Wextra -g3 -O0 -m32 -std=gnu++1z
+GCC_FLAGS	+= -fno-exceptions -fno-rtti
 NASM_FLAGS	 = -Iboot/
 
 ####################

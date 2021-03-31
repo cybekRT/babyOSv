@@ -5,7 +5,7 @@ int strcpy(const char* src, char* dst);
 
 namespace Block
 {
-	LinkedList<BlockDevice*> devices;
+	Array<BlockDevice> devices;
 	uint8 devicesTypesCount[(unsigned)Type::Count] = { 0 };
 	const char* typeName[] = { "unk", "fdd", "hdd", "cd" };
 
@@ -26,7 +26,7 @@ namespace Block
 		bd->name[nameLen+1] = 0;
 
 		Print("Registering device: %s\n", bd->name);
-		devices.PushBack(bd);
+		devices.PushBack(*bd);
 	}
 
 	void Unregister(Type type, BlockDriver* drv, void* dev)

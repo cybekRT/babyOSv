@@ -143,7 +143,27 @@ namespace Interrupt
 
 		Print("EAX: %x, EBX: %x, ECX: %x, EDX: %x\n", regs.eax, regs.ebx, regs.ecx, regs.edx);
 		Print("ESI: %x, EDI: %x\n", regs.esi, regs.edi);
-		Print("DS: %x, ES: %x, FS: %x, GS: %x\n", regs.ds, regs.es, regs.fs, regs.gs);
+		Print(" DS: %x,  ES: %x,  FS: %x,  GS: %x\n", regs.ds, regs.es, regs.fs, regs.gs);
+
+		int* ebp;
+		__asm("mov %%ebp, %0" : "=m"(ebp));
+		Print("Callstack:\n");
+		while(ebp)
+		{
+			u32 addr = 0;
+			for(unsigned a = 0; a < 4; a++)
+			{
+				if(ebp[a] >= _kernel_code_beg && ebp[a] <= _kernel_code_end)
+				{
+					addr = ebp[a];
+					break;
+				}
+			}
+			
+			Print(" - %p\n", addr);
+
+			ebp = (int*)(*ebp);
+		}
 
 		__asm("cli");
 		for(;;)
@@ -261,7 +281,6 @@ namespace Interrupt
 		disableCount--;
 		if(disableCount == 0)
 		{
-			//Print("Interrupts enabled!\n"); // FIXME: probably bad idea to print here
 			__asm("sti");
 		}
 	}
@@ -271,9 +290,6 @@ namespace Interrupt
 		if(disableCount == 0)
 		{
 			__asm("cli");
-			//void *addr = __builtin_extract_return_addr (__builtin_return_address (0));
-			//Print("Interrupts disabled: %p!\n", addr); // FIXME: probably bad idea to print here
-			//Print("Interrupts disabled!\n"); // FIXME: probably bad idea to print here
 		}
 
 		disableCount++;

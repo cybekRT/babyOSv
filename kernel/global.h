@@ -19,15 +19,11 @@ typedef sint16 s16;
 typedef sint8 s8;
 
 //#define ASSERT(x) ASSERT(x, "")
-#define ASSERT(x, y) if(!(x)) { PutString("Assert failed: " y); for(;;){ __asm("cli\nhlt\n"); }; }
+#define ASSERT(cond, msg) if(!(cond)) { Print("\n\nAssert failed: %s:%d (%s) - %s\n\n", __FILE__, __LINE__, __FUNCTION__, msg); for(;;){ __asm("cli\nhlt\n"); }; }
 
 #define BREAK {__asm("xchg %%bx, %%bx" : : : "bx");}
-//#define HALT_INF {for(;;){__asm("cli\nhlt\n");}}
 #define HALT { __asm("hlt"); }
-#define FAIL(msg) { Print("\n\nAssert failed: " msg "\n\n"); __asm("int $0"); }
-
-//#define ENTER_CRITICAL_SECTION() //{__asm("pushf"); __asm("cli");}
-//#define EXIT_CRITICAL_SECTION() //{__asm("popf");}
+#define FAIL(msg) { Print("\n\nAssert failed: %s:%d (%s) - %s\n\n", __FILE__, __LINE__, __FUNCTION__, msg); __asm("int $0"); }
 
 #include"Terminal.h"
 
@@ -37,3 +33,14 @@ enum class Status
 	Fail = 1,
 	Timeout,
 };
+
+struct bootloader_info_t;
+extern bootloader_info_t* _bootloader_info_ptr;
+extern u32 _kernel_beg;
+extern u32 _kernel_end;
+extern u32 _kernel_code_beg;
+extern u32 _kernel_code_end;
+extern u32 _kernel_data_beg;
+extern u32 _kernel_data_end;
+extern u32 _org_stack_beg;
+extern u32 _org_stack_end;

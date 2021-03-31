@@ -1,11 +1,6 @@
 #include "Memory.h"
 #include "bootloader_info.h"
 
-extern const void* kernel_end;
-extern const void* org_stack_beg;
-extern const void* org_stack_end;
-extern const u32 org_stack_size;
-
 // TODO: stop using bubble sort everywhere! Optimmize sorting algorithms in allocator~!
 
 void memset(void* ptr, unsigned char c, unsigned len)
@@ -87,7 +82,7 @@ namespace Memory
 
 	void FixEntries()
 	{
-		unsigned kEnd = ((unsigned)kernel_end) & 0x7FFFFFFF;
+		unsigned kEnd = _kernel_end & 0x7FFFFFFF;
 		for(unsigned a = 0; a < memoryEntriesCount; a++)
 		{
 			if(memoryEntries[a].base < (unsigned)kEnd)
@@ -144,45 +139,12 @@ namespace Memory
 		}
 	}
 
-	/*void CreateKernelStack()
-	{
-		void *newStackBeg = (void*)0xE0000000;
-		const u32 newStackSize = 8192;
-
-		void *stackPhys = AllocPhys(newStackSize);
-		void *stackLog = Map(stackPhys, newStackBeg - newStackSize, newStackSize);
-
-		u32 currentESP;
-		u32 currentEBP;
-		__asm("mov %%esp, %0" : "=r"(currentESP));
-		__asm("mov %%ebp, %0" : "=r"(currentEBP));
-		u32 oldStackBytesUsed = (u32)org_stack_beg - currentESP;
-		u32 oldEBPOffset = (u32)org_stack_beg - currentEBP;
-
-		u32 newESP = (u32)newStackBeg - oldStackBytesUsed;
-		u32 newEBP = (u32)newStackBeg - oldEBPOffset;
-
-		memcpy((void*)newESP, (void*)currentESP, oldStackBytesUsed);
-
-		// Fix stack frames
-		u32* _ebp = (u32*)newEBP;
-		while(*_ebp)
-		{
-			u32 offset = (u32)org_stack_beg - *_ebp;
-			*_ebp = (u32)newStackBeg - offset;
-			_ebp = (u32*)*_ebp;
-		}
-
-		__asm("mov %0, %%esp" : : "r"(newESP));
-		__asm("mov %0, %%ebp" : : "r"(newEBP));
-	}*/
-
 	bool Init()
 	{
 		PutString("Memory init...\n");
 
-		memoryEntries = (MemoryInfo_t*)(((unsigned)bootloader_info_ptr->memoryEntries) | 0x80000000);
-		memoryEntriesCount = *bootloader_info_ptr->memoryEntriesCount;	
+		memoryEntries = (MemoryInfo_t*)(((unsigned)_bootloader_info_ptr->memoryEntries) | 0x80000000);
+		memoryEntriesCount = *_bootloader_info_ptr->memoryEntriesCount;	
 
 		DisableFirstMegabyteMapping();
 		SortEntries();
@@ -229,7 +191,6 @@ namespace Memory
 
 	void SortMemoryMap()
 	{
-		PutString("Sorting... ");
 		// TODO:
 		MemoryMap* currentMap = &memoryMap;
 		while(currentMap != nullptr)
@@ -271,7 +232,6 @@ namespace Memory
 	{
 		SortMemoryMap();
 
-		PutString("Merging... ");
 		// TODO:
 		MemoryMap* currentMap = &memoryMap;
 		while(currentMap != nullptr)
@@ -300,8 +260,6 @@ namespace Memory
 
 							currentMap->address[a] = 0;
 							currentMap->length[a] = 0;
-
-							PutString("M ");
 						}
 					}
 				}
@@ -310,7 +268,6 @@ namespace Memory
 			currentMap = currentMap->next;
 		}
 
-		PutString("Merged~!\n");
 		// TODO: move entries from next memory map to previous, if there is enough space!
 	}
 
@@ -318,8 +275,6 @@ namespace Memory
 	{
 		allocSize = (allocSize + 0xFFF) & (~0xFFF);
 
-		Print("Allocating %d bytes\n", allocSize);
-		
 		void* allocatedAddress = nullptr;
 		MemoryMap* currentMap = &memoryMap;
 		while(currentMap != nullptr && !allocatedAddress)
@@ -509,17 +464,24 @@ namespace Memory
 		entry->address = 0;
 		entry->flags &= ~PAGE_TABLE_FLAG_PRESENT;
 
+		#ifdef I386
+		// Refresh cr3
+		__asm(
+		"mov %%cr3, %%eax \n"
+		"mov %%eax, %%cr3 \n"
+		: : : "eax");
+		#else
 		// Invalidate page
-		// TODO: supported since 486 :(
 		__asm(
 			"invlpg (%0)"
 			: : "r"(logicAddress)
 		);
+		#endif
 	}
 
 	void* Alloc(unsigned allocSize)
 	{
-		// TODO: it doesn't need to alloc continuous memory because of mapping...
+		// TODO: it doesn't need to alloc continuous memory due to the mapping...
 
 		allocSize = (allocSize + 0xFFF) & (~0xFFF);
 
@@ -543,7 +505,6 @@ namespace Memory
 		}
 
 		Map(physAddr, logicAddr, allocSize);
-		Terminal::Print("  Address: %p\n", logicAddr);
 
 		return logicAddr;
 	}
@@ -557,10 +518,7 @@ namespace Memory
 		auto entry = &pageTable->entries[tableIndex];
 		auto physAddress = entry->GetAddress();
 
-		PutString("Freeing phys memory!\n");
 		FreePhys(physAddress);
-
-		PutString("Unmapping memory: "); PutHex((u32)logicAddress); PutString("\n");
 		Unmap(logicAddress);
 	}
 
@@ -639,7 +597,6 @@ namespace Memory
 		
 		if(mallocPage == nullptr)
 		{
-			PutString("Malloc resize...\n");
 			if(!MallocResize(bytes))
 				return nullptr;
 		}
@@ -676,7 +633,6 @@ namespace Memory
 
 			if(ptr->next == nullptr)
 			{
-				PutString("Malloc resize...\n");
 				if(!MallocResize(bytes))
 					return nullptr;
 			}

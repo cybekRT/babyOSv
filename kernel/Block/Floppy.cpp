@@ -125,7 +125,6 @@ namespace Floppy
 		irqReceived = 1;
 		Thread::RaiseSignal(Thread::Signal { .type = Thread::Signal::Type::IRQ, .addr = Interrupt::IRQ_FLOPPY }, 0);
 		Interrupt::AckIRQ();
-		//Terminal::Print("Raised floppy IRQ\n");
 	}
 
 	u8 PortIn(IOPort port)
@@ -149,20 +148,32 @@ namespace Floppy
 
 	void WaitForOut()
 	{
+		auto t = Timer::GetTicks();
 		for(;;)
 		{
 			auto reg = ReadMainStatusRegister();
 			if(reg.rqm && !reg.dio)
+				break;
+
+			Thread::NextThread();
+
+			if(Timer::GetTicks() >= t + 200)
 				break;
 		}
 	}
 
 	void WaitForIn()
 	{
+		auto t = Timer::GetTicks();
 		for(;;)
 		{
 			auto reg = ReadMainStatusRegister();
 			if(reg.rqm && reg.dio)
+				break;
+
+			Thread::NextThread();
+
+			if(Timer::GetTicks() >= t + 200)
 				break;
 		}
 	}
@@ -191,6 +202,7 @@ namespace Floppy
 
 	void MotorOff()
 	{
+		ASSERT(motorEnabled > 0, "Motor is disabled");
 		if(--motorEnabled > 0)
 			return;
 
@@ -252,7 +264,6 @@ namespace Floppy
 
 	void Reset()
 	{
-		Print("FDD reset\n");
 		DigitalOutputRegister reg;
 		u8* regPtr = (u8*)&reg;
 
@@ -281,7 +292,6 @@ namespace Floppy
 		PortOut(IOPort::FDD_REG_DIGITAL_OUT, *regPtr);
 		WaitIRQ();
 
-		Terminal::Print("Sensing...\n");
 		for(unsigned a = 0; a < 4; a++)
 		{
 			Exec(Command::FDD_CMD_SENSE_INTERRUPT);
@@ -294,8 +304,6 @@ namespace Floppy
 
 	void Recalibrate()
 	{
-		Print("FDD recalibrate\n");
-
 		MotorOn();
 
 		Thread::SetState(nullptr, Thread::State::Unstoppable);
@@ -316,8 +324,6 @@ namespace Floppy
 
 	void Lock()
 	{
-		Print("FDD lock\n");
-
 		Exec(Command::FDD_CMD_LOCK);
 		ReadData();
 	}
@@ -334,24 +340,6 @@ namespace Floppy
 		Reset();
 		Recalibrate();
 		Lock();
-
-		static u8 tmpBuffer[512];
-		Read(0, tmpBuffer);
-
-		if(tmpBuffer[510] != 0x55 || tmpBuffer[511] != 0xAA)
-		{
-			Print("%x %x\n", tmpBuffer[510], tmpBuffer[511]);
-			Print("Dump:\n");
-			for(unsigned a = 0; a < 512; a+=4)
-			{
-				u32 v = (tmpBuffer[a] << 24) | (tmpBuffer[a + 1] << 16) | (tmpBuffer[a + 2] << 8) | (tmpBuffer[a + 3]);
-				Print("%x ", v);
-
-				if(a % 32 == 0)
-					Print("\n");
-			}
-			FAIL("reading floppy");
-		}
 
 		Block::Register(Block::Type::Floppy, &drv, nullptr);
 
@@ -383,7 +371,7 @@ namespace Floppy
 		currentTrack = track;
 	}
 
-	void Read(u16 lba, void* buffer)
+	u8 Read(void* dev, u32 lba, u8* buffer)
 	{
 		MotorOn();
 
@@ -399,7 +387,6 @@ namespace Floppy
 		u8 cmd = (u8)FDD_CMD_OPTION_MULTITRACK | (u8)FDD_CMD_OPTION_MFM | (u8)FDD_CMD_OPTION_SKIP | (u8)FDD_CMD_READ_DATA;
 		u8 driveNo = 0;
 
-		//Print("Exec read (%d %d %d)... ", cylinder, head, sector);
 		Thread::SetState(nullptr, Thread::State::Unstoppable);
 		Exec((Command)cmd, 8, (head << 2) | driveNo, cylinder, head, sector, 0x02, 0x12, 0x1B, 0xFF);
 		WaitIRQ();
@@ -413,7 +400,22 @@ namespace Floppy
 		u8 stn = ReadData();
 
 		if(st0 & 0b11000000 || stn != 0x02)
-			FAIL("floppy read status");
+		{
+			static int retryCounter = 0;
+			// PCem needs this, uh...
+			// TODO: decide if FAIL is appropriate or
+			// maybe always reset and return with failure...
+
+			if(++retryCounter > 10)
+				FAIL("floppy read status - 10 fails");
+
+			Print("Retry... ");
+			MotorOff();
+			Reset();
+			
+			//return Read(dev, lba, buffer);
+			return 1;
+		}
 
 		MotorOff();
 
@@ -423,9 +425,11 @@ namespace Floppy
 		{
 			*dst++ = *src++;
 		}
+
+		return 0;
 	}
 
-	u8 _Name(void* dev, u8* buffer)
+	u8 Name(void* dev, u8* buffer)
 	{
 		u8* name = (u8*)"Floppy";
 		for(unsigned a = 0; ; a++)
@@ -439,33 +443,26 @@ namespace Floppy
 		return 0;
 	}
 
-	u32 _Size(void* dev)
+	u32 Size(void* dev)
 	{
 		return 2880;
 	}
 
-	u8 _Lock(void* dev)
+	u8 Lock(void* dev)
 	{
 		MotorOn();
 		return 0;
 	}
 
-	u8 _Unlock(void* dev)
+	u8 Unlock(void* dev)
 	{
 		MotorOff();
 		return 0;
 	}
 
-	u32 _BlockSize(void* dev)
+	u32 BlockSize(void* dev)
 	{
-		Print("Flp... ");
 		return 512;
-	}
-
-	u8 _Read(void* dev, u32 lba, u8* buffer)
-	{
-		Read(lba, (void*)buffer);
-		return 0;
 	}
 
 	u8 _Write(void* dev, u32 lba, u8* buffer)
@@ -475,14 +472,14 @@ namespace Floppy
 
 	Block::BlockDriver drv
 	{
-		.Name = _Name,
-		.Size = _Size,
+		.Name = Name,
+		.Size = Size,
 
-		.Lock = _Lock,
-		.Unlock = _Unlock,
+		.Lock = Lock,
+		.Unlock = Unlock,
 
-		.BlockSize = _BlockSize,
-		.Read = _Read,
+		.BlockSize = BlockSize,
+		.Read = Read,
 		.Write = _Write
 	};
 }

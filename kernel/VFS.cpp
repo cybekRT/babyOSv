@@ -31,6 +31,8 @@ namespace VFS
 
 	Status OpenRoot(FS::Directory** dir)
 	{
+		ASSERT(dir, "Invalid poitner to dir");
+
 		(*dir) = (FS::Directory*)Memory::Alloc(sizeof(FS::Directory));
 		(*dir)->index = -1;
 
@@ -46,6 +48,8 @@ namespace VFS
 
 	Status CloseDirectory(FS::Directory** dir)
 	{
+		ASSERT(dir, "Invalid poitner to dir");
+
 		if((*dir)->fsDir != nullptr)
 		{
 			(*dir)->fsInfo->CloseDirectory((*dir)->fsPriv, &(*dir)->fsDir);
@@ -57,6 +61,8 @@ namespace VFS
 
 	Status RewindDirectory(FS::Directory* dir)
 	{
+		ASSERT(dir, "No dir");
+
 		if(dir->fsInfo != nullptr)
 		{
 			auto fsResult = dir->fsInfo->RewindDirectory(dir->fsPriv, dir->fsDir);
@@ -69,6 +75,9 @@ namespace VFS
 
 	Status ReadDirectory(FS::Directory* dir, FS::DirEntry* entry)
 	{
+		ASSERT(dir, "No dir");
+		ASSERT(entry, "No entry");
+
 		if(dir->fsInfo != nullptr)
 		{
 			auto fsResult = dir->fsInfo->ReadDirectory(dir->fsPriv, dir->fsDir, entry);
@@ -76,10 +85,9 @@ namespace VFS
 		}
 
 		dir->index++;
-		auto ptr = Block::devices.data;
 
 		unsigned a = 0;
-		while(ptr)
+		for(auto& itr : Block::devices)
 		{
 			if(a == dir->index)
 			{
@@ -88,14 +96,12 @@ namespace VFS
 				entry->isHidden = 0;
 				entry->isSymlink = 0;
 
-				strcpy((char*)ptr->value->name, (char*)entry->name);
+				strcpy((char*)itr.name, (char*)entry->name);
 
 				return Status::Success;
 			}
 			else if(a >= dir->index)
 				break;
-
-			ptr = ptr->next;
 		}
 
 		return Status::Fail;
@@ -103,6 +109,8 @@ namespace VFS
 
 	Status ChangeDirectory(FS::Directory* dir)
 	{
+		ASSERT(dir, "No dir");
+
 		if(dir->fsInfo != nullptr)
 		{
 			auto fsResult = dir->fsInfo->ChangeDirectory(dir->fsPriv, dir->fsDir);
@@ -111,21 +119,18 @@ namespace VFS
 		}
 
 		Block::BlockDevice* bd = nullptr;
-		auto ptr = Block::devices.data;
 
 		unsigned a = 0;
-		while(ptr)
+		for(auto& itr : Block::devices)
 		{
 			if(a == dir->index)
 			{
-				bd = ptr->value;
+				bd = &itr;
 				break;
 			}
-
-			ptr = ptr->next;
 		}
 
-		if(!ptr)
+		if(!bd)
 		{
 			Print("Fail: %s:%d\n", __FILE__, __LINE__);
 			return Status::Fail;
@@ -155,6 +160,9 @@ namespace VFS
 
 	Status OpenFile(FS::Directory* dir, FS::File** file)
 	{
+		ASSERT(dir, "No dir");
+		ASSERT(file, "Invalid pointer to file");
+
 		if(dir->fsInfo != nullptr)
 		{
 			(*file) = (FS::File*)Memory::Malloc(sizeof(FS::File));
@@ -171,6 +179,8 @@ namespace VFS
 
 	Status CloseFile(FS::File** file)
 	{
+		ASSERT(file, "Pointer to file is invalid");
+
 		(*file)->fsInfo->CloseFile((*file)->fsPriv, &(*file)->fsFile);
 		Memory::Mfree(*file);
 		(*file) = nullptr;
@@ -180,8 +190,10 @@ namespace VFS
 
 	Status ReadFile(FS::File* file, u8* buffer, u32 bufferSize, u32* readCount)
 	{
-		auto fsResult = file->fsInfo->ReadFile(file->fsPriv, file->fsFile, buffer, bufferSize, readCount);
+		ASSERT(file, "No file");
 
+		auto fsResult = file->fsInfo->ReadFile(file->fsPriv, file->fsFile, buffer, bufferSize, readCount);
+		
 		return (fsResult == FS::Status::Success ? Status::Success : Status::Fail);
 	}
 }

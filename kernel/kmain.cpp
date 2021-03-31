@@ -93,7 +93,6 @@ extern "C" void kmain()
 	Thread::Create(&halterThread, Halter, (u8*)"Halter");
 
 	Interrupt::Enable();
-	PutString("Kernel halted~!\n");
 
 	ISA_DMA::Init();
 
@@ -107,18 +106,20 @@ extern "C" void kmain()
 
 	Print("Mounting floppy...\n");
 
-	auto bd = Block::devices.Front();
-	auto fs = FS::filesystems.Front();
-	void* fsPriv;
-
-	fs->Alloc(bd, &fsPriv);
+	auto bd = &Block::devices[0];
 
 	FS::Directory* dir;
 	VFS::OpenRoot(&dir);
-	//fs->OpenRoot(fsPriv, &dir);
 
 #if 0
 	{
+		auto fs = FS::filesystems.Front();
+		void* fsPriv;
+
+		fs->Alloc(bd, &fsPriv);
+		fs->OpenRoot(fsPriv, &dir);
+
+
 		Print("Searching splash\n");
 		FS::DirEntry entry;
 		while(fs->ReadDirectory(fsPriv, dir, &entry) == FS::Status::Success)
@@ -170,6 +171,7 @@ extern "C" void kmain()
 
 				if(tmpX > 0)
 				{
+					tmpX = 0;
 					Print("\nExecuting: %s\n", tmp);
 
 					if(strcmp(tmp, "help"))
@@ -289,7 +291,11 @@ extern "C" void kmain()
 						if(file)
 							Print("Found file: %s\n", path);
 						else
+						{
 							Print("File \"%s\" not found!\n", path);
+							Print("\n> ");
+							continue;
+						}
 
 						u32 readCount;
 						const u32 bufSize = 512;
@@ -312,9 +318,8 @@ extern "C" void kmain()
 						Print("Invalid command...\n");
 					}
 				}
-				Print("\n> ");
 
-				tmpX = 0;
+				Print("\n> ");
 			}
 			else if(keyEvent.ascii)
 			{

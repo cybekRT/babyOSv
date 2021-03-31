@@ -458,9 +458,7 @@ namespace FS_FAT12
 		}		
 
 		// Otherwise, read from internal buffer
-
 		u32 offset = (file->totalDataOffset % sizeof(file->buffer));
-		Print("Offset: %u, %u\n", offset, bufferSize);
 		for(unsigned a = 0; a < bufferSize; a++)
 		{
 			if(file->totalDataOffset >= file->size)

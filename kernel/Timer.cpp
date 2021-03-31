@@ -38,7 +38,6 @@ namespace Timer
 	__attribute__((interrupt))
 	void ISR_Timer(void*)
 	{
-		//PutString(".");
 		ticks++;
 
 		Interrupt::AckIRQ();
@@ -72,16 +71,6 @@ namespace Timer
 	bool tested = false;
 	void Delay(Time ms)
 	{
-		/*if(!tested)
-		{
-			tested = true;
-			Print("Testing timer...\n");
-			Print("100ms - "); Delay(100); Print("OK - %u\n", GetTicks());
-			Print("500ms - "); Delay(500); Print("OK - %u\n", GetTicks());
-			Print("1000ms - "); Delay(1000); Print("OK - %u\n", GetTicks());
-			Print("2000ms - "); Delay(2000); Print("OK - %u\n", GetTicks());
-		}*/
-
 		Time time = ticks + ms;
 		while(ticks < time)
 		{

@@ -1,6 +1,6 @@
 #pragma once
 
-#include"LinkedList.h"
+#include"Array.h"
 
 namespace Block
 {
@@ -35,7 +35,7 @@ namespace Block
 		u8				name[64];
 	};
 
-	extern LinkedList<BlockDevice*> devices;
+	extern Array<BlockDevice> devices;
 
 	bool Init();
 
