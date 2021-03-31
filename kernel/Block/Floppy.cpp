@@ -111,7 +111,7 @@ namespace Floppy
 		FDD_CMD_OPTION_SKIP			= 0x20
 	};
 
-	extern Block::BlockInfo info;
+	extern Block::BlockDriver drv;
 	void* dmaPhys;
 	void* dmaLogic;
 	volatile u8 irqReceived = 0;
@@ -353,7 +353,7 @@ namespace Floppy
 			FAIL("reading floppy");
 		}
 
-		Block::Register(&info);
+		Block::Register(Block::Type::Floppy, &drv, nullptr);
 
 		Print("Initialized floppy...\n");
 		return true;
@@ -473,9 +473,8 @@ namespace Floppy
 		return 1;
 	}
 
-	Block::BlockInfo info
+	Block::BlockDriver drv
 	{
-		.dev = nullptr,
 		.Name = _Name,
 		.Size = _Size,
 

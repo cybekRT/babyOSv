@@ -1,5 +1,8 @@
 #include"VFS.hpp"
 
+int strlen(const char* str);
+int strcpy(const char* src, char* dst);
+
 namespace FS
 {
 	struct File
@@ -85,7 +88,7 @@ namespace VFS
 				entry->isHidden = 0;
 				entry->isSymlink = 0;
 
-				ptr->value->Name(ptr->value, entry->name);
+				strcpy((char*)ptr->value->name, (char*)entry->name);
 
 				return Status::Success;
 			}
@@ -107,7 +110,7 @@ namespace VFS
 			return (fsResult == FS::Status::Success ? Status::Success : Status::Fail);
 		}
 
-		Block::BlockInfo* blockInfo = nullptr;
+		Block::BlockDevice* bd = nullptr;
 		auto ptr = Block::devices.data;
 
 		unsigned a = 0;
@@ -115,7 +118,7 @@ namespace VFS
 		{
 			if(a == dir->index)
 			{
-				blockInfo = ptr->value;
+				bd = ptr->value;
 				break;
 			}
 
@@ -131,7 +134,7 @@ namespace VFS
 		auto fsItr = FS::filesystems.data;
 		while(fsItr)
 		{
-			if(fsItr->value->Probe(blockInfo) == FS::Status::Success)
+			if(fsItr->value->Probe(bd) == FS::Status::Success)
 				break;
 
 			fsItr = fsItr->next;
@@ -144,7 +147,7 @@ namespace VFS
 		}
 
 		dir->fsInfo = fsItr->value;
-		dir->fsInfo->Alloc(blockInfo, &dir->fsPriv);
+		dir->fsInfo->Alloc(bd, &dir->fsPriv);
 		dir->fsInfo->OpenRoot(dir->fsPriv, &dir->fsDir);
 
 		return Status::Success;

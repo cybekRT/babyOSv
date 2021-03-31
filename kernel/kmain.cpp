@@ -38,6 +38,19 @@ bool strcmp(char* a, char* b)
 	return true;
 }
 
+int strcpy(const char* src, char* dst)
+{
+	int len = 0;
+	while(*src)
+	{
+		*dst++ = *src++;
+		len++;
+	}
+
+	*dst = 0;
+	return len;
+}
+
 u8 tolower(u8 c);
 
 void YoLo()
@@ -94,11 +107,11 @@ extern "C" void kmain()
 
 	Print("Mounting floppy...\n");
 
-	auto dev = Block::devices.Front();
+	auto bd = Block::devices.Front();
 	auto fs = FS::filesystems.Front();
 	void* fsPriv;
 
-	fs->Alloc(dev, &fsPriv);
+	fs->Alloc(bd, &fsPriv);
 
 	FS::Directory* dir;
 	VFS::OpenRoot(&dir);
@@ -180,7 +193,7 @@ extern "C" void kmain()
 					}
 					else if(strcmp(tmp, "dir"))
 					{
-						dev->Lock(dev);
+						bd->drv->Lock(bd->dev);
 
 						FS::DirEntry entry;
 						VFS::RewindDirectory(dir);
@@ -195,7 +208,7 @@ extern "C" void kmain()
 						}
 
 						VFS::RewindDirectory(dir);
-						dev->Unlock(dev);
+						bd->drv->Unlock(bd->dev);
 					}
 					else if(strlen(tmp) > 3 && tmp[0] == 'c' && tmp[1] == 'd' && tmp[2] == ' ')
 					{
@@ -282,7 +295,7 @@ extern "C" void kmain()
 						const u32 bufSize = 512;
 						u8 buf[bufSize];
 						Status s;
-						dev->Lock(dev);
+						bd->drv->Lock(bd->dev);
 						while((s = VFS::ReadFile(file, buf, bufSize, &readCount)) == Status::Success)
 						{
 							for(unsigned a = 0; a < readCount; a++)
@@ -291,7 +304,7 @@ extern "C" void kmain()
 							}
 						}
 
-						dev->Unlock(dev);
+						bd->drv->Unlock(bd->dev);
 						VFS::CloseFile(&file);
 					}
 					else

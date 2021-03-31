@@ -4,10 +4,18 @@
 
 namespace Block
 {
-	struct BlockInfo
+	enum class Type
 	{
-		void* dev;
+		Unknown = 0,
+		Floppy,
+		HardDrive,
+		CDRom,
 
+		Count
+	};
+
+	struct BlockDriver
+	{
 		u8 (*Name)(void* dev, u8* buffer);
 		u32 (*Size)(void* dev);
 
@@ -19,10 +27,18 @@ namespace Block
 		u8 (*Write)(void* dev, u32 lba, u8* buffer);
 	};
 
-	extern LinkedList<BlockInfo*> devices;
+	struct BlockDevice
+	{
+		Type			type;
+		BlockDriver*	drv;
+		void*			dev;
+		u8				name[64];
+	};
+
+	extern LinkedList<BlockDevice*> devices;
 
 	bool Init();
 
-	void Register(BlockInfo* info);
-	void Unregister(BlockInfo* info);
+	void Register(Type type, BlockDriver* drv, void* dev);
+	void Unregister(Type type, BlockDriver* drv, void* dev);
 }

@@ -1,26 +1,35 @@
 #include"Block.hpp"
 #include"LinkedList.h"
 
+int strcpy(const char* src, char* dst);
+
 namespace Block
 {
-	LinkedList<BlockInfo*> devices;
+	LinkedList<BlockDevice*> devices;
+	uint8 devicesTypesCount[(unsigned)Type::Count] = { 0 };
+	const char* typeName[] = { "unk", "fdd", "hdd", "cd" };
 
 	bool Init()
 	{
 		return true;
 	}
 
-	void Register(BlockInfo* info)
+	void Register(Type type, BlockDriver* drv, void* dev)
 	{
-		u8 tmp[128];
-		u8 count = info->Name(info->dev, tmp);
-		tmp[count] = 0;
+		BlockDevice* bd = (BlockDevice*)Memory::Malloc(sizeof(BlockDevice));
+		bd->type = type;
+		bd->drv = drv;
+		bd->dev = drv;
 
-		Print("Registering device: %s\n", tmp);
-		devices.PushBack(info);
+		auto nameLen = strcpy(typeName[(unsigned)type], (char*)bd->name);
+		bd->name[nameLen] = '0' + devicesTypesCount[(unsigned)type]++;
+		bd->name[nameLen+1] = 0;
+
+		Print("Registering device: %s\n", bd->name);
+		devices.PushBack(bd);
 	}
 
-	void Unregister(BlockInfo* info)
+	void Unregister(Type type, BlockDriver* drv, void* dev)
 	{
 
 	}

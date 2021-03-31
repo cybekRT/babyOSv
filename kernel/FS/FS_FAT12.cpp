@@ -1,7 +1,6 @@
 #include"FS.hpp"
 #include"Memory.h"
 
-//using FS::Status;
 using FS::File;
 using FS::Directory;
 using FS::DirEntry;
@@ -81,24 +80,6 @@ namespace FS_FAT12
 		u8 bootSignature[2];
 	} __attribute__((packed));
 
-	/*
-	struc FAT12_DirectoryEntry
-        ;.name                  resb 8+3
-        .name                   resb 8
-        .ext                    resb 3
-        .attributes             resb 1
-        .reserved               resb 2
-        .createTime             resb 2
-        .createDate             resb 2
-        .accessDate             resb 2
-        .clusterHigh            resb 2
-        .modificationTime       resb 2
-        .modificationDate       resb 2
-        .cluster                resb 2
-        .size                   resb 4
-endstruc
-*/
-
 	struct Time
 	{
 		u16	hour : 5;
@@ -142,18 +123,9 @@ endstruc
 		u32		size;
 	} __attribute__((packed));
 
-	/*struct FAT12_DirEntry
-	{
-		u8 name[8];
-		u8 ext[3];
-		u8 attributes;
-		u16 reserved;
-		u16 createTime;
-	} __attribute__((packed));*/
-
 	struct Info
 	{
-		Block::BlockInfo* dev;
+		Block::BlockDevice* bd;
 		BPB* bpb;
 		u32 firstRootSector;
 		u32 firstDataSector;
@@ -197,12 +169,12 @@ endstruc
 		return sizeof(name);
 	}
 
-	FS::Status Probe(Block::BlockInfo* info)
+	FS::Status Probe(Block::BlockDevice* bd)
 	{
 		u8 buffer[512];
 
 		Print("Probing FAT12...\n");
-		if(info->Read(info->dev, 0, buffer))
+		if(bd->drv->Read(bd->dev, 0, buffer))
 			return FS::Status::Undefined;
 
 		if(buffer[0] == 0xEB && buffer[2] == 0x90)
@@ -211,27 +183,27 @@ endstruc
 		return FS::Status::Undefined;
 	}
 
-	FS::Status Alloc(Block::BlockInfo* dev, void** fs)
+	FS::Status Alloc(Block::BlockDevice* bd, void** fs)
 	{
-		dev->Lock(dev);
+		bd->drv->Lock(bd->dev);
 
 		BPB* bpb = (BPB*)Memory::Alloc(sizeof(BPB));
-		dev->Read(dev, 0, (u8*)bpb);
+		bd->drv->Read(bd->dev, 0, (u8*)bpb);
 
 		Print("Sectors per FAT: %d\n", bpb->sectorsPerFat);
 
-		u32 fatSize = bpb->sectorsPerFat * dev->BlockSize(dev);
+		u32 fatSize = bpb->sectorsPerFat * bd->drv->BlockSize(bd->dev);
 
 		Print("Reading FAT... ");
 		u8* fat = (u8*)Memory::Alloc(fatSize);
 		for(unsigned a = 0; a < bpb->sectorsPerFat; a++)
 		{
-			dev->Read(dev, bpb->reservedSectors + bpb->hiddenSectors + a, fat + (a * 512));
+			bd->drv->Read(bd->dev, bpb->reservedSectors + bpb->hiddenSectors + a, fat + (a * 512));
 		}
 		Print("Done!\n");
 
 		Info* info = (Info*)Memory::Alloc(sizeof(Info));
-		info->dev = dev;
+		info->bd = bd;
 		info->bpb = bpb;
 		info->fat = fat;
 
@@ -242,11 +214,11 @@ endstruc
 
 		*fs = (void*)info;
 
-		dev->Unlock(dev);
+		bd->drv->Unlock(bd->dev);
 		return FS::Status::Success;
 	}
 
-	FS::Status Dealloc(Block::BlockInfo* info, void** fs)
+	FS::Status Dealloc(Block::BlockDevice* bd, void** fs)
 	{
 
 	}
@@ -306,6 +278,7 @@ endstruc
 	FS::Status ReadDirectory(void* fs, Directory* dir, DirEntry* entry)
 	{
 		Info* info = (Info*)fs;
+		auto bd = info->bd;
 
 		if(dir->bufferValid)
 			dir->dataOffset += 32;
@@ -336,7 +309,7 @@ endstruc
 
 			u32 firstSector = (dir->firstCluster == 0) ? info->firstRootSector : info->firstDataSector - 2;
 
-			info->dev->Read(info->dev, firstSector + dir->currentCluster, dir->buffer);
+			bd->drv->Read(bd->dev, firstSector + dir->currentCluster, dir->buffer);
 			if(dir->currentCluster == 0)
 				dir->dataOffset += 32;
 
@@ -433,6 +406,7 @@ endstruc
 	FS::Status ReadFile(void* fs, File* file, u8* buffer, u32 bufferSize, u32* readCount)
 	{
 		Info* info = (Info*)fs;
+		auto bd = info->bd;
 
 		(*readCount) = 0;
 
@@ -450,7 +424,7 @@ endstruc
 			}
 
 			u32 sector = info->firstDataSector + file->currentCluster - 2;
-			info->dev->Read(info->dev, sector, file->buffer);
+			bd->drv->Read(bd->dev, sector, file->buffer);
 			file->bufferValid = 1;
 		}
 
@@ -461,7 +435,7 @@ endstruc
 			FS::Status status;
 			u32 subread;
 
-			info->dev->Lock(info->dev);
+			bd->drv->Lock(bd->dev);
 			for(unsigned a = 0; a < bufferSize; )
 			{
 				u32 curSize = (bufferSize - (*readCount) > sizeof(file->buffer) ? sizeof(file->buffer) : bufferSize - (*readCount));
@@ -477,7 +451,7 @@ endstruc
 				}
 			}
 
-			info->dev->Unlock(info->dev);
+			bd->drv->Unlock(bd->dev);
 
 			Print("OK!\n");
 			return status;

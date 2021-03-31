@@ -29,10 +29,10 @@ namespace FS
 	struct FSInfo
 	{
 		u32 (*Name)(u8* buffer);
-		Status (*Probe)(Block::BlockInfo* info);
+		Status (*Probe)(Block::BlockDevice* bd);
 
-		Status (*Alloc)(Block::BlockInfo* info, void** fs);
-		Status (*Dealloc)(Block::BlockInfo* info, void** fs);
+		Status (*Alloc)(Block::BlockDevice* bd, void** fs);
+		Status (*Dealloc)(Block::BlockDevice* bd, void** fs);
 
 		Status (*OpenRoot)(void* fs, Directory** dir);
 		Status (*OpenDirectory)(void* fs, Directory* src, Directory** dir);
