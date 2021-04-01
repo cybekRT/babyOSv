@@ -55,11 +55,30 @@ u8 tolower(u8 c);
 
 void YoLo()
 {
-	u8* p = (u8*)(0x800B8001);
 	for(;;)
 	{
-		//Terminal::Print("^");
-		(*p)++;
+		Thread::SetState(nullptr, Thread::State::Unstoppable);
+
+		u32 cx, cy;
+		u8 cc[2];
+		Terminal::GetColor(cc, cc+1);
+		Terminal::GetXY(&cx, &cy);
+
+		Terminal::SetColor(0xE, 0x3);
+		Terminal::SetXY(1, 0);
+
+		for(unsigned a = 0; a < 80; a++)
+		{
+			((u8*)0x800b8000)[a*2+0] = 0x00;
+			((u8*)0x800b8000)[a*2+1] = 0x3E;
+		}
+
+		Terminal::Print("Uptime: %d", (u32)Timer::GetTicks()/1000);
+
+		Terminal::SetColor(cc[0], cc[1]);
+		Terminal::SetXY(cx, cy);
+
+		Thread::SetState(nullptr, Thread::State::Running);
 		Timer::Delay(500);
 	}
 }

@@ -3,43 +3,60 @@
 
 namespace Terminal
 {
+	u32 cursorX = 0;
+	u32 cursorY = 0;
+	u8 color = 0x07;
+
 	bool Init()
 	{
 		unsigned short* data = (unsigned short*)0x800b8000;
 		for(unsigned a = 0; a < 80 * 25 * 2; a++) data[a] = 0x0700;
 	}
 
+	u32 CursorToBuffer()
+	{
+		return cursorY * 160 + cursorX * 2;
+	}
+
 	void PutChar(char c)
 	{
-		static int p = 0;
-		char* vmem = (char*)0x800b8000;
+		char* const vmem = (char*)0x800b8000;
 
+		bool handled = false;
 		if(c == '\n')
 		{
-			p += 160;
-			p -= p % 160;
-			return;
+			cursorY++;
+			cursorX = 0;
+			
+			handled = true;
 		}
 		else if(c == '\b')
 		{
-			if(p > 0)
-				p-=2;
-			vmem[p] = 0;
+			if(cursorX > 0)
+				cursorX--;
+			else if(cursorY > 0)
+			{
+				cursorY--;
+				cursorX = 79;
+			}
+
+			vmem[CursorToBuffer()] = 0;
 			return;
 		}
 		else if(c == '\r')
 		{
-			p -= p % 160;
+			cursorX = 0;
 			return;
 		}
 		else if(c == '\t')
 		{
-			p += 16;
-			p -= p % 16;
-			return;
+			cursorX += 8;
+			cursorX -= cursorX % 8;
+
+			handled = true;
 		}
 
-		if(p >= 80*24*2)
+		if(cursorY > 24)
 		{
 			unsigned short* src = (unsigned short*)0x800b80a0;
 			unsigned short* dst = (unsigned short*)0x800b8000;
@@ -54,12 +71,22 @@ namespace Terminal
 				*dst++ = 0x0700;
 			}
 
-			p -= 160;
+			cursorY--;
 		}
 
-		vmem[p + 0] = c;
-		vmem[p + 1] = 0x07;
-		p+=2;
+		if(handled == true)
+			return;
+
+		auto bufPos = CursorToBuffer();
+		vmem[bufPos + 0] = c;
+		vmem[bufPos + 1] = color;
+
+		cursorX++;
+		if(cursorX >= 80)
+		{
+			cursorX = 0;
+			cursorY++;
+		}
 	}
 
 	void PutString(const char* s)
@@ -148,22 +175,6 @@ namespace Terminal
 						{
 							PutChar(*buf--);
 						} while(buf >= tmp);
-						
-
-						/*for(unsigned a = 0; ; buf--)
-						{
-							if(a > 10)
-								FAIL("wtf");
-
-							char t = tmp[a];
-							tmp[a] = *buf;
-							*buf = t;
-
-							if(tmp+a < buf)
-								break;
-						}
-
-						PutString(tmp);*/
 
 						break;
 					}
@@ -196,5 +207,28 @@ namespace Terminal
 	void PutHex(unsigned long v)
 	{
 		Print("%x", v);
+	}
+
+	void GetXY(u32* x, u32* y)
+	{
+		*x = cursorX;
+		*y = cursorY;
+	}
+
+	void SetXY(u32 x, u32 y)
+	{
+		cursorX = x;
+		cursorY = y;
+	}
+
+	void GetColor(u8* fg, u8* bg)
+	{
+		*bg = (color & 0xF0) >> 4;
+		*fg = (color & 0x0F);
+	}
+
+	void SetColor(u8 fg, u8 bg)
+	{
+		color = (bg & 0x0F) << 4 | (fg & 0x0F);
 	}
 }
