@@ -130,7 +130,7 @@ endif
 ####################
 
 clean:
-	rm out/* $(AUTOGEN) floppy.img 2>/dev/null || true
+	rm out/*/* $(AUTOGEN) floppy.img 2>/dev/null || true
 
 qemu: floppy.img
 	$(QEMU) -fda $< -boot ac -m 8 -d int -monitor stdio -d int -d cpu_reset -d guest_errors -no-reboot -no-shutdown 2> /dev/null
