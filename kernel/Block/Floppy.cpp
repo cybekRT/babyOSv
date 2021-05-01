@@ -332,8 +332,8 @@ namespace Floppy
 	{
 		Print("Initializing floppy...\n");
 
-		dmaPhys = Memory::AllocPhys(4096);
-		dmaLogic = Memory::Map(dmaPhys, nullptr, 4096);
+		dmaPhys = Memory::Physical::Alloc(4096);
+		dmaLogic = Memory::Logical::Map(dmaPhys, nullptr, 4096);
 
 		Interrupt::Register(Interrupt::IRQ2INT(Interrupt::IRQ_FLOPPY), ISR_Floppy);
 

@@ -17,12 +17,12 @@ public:
 
 	Array(u32 capacity) : capacity(capacity), size(0)
 	{
-		objs = (T*)Memory::Malloc(capacity * sizeof(T));
+		objs = (T*)Memory::Alloc(capacity * sizeof(T));
 	}
 
 	/*~Array()
 	{
-		Memory::Mfree(objs);
+		Memory::Free(objs);
 	}*/
 
 	u32 Size()
@@ -52,6 +52,28 @@ public:
 		return objs + size;
 	}
 
+	void PushFront(const T& v)
+	{
+		if(size + 1 > capacity)
+			Realloc();
+
+		size++;
+		for(unsigned a = size - 1; a > 0; a--)
+			objs[a] = objs[a - 1];;
+
+		objs[0] = v;
+	}
+
+	T PopFront()
+	{
+		ASSERT(size > 0, "Pop from empty array");
+
+		T v = objs[0];
+		memcpy(objs + 0, objs + 1, (size - 1) * sizeof(T));
+		size--;
+		return v;
+	}
+
 	void PushBack(const T& v)
 	{
 		if(size + 1 > capacity)
@@ -61,18 +83,19 @@ public:
 		size++;
 	}
 
-	void PopBack()
+	T PopBack()
 	{
 		ASSERT(size > 0, "Pop from empty array");
 
 		size--;
+		return objs[size];
 	}
 
 	void RemoteAt(u32 index)
 	{
 		ASSERT(index < size, "RemoveAt invalid index");
 
-		memcpy(objs + index, objs + index + 1, (size - index) * sizeof(T));
+		memcpy(objs + index, objs + index + 1, (size - index - 1) * sizeof(T));
 		size--;
 	}
 
@@ -84,13 +107,13 @@ private:
 		else
 			capacity *= 2;
 
-		T* newObjs = (T*)Memory::Malloc(capacity * sizeof(T));
+		T* newObjs = (T*)Memory::Alloc(capacity * sizeof(T));
 		ASSERT(newObjs != nullptr, "Can't alloc array");
 
 		if(objs)
 		{
 			memcpy(newObjs, objs, size * sizeof(T));
-			Memory::Mfree(objs);
+			Memory::Free(objs);
 		}
 
 		objs = newObjs;

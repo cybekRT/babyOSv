@@ -18,7 +18,7 @@ public:
 
 	void PushBack(X value)
 	{
-		LinkedListItem<X>* item = (LinkedListItem<X>*)Memory::Malloc(sizeof(*item));
+		LinkedListItem<X>* item = (LinkedListItem<X>*)Memory::Alloc(sizeof(*item));
 
 		item->value = value;
 		item->next = nullptr;
@@ -46,7 +46,7 @@ public:
 		if(data == item)
 		{
 			data = item->next;
-			Memory::Mfree(item);
+			Memory::Free(item);
 			return;
 		}
 
@@ -57,7 +57,7 @@ public:
 			if(ptr == item)
 			{
 				ptrPrev->next = item->next;
-				Memory::Mfree(item);
+				Memory::Free(item);
 				return;
 			}
 
@@ -73,7 +73,7 @@ public:
 		auto item = data;
 		data = item->next;
 		auto itemData = item->value;
-		Memory::Mfree(item);
+		Memory::Free(item);
 		return itemData;
 	}
 

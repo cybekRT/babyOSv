@@ -115,6 +115,29 @@ extern "C" void kmain()
 
 	ISA_DMA::Init();
 
+	Timer::Delay(1000);
+
+	// Reset
+	HAL::Out(0x3c4, 0x00);
+	HAL::Out(0x3c5, 0x00);
+
+	HAL::Out(0x3c4, 0x01);
+	HAL::Out(0x3c5, (1 << 5));
+
+	Timer::Delay(1000);
+
+	HAL::Out(0x3c4, 0x01);
+	HAL::Out(0x3c5, 0x00);
+
+	// Un-reset
+	HAL::Out(0x3c4, 0x00);
+	HAL::Out(0x3c5, 0x03);
+
+	/*for(;;)
+	{
+		HALT;
+	}*/
+
 	Block::Init();
 	Floppy::Init();
 
@@ -205,7 +228,7 @@ extern "C" void kmain()
 					}
 					else if(strcmp(tmp, "mem"))
 					{
-						Memory::PrintMemoryMap();
+						Memory::Physical::PrintMemoryMap();
 					}
 					else if(strcmp(tmp, "fail"))
 					{

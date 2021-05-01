@@ -165,7 +165,7 @@ namespace VFS
 
 		if(dir->fsInfo != nullptr)
 		{
-			(*file) = (FS::File*)Memory::Malloc(sizeof(FS::File));
+			(*file) = (FS::File*)Memory::Alloc(sizeof(FS::File));
 			(*file)->fsInfo = dir->fsInfo;
 			(*file)->fsPriv = dir->fsPriv;
 
@@ -182,7 +182,7 @@ namespace VFS
 		ASSERT(file, "Pointer to file is invalid");
 
 		(*file)->fsInfo->CloseFile((*file)->fsPriv, &(*file)->fsFile);
-		Memory::Mfree(*file);
+		Memory::Free(*file);
 		(*file) = nullptr;
 
 		return Status::Success;

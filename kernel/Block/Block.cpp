@@ -16,7 +16,7 @@ namespace Block
 
 	void Register(Type type, BlockDriver* drv, void* dev)
 	{
-		BlockDevice* bd = (BlockDevice*)Memory::Malloc(sizeof(BlockDevice));
+		BlockDevice* bd = (BlockDevice*)Memory::Alloc(sizeof(BlockDevice));
 		bd->type = type;
 		bd->drv = drv;
 		bd->dev = drv;

@@ -113,11 +113,22 @@ namespace Interrupt
 	__attribute__ ((interrupt))
 	void ISR_GPF(ISR_Registers* _registers, u32 errorCode)
 	{
+		static bool crashed = false;
 		static ISR_Registers regs;
+
+		if(crashed)
+		{
+			__asm("xchg %bx, %bx");
+			PutString("Crash inside GPF handler...");
+			for(;;)
+				HALT;
+		}
+
+		crashed = true;
+
 		__asm("cli");
 		PutString("\n===== General Protection Fault =====\n");
 
-		//ISR_Registers regs = *_registers;
 		__asm("mov %%eax, %0" : "=m"(regs.eax));
 		__asm("mov %%ebx, %0" : "=m"(regs.ebx));
 		__asm("mov %%ecx, %0" : "=m"(regs.ecx));
@@ -179,8 +190,8 @@ namespace Interrupt
 
 		PutString("Initializing IDT...\n");
 
-		idtPhysical = Memory::AllocPhys(sizeof(IDT));
-		idt = (IDT*)Memory::Map(idtPhysical, nullptr, sizeof(IDT));
+		idtPhysical = Memory::Physical::Alloc(sizeof(IDT));
+		idt = (IDT*)Memory::Logical::Map(idtPhysical, nullptr, sizeof(IDT));
 
 		if(!idtPhysical || !idt)
 			return false;

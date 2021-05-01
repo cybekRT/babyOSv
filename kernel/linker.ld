@@ -1,7 +1,7 @@
 ENTRY(main)
 OUTPUT_FORMAT(elf32-i386)
 
-__stack_size = 0x100;
+__stack_size = 0x1000;
 
 SECTIONS
 {

@@ -1,5 +1,6 @@
 #include"Thread.hpp"
 #include"Memory.h"
+#include"Array.h"
 #include"LinkedList.h"
 #include"Interrupt.h"
 #include"Timer.h"
@@ -9,7 +10,7 @@ int strlen(const char* str);
 namespace Thread
 {
 	Thread* currentThread = nullptr;
-	LinkedList<Thread*> threads;
+	Array<Thread*> threads;
 
 	struct SignalInfo
 	{
@@ -108,8 +109,8 @@ namespace Thread
 		u8* newStackBeg = (u8*)0xE0000000;
 		const u32 newStackSize = thread->stackSize;
 
-		void *stackPhys = Memory::AllocPhys(newStackSize);
-		thread->stackBottom = Memory::Map(stackPhys, newStackBeg - newStackSize, newStackSize);
+		void *stackPhys = Memory::Physical::Alloc(newStackSize);
+		thread->stackBottom = Memory::Logical::Map(stackPhys, newStackBeg - newStackSize, newStackSize);
 		//thread->stack = newStackBeg; 
 
 		u32 currentESP;
@@ -226,8 +227,6 @@ namespace Thread
 	__attribute((naked)) void ThreadStart()
 	{
 		currentThread->state = State::Running;
-
-		__asm("xchg %bx, %bx");
 		__asm("iret");
 
 		// TODO return code

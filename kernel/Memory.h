@@ -57,20 +57,43 @@ void memcpy(void* dst, void* src, u32 len);
 namespace Memory
 {
 	bool Init();
-	void PrintMemoryMap();
 	
-	// Physical allocator
-	void* AllocPhys(unsigned allocSize);
-	void FreePhys(void* address);
+	namespace Physical
+	{
+		struct MemoryMap
+		{
+			void* address[340];
+			unsigned length[340];
+			bool used[340];
 
-	// Mapper
-	void* Map(void* physAddress, void* logicAddress, unsigned length);
-	void Unmap(void* logicAddress);
-	
-	// Logical allocator
-	void* Alloc(unsigned allocSize);
+			MemoryMap* next;
+		};
+
+		extern MemoryMap memoryMap;
+
+		void InsertMemoryMapEntry(void* address, unsigned length);
+		void SortMemoryMap();
+		void MergeMemoryMap();
+		void PrintMemoryMap();
+
+		// Physical allocator
+		void* Alloc(unsigned allocSize);
+		void Free(void* address);
+	}
+
+	namespace Logical
+	{
+		void DisableFirstMegabyteMapping();
+
+		// Mapper
+		void* Map(void* physAddress, void* logicAddress, unsigned length);
+		void Unmap(void* logicAddress);
+
+		// Logical + physical allocator
+		void* Alloc(unsigned allocSize);
+		void Free(void* ptr);
+	}
+
+	void* Alloc(unsigned bytes);
 	void Free(void* ptr);
-
-	void* Malloc(unsigned bytes);
-	void Mfree(void* ptr);
 }
