@@ -12,9 +12,9 @@
 				"veryveryverylongfilename.yolo": "boot/global.inc"
 			},
 			"kernel": {
-				"kmain.asm": "kernel/kmain_startup.asm",
+				"kmain.asm": "kernel/kmain_startup.asm"
 			},
 			"splash": "splash.raw"
 	},
-	"output": "floppy.img"
+	"output": "out/floppy.img"
 }

@@ -70,10 +70,13 @@ DEPS	:= $(DEPS:kernel%=out%)
 #
 ####################
 
-all: floppy.img
+all: out/floppy.img
 
-floppy.img: out/boot1.bin out/boot2.bin out/kernel.bin floppy.json
+out/floppy.img: out out/boot1.bin out/boot2.bin out/kernel.bin floppy.json
 	$(CFS) floppy.json >/dev/null
+
+out:
+	mkdir out $(patsubst kernel/%,out/%,$(sort $(dir $(wildcard kernel/*/*)))) 2>/dev/null || true
 
 out/boot1.bin: boot/boot1.asm boot/FAT12.inc boot/FAT12_lite.asm
 	$(NASM) $(NASM_FLAGS) $< -o $@ -l out/boot1.lst -fbin 
@@ -130,22 +133,22 @@ endif
 ####################
 
 clean:
-	rm out/*/* $(AUTOGEN) floppy.img 2>/dev/null || true
+	rm out/*/* out/* $(AUTOGEN) 2>/dev/null || true
 
-qemu: floppy.img
+qemu: out/floppy.img
 	$(QEMU) -fda $< -vga std -boot ac -m 8 -d int -monitor stdio -d int -d cpu_reset -d guest_errors 2> /dev/null
 	#-d int -no-reboot -no-shutdown 
 
-qemu-dbg: floppy.img
+qemu-dbg: out/floppy.img
 	$(QEMU) -fda $< -boot ac -m 32 -d int -s -S -monitor stdio 2> /dev/null
 
-bochs: floppy.img
+bochs: out/floppy.img
 	$(BOCHS) -q
 
-pcem: floppy.img
+pcem: out/floppy.img
 	$(PCEM)
 
-vbox: floppy.img
+vbox: out/floppy.img
 	$(VBOXMANAGE) startvm "babyOSv" -E VBOX_GUI_DBG_AUTO_SHOW=true -E VBOX_GUI_DBG_ENABLED=true
 
 ####################
