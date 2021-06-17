@@ -9,6 +9,7 @@
 
 #include"Block/Block.hpp"
 #include"Block/Floppy.hpp"
+#include"Block/ATA.hpp"
 
 #include"FS/FS.hpp"
 #include"FS/FS_FAT12.hpp"
@@ -115,23 +116,23 @@ extern "C" void kmain()
 
 	ISA_DMA::Init();
 
-	Timer::Delay(1000);
+	/*Timer::Delay(1000);
 
 	// Reset
-	HAL::Out(0x3c4, 0x00);
-	HAL::Out(0x3c5, 0x00);
+	HAL::Out8(0x3c4, 0x00);
+	HAL::Out8(0x3c5, 0x00);
 
-	HAL::Out(0x3c4, 0x01);
-	HAL::Out(0x3c5, (1 << 5));
+	HAL::Out8(0x3c4, 0x01);
+	HAL::Out8(0x3c5, (1 << 5));
 
 	Timer::Delay(1000);
 
-	HAL::Out(0x3c4, 0x01);
-	HAL::Out(0x3c5, 0x00);
+	HAL::Out8(0x3c4, 0x01);
+	HAL::Out8(0x3c5, 0x00);
 
 	// Un-reset
-	HAL::Out(0x3c4, 0x00);
-	HAL::Out(0x3c5, 0x03);
+	HAL::Out8(0x3c4, 0x00);
+	HAL::Out8(0x3c5, 0x03);*/
 
 	/*for(;;)
 	{
@@ -139,7 +140,8 @@ extern "C" void kmain()
 	}*/
 
 	Block::Init();
-	Floppy::Init();
+	//Floppy::Init();
+	ATA::Init();
 
 	FS::Init();
 	FS_FAT12::Init();
@@ -148,13 +150,12 @@ extern "C" void kmain()
 
 	Print("Mounting floppy...\n");
 
-	auto bd = &Block::devices[0];
-
 	FS::Directory* dir;
 	VFS::OpenRoot(&dir);
 
 #if 0
 	{
+		auto bd = &Block::devices[0];
 		auto fs = FS::filesystems.Front();
 		void* fsPriv;
 
@@ -237,7 +238,7 @@ extern "C" void kmain()
 					}
 					else if(strcmp(tmp, "dir"))
 					{
-						bd->drv->Lock(bd->dev);
+						//bd->drv->Lock(bd->dev);
 
 						FS::DirEntry entry;
 						VFS::RewindDirectory(dir);
@@ -252,7 +253,7 @@ extern "C" void kmain()
 						}
 
 						VFS::RewindDirectory(dir);
-						bd->drv->Unlock(bd->dev);
+						//bd->drv->Unlock(bd->dev);
 					}
 					else if(strlen(tmp) > 3 && tmp[0] == 'c' && tmp[1] == 'd' && tmp[2] == ' ')
 					{
@@ -343,7 +344,7 @@ extern "C" void kmain()
 						const u32 bufSize = 512;
 						u8 buf[bufSize];
 						Status s;
-						bd->drv->Lock(bd->dev);
+						//bd->drv->Lock(bd->dev);
 						while((s = VFS::ReadFile(file, buf, bufSize, &readCount)) == Status::Success)
 						{
 							for(unsigned a = 0; a < readCount; a++)
@@ -352,7 +353,7 @@ extern "C" void kmain()
 							}
 						}
 
-						bd->drv->Unlock(bd->dev);
+						//bd->drv->Unlock(bd->dev);
 						VFS::CloseFile(&file);
 					}
 					else

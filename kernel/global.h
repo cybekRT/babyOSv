@@ -19,7 +19,7 @@ typedef sint16 s16;
 typedef sint8 s8;
 
 //#define ASSERT(x) ASSERT(x, "")
-#define ASSERT(cond, msg) if(!(cond)) { Print("\n\nAssert failed: %s:%d (%s) - %s\n\n", __FILE__, __LINE__, __FUNCTION__, msg); for(;;){ __asm("cli\nhlt\n"); }; }
+#define ASSERT(cond, msg) {if(!(cond)) { Print("\n\nAssert failed: %s:%d (%s) - %s\n\n", __FILE__, __LINE__, __FUNCTION__, msg); for(;;){ __asm("cli\nhlt\n"); }; }}
 
 #define BREAK {__asm("xchg %%bx, %%bx" : : : "bx");}
 #define HALT { __asm("hlt"); }

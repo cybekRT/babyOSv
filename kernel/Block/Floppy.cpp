@@ -129,19 +129,19 @@ namespace Floppy
 
 	u8 PortIn(IOPort port)
 	{
-		return HAL::In((u16)port);
+		return HAL::In8((u16)port);
 	}
 
 	void PortOut(IOPort port, u8 data)
 	{
-		HAL::Out((u16)port, data);
+		HAL::Out8((u16)port, data);
 	}
 
 	MainStatusRegister ReadMainStatusRegister()
 	{
-		MainStatusRegister reg;
-		u8 *regPtr = (u8*)&reg;
-		*regPtr = PortIn(IOPort::FDD_REG_MAIN_STATUS);
+		MainStatusRegister reg = HAL::RegisterRO<MainStatusRegister>((u16)IOPort::FDD_REG_MAIN_STATUS).Read();
+		//u8 *regPtr = (u8*)&reg;
+		//*regPtr = PortIn(IOPort::FDD_REG_MAIN_STATUS);
 
 		return reg;
 	}

@@ -12,6 +12,9 @@ namespace Keyboard
 	LinkedList<KeyEvent> events;
 
 	u8 keysMap[ ((u32)Key::Total + 7) / 8 ];
+	HAL::RegisterRO<u8> regStatus(0x64);
+	HAL::RegisterWO<u8> regCommand(0x64);
+	HAL::RegisterRW<u8> regData(0x60);
 
 	extern KeyCode scanCode2Key[];
 	extern KeyInfo keyInfo[];
@@ -19,7 +22,7 @@ namespace Keyboard
 	__attribute__((interrupt))
 	void ISR_Keyboard(void*)
 	{
-		u8 scanCode = HAL::In(0x60);
+		u8 scanCode = regData.Read();
 
 		if(scanCode == 0xE0)
 		{
@@ -134,7 +137,7 @@ namespace Keyboard
 	Keyboard::PS2_StatusRegister ReadStatus()
 	{
 		Keyboard::PS2_StatusRegister reg;
-		*(u8*)&reg = HAL::In(0x64);
+		*(u8*)&reg = HAL::In8(0x64);
 
 		return reg;
 	}
@@ -147,7 +150,7 @@ namespace Keyboard
 			status = ReadStatus();
 		} while(status.inputBuffer);
 
-		HAL::Out(0x64, cmd);
+		HAL::Out8(0x64, cmd);
 	}
 
 	u8 ReadCommandResponse()
@@ -158,6 +161,6 @@ namespace Keyboard
 			status = ReadStatus();
 		} while(!status.outputBuffer);
 
-		return HAL::In(0x64);
+		return HAL::In8(0x64);
 	}
 }

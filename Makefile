@@ -53,6 +53,7 @@ GCC_FLAGS	+= -mgeneral-regs-only -fno-isolate-erroneous-paths-attribute -fno-asy
 GCC_FLAGS	+= -Wall -Wextra -g3 -O0 -m32 -std=gnu++1z
 GCC_FLAGS	+= -fno-exceptions -fno-rtti
 NASM_FLAGS	 = -Iboot/
+QEMU_FLAGS	 = -hda /Users/cybek/dos.img -hdb /Users/cybek/dos-empty.img -vga std -boot ac -m 8 -d int -monitor stdio -d int -d cpu_reset -d guest_errors
 
 ####################
 #
@@ -136,11 +137,15 @@ clean:
 	rm out/*/* out/* $(AUTOGEN) 2>/dev/null || true
 
 qemu: out/floppy.img
-	$(QEMU) -fda $< -vga std -boot ac -m 8 -d int -monitor stdio -d int -d cpu_reset -d guest_errors 2> /dev/null
-	#-d int -no-reboot -no-shutdown 
+	$(QEMU) -fda $< $(QEMU_FLAGS) 2> /dev/null
+	#-d int -no-reboot -no-shutdown
 
 qemu-dbg: out/floppy.img
-	$(QEMU) -fda $< -boot ac -m 32 -d int -s -S -monitor stdio 2> /dev/null
+	$(QEMU) -fda $< -s -S 2> /dev/null
+
+qemu-dos: out/floppy.img
+	$(QEMU) -fda $< $(QEMU_FLAGS) -boot c 2> /dev/null
+	#-d int -no-reboot -no-shutdown
 
 bochs: out/floppy.img
 	$(BOCHS) -q

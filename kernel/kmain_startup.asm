@@ -22,6 +22,9 @@
 	extern __stack_end
 	extern __stack_size
 
+	extern __ctors_beg
+	extern __ctors_end
+
 [section .startup]
 main:
 	cli
@@ -29,6 +32,16 @@ main:
 	pop	dword [_bootloader_info_ptr]
 	mov	esp, __stack_beg
 
+	mov ebx, __ctors_beg
+.constructorsLoop:
+	cmp	ebx, __ctors_end
+	je	.afterConstructors
+
+	call	[ebx]
+	add	ebx, 4
+	jmp	.constructorsLoop
+
+.afterConstructors:
 	mov	ebp, 0
 	call	kmain
 

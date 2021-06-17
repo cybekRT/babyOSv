@@ -5,12 +5,12 @@ namespace ISA_DMA
 {
 	u8 PortIn(IOPort port)
 	{
-		return HAL::In((u16)port);
+		return HAL::In8((u16)port);
 	}
 
 	void PortOut(IOPort port, u8 data)
 	{
-		HAL::Out((u16)port, data);
+		HAL::Out8((u16)port, data);
 	}
 
 	void ResetFlipFlop()

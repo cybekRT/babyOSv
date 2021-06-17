@@ -150,8 +150,6 @@ namespace Memory
 
 	bool MallocResize(unsigned bytes)
 	{
-		__asm("xchg %bx, %bx");
-
 		u32 totalSize = ((bytes + sizeof(MallocHeader)) + 0xFFF) & (~0xFFF);
 
 		u32 minSize = 4 * 4096;

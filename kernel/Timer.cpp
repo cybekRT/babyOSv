@@ -56,9 +56,9 @@ namespace Timer
 		Interrupt::Register(Interrupt::IRQ2INT(Interrupt::IRQ_TIMER), ISR_Timer);
 		Interrupt::Register(255, ISR_255);
 
-		HAL::Out(PIT_PORT_COMMAND, PIT_COMMAND_CHANNEL_0 | PIT_COMMAND_AMODE_LOHIBYTE | PIT_COMMAND_OPMODE_3 | PIT_COMMAND_BMODE_BINARY);
-		HAL::Out(PIT_PORT_CHANNEL_0, 0xA9);
-		HAL::Out(PIT_PORT_CHANNEL_0, 0x04);
+		HAL::Out8(PIT_PORT_COMMAND, PIT_COMMAND_CHANNEL_0 | PIT_COMMAND_AMODE_LOHIBYTE | PIT_COMMAND_OPMODE_3 | PIT_COMMAND_BMODE_BINARY);
+		HAL::Out8(PIT_PORT_CHANNEL_0, 0xA9);
+		HAL::Out8(PIT_PORT_CHANNEL_0, 0x04);
 
 		return true;
 	}
@@ -71,10 +71,16 @@ namespace Timer
 	bool tested = false;
 	void Delay(Time ms)
 	{
+		// FIXME: call to delay if interrupts are disabled
+		//__asm("pushf");
+		//__asm("sti");
+
 		Time time = ticks + ms;
 		while(ticks < time)
 		{
 			__asm("int $0xff");
 		}
+
+		//__asm("popf");
 	}
 }

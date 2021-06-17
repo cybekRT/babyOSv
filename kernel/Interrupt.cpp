@@ -85,7 +85,7 @@ namespace Interrupt
 		PutHex((unsigned)ptr);
 		PutString("\n");
 
-		HAL::Out(0x20, 0x20);
+		HAL::Out8(0x20, 0x20);
 	}
 
 	struct ISR_Registers
@@ -218,14 +218,14 @@ namespace Interrupt
 		PutHex((unsigned)(&idtHandle));
 		PutString("\n");
 
-		HAL::Out(PIC0_PORT_CMD, PIC_CMD_INIT);
-		HAL::Out(PIC0_PORT_DATA, INT_PIC0_OFFSET);
-		HAL::Out(PIC0_PORT_DATA, ICW1_INTERVAL4);
-		HAL::Out(PIC0_PORT_DATA, ICW4_8086);
-		HAL::Out(PIC1_PORT_CMD, PIC_CMD_INIT);
-		HAL::Out(PIC1_PORT_DATA, INT_PIC1_OFFSET);
-		HAL::Out(PIC1_PORT_DATA, ICW1_SINGLE);
-		HAL::Out(PIC1_PORT_DATA, ICW4_8086);
+		HAL::Out8(PIC0_PORT_CMD, PIC_CMD_INIT);
+		HAL::Out8(PIC0_PORT_DATA, INT_PIC0_OFFSET);
+		HAL::Out8(PIC0_PORT_DATA, ICW1_INTERVAL4);
+		HAL::Out8(PIC0_PORT_DATA, ICW4_8086);
+		HAL::Out8(PIC1_PORT_CMD, PIC_CMD_INIT);
+		HAL::Out8(PIC1_PORT_DATA, INT_PIC1_OFFSET);
+		HAL::Out8(PIC1_PORT_DATA, ICW1_SINGLE);
+		HAL::Out8(PIC1_PORT_DATA, ICW4_8086);
 
 		/*idt->entries[0].SetAddress(Dummy);
 		int v = int(IDT_Entry::Flag::IDT_FLAG_32BIT_INT_GATE) | int(IDT_Entry::Flag::IDT_FLAG_ENTRY_PRESENT);

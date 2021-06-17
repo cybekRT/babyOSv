@@ -135,6 +135,7 @@ namespace Terminal
 					}
 					case 'p':
 					case 'x':
+					case 'X':
 					{
 						char tmp[9] = {};
 						u32 v = va_arg(args, u32);
@@ -145,7 +146,10 @@ namespace Terminal
 							v <<= 4;
 						}
 
-						PutString(tmp);
+						if(c == 'X')
+							PutString(tmp + 6);
+						else
+							PutString(tmp);
 
 						break;
 					}

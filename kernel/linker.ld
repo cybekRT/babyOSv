@@ -29,6 +29,12 @@ SECTIONS
 		__stack_beg = .;
 	}
 
+	.ctors : {
+		__ctors_beg = .;
+		*(.ctors)
+		__ctors_end = .;
+	}
+
 	__kernel_data_end = .;
 	__kernel_end = .;
 }
