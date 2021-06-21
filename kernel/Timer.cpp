@@ -35,8 +35,7 @@ namespace Timer
 {
 	volatile Time ticks = 0;
 
-	__attribute__((interrupt))
-	void ISR_Timer(void*)
+	ISR(Timer)
 	{
 		ticks++;
 
@@ -45,8 +44,7 @@ namespace Timer
 		Thread::NextThread();
 	}
 
-	__attribute__((interrupt))
-	void ISR_255(void*)
+	ISR(255)
 	{
 		Thread::NextThread();
 	}

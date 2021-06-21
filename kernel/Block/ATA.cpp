@@ -54,6 +54,12 @@ namespace ATA
 		}
 	};
 
+	enum class CommandRegister : u8
+	{
+		ATA_CMD_READ_PIO = 0x20,
+		ATA_CMD_IDENTIFY = 0xEC,
+	};
+
 	struct DeviceControlRegister
 	{
 		u8 reserved1 : 1;
@@ -85,15 +91,14 @@ namespace ATA
 
 	HAL::RegisterRW<DriveHeadRegister> regDriveHead(ioBase + 6);
 	HAL::RegisterRO<StatusRegister> regStatus(ioBase + 7);
-	HAL::RegisterWO<u8> regCommand(ioBase + 7);
+	HAL::RegisterWO<CommandRegister> regCommand(ioBase + 7);
 
 	const u16 ioBaseControl = 0x3F6;
 	HAL::RegisterRO<StatusRegister> regAlternateStatus(ioBaseControl + 0);
 	HAL::RegisterWO<DeviceControlRegister> regDeviceControl(ioBaseControl + 0);
 	HAL::RegisterRO<DriveAddressRegister> regDriveAddress(ioBaseControl + 1);
 
-	__attribute__((interrupt))
-	void ISR_ATA(void*)
+	ISR(ATA)
 	{
 		Print("ATA irq...\n");
 		Interrupt::AckIRQ();
@@ -109,7 +114,7 @@ namespace ATA
 		regLBAMid.Write ( (lba >>  8) & 0xff );
 		regLBAHigh.Write( (lba >> 16) & 0xff );
 
-		regCommand.Write(0x20); // ATA_CMD_READ_PIO
+		regCommand.Write(CommandRegister::ATA_CMD_READ_PIO); // ATA_CMD_READ_PIO
 
 		while(!regAlternateStatus.Read().drq)
 			Print(".");
@@ -180,7 +185,7 @@ namespace ATA
 		regLBAMid.Write(0);
 		regLBAHigh.Write(0);
 
-		regCommand.Write(0xEC);
+		regCommand.Write(CommandRegister::ATA_CMD_IDENTIFY);
 
 		StatusRegister st;
 		while((st = regStatus.Read()).busy)

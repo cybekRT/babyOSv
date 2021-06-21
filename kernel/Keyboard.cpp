@@ -19,8 +19,7 @@ namespace Keyboard
 	extern KeyCode scanCode2Key[];
 	extern KeyInfo keyInfo[];
 	
-	__attribute__((interrupt))
-	void ISR_Keyboard(void*)
+	ISR(Keyboard)
 	{
 		u8 scanCode = regData.Read();
 

@@ -26,9 +26,9 @@ struct IDT_Entry
 	u8 flags;
 	u16 address_16_31;
 
-	void SetAddress(void (*addr)(void*))
+	void SetAddress(Interrupt::ISR isrAddr)
 	{
-		u32 a = (u32)addr;
+		u32 a = (u32)isrAddr;
 		address_0_15 = a & 0xFFFF;
 		address_16_31 = a >> 16;
 	}
@@ -70,16 +70,14 @@ namespace Interrupt
 	IDT* idt;
 	void* idtPhysical;
 
-	__attribute__ ((interrupt))
-	void ISR_Dummy(void* ptr)
+	ISR(Dummy)
 	{
 		PutString("ISR: ");
 		PutHex((unsigned)ptr);
 		PutString("\n");
 	}
 
-	__attribute__ ((interrupt))
-	void ISR_IRQ_Dummy(void* ptr)
+	ISR(IRQ_Dummy)
 	{
 		PutString("ISR: ");
 		PutHex((unsigned)ptr);

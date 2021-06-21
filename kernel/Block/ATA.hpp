@@ -381,7 +381,8 @@ namespace ATA
 			u8 cylinderLow;
 		} __attribute__((packed));
 
-		u8 bootable;
+		u8 reserved : 7;
+		u8 bootable : 1;
 		CHSAddress chsFirst;
 		u32 type : 8;
 		CHSAddress chsLast;

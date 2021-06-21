@@ -119,8 +119,7 @@ namespace Floppy
 	u8 currentTrack = 0;
 	u8 motorEnabled = 0;
 
-	__attribute__((interrupt))
-	void ISR_Floppy(void*)
+	ISR(Floppy)
 	{
 		irqReceived = 1;
 		Thread::RaiseSignal(Thread::Signal { .type = Thread::Signal::Type::IRQ, .addr = Interrupt::IRQ_FLOPPY }, 0);

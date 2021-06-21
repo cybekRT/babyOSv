@@ -1,3 +1,5 @@
+#define ISR(name) __attribute__((interrupt)) void ISR_##name(void* ptr)
+
 namespace Interrupt
 {
 	typedef void(*ISR)(void*);
