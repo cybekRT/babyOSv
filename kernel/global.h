@@ -44,3 +44,8 @@ extern u32 _kernel_data_beg;
 extern u32 _kernel_data_end;
 extern u32 _org_stack_beg;
 extern u32 _org_stack_end;
+
+int strlen(const char* str);
+bool strcmp(char* a, char* b);
+int strcpy(const char* src, char* dst);
+int strcat(const char* src, char* dst);

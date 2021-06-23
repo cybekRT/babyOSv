@@ -13,6 +13,7 @@
 
 #include"FS/FS.hpp"
 #include"FS/FS_FAT12.hpp"
+#include"FS/FAT16.hpp"
 
 #include"VFS.hpp"
 
@@ -42,6 +43,25 @@ bool strcmp(char* a, char* b)
 int strcpy(const char* src, char* dst)
 {
 	int len = 0;
+	while(*src)
+	{
+		*dst++ = *src++;
+		len++;
+	}
+
+	*dst = 0;
+	return len;
+}
+
+int strcat(const char* src, char* dst)
+{
+	int len = 0;
+
+	while(*dst)
+	{
+		dst++;
+	}
+
 	while(*src)
 	{
 		*dst++ = *src++;
@@ -140,11 +160,12 @@ extern "C" void kmain()
 	}*/
 
 	Block::Init();
-	//Floppy::Init();
+	Floppy::Init();
 	ATA::Init();
 
 	FS::Init();
-	FS_FAT12::Init();
+	//FS_FAT12::Init();
+	FAT16::Init();
 
 	VFS::Init();
 
@@ -375,5 +396,8 @@ extern "C" void kmain()
 		__asm("hlt");
 	}
 
-	for(;;);
+	for(;;)
+	{
+		__asm("hlt");
+	}
 }

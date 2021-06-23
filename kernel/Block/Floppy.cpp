@@ -111,7 +111,7 @@ namespace Floppy
 		FDD_CMD_OPTION_SKIP			= 0x20
 	};
 
-	extern Block::BlockDriver drv;
+	extern Block::BlockDeviceDriver drv;
 	void* dmaPhys;
 	void* dmaLogic;
 	volatile u8 irqReceived = 0;
@@ -340,7 +340,7 @@ namespace Floppy
 		Recalibrate();
 		Lock();
 
-		Block::Register(Block::Type::Floppy, &drv, nullptr);
+		Block::RegisterDevice(Block::DeviceType::Floppy, &drv, nullptr);
 
 		Print("Initialized floppy...\n");
 		return true;
@@ -469,7 +469,7 @@ namespace Floppy
 		return 1;
 	}
 
-	Block::BlockDriver drv
+	Block::BlockDeviceDriver drv
 	{
 		.Name = Name,
 		.Size = Size,

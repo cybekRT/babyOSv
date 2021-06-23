@@ -4,7 +4,7 @@
 
 namespace Block
 {
-	enum class Type
+	enum class DeviceType
 	{
 		Unknown = 0,
 		Floppy,
@@ -14,7 +14,16 @@ namespace Block
 		Count
 	};
 
-	struct BlockDriver
+	enum class PartitionType
+	{
+		Raw = 0,
+		Primary = 1,
+		Extended = 2,
+
+		Count
+	};
+
+	struct BlockDeviceDriver
 	{
 		u8 (*Name)(void* dev, u8* buffer);
 		u32 (*Size)(void* dev);
@@ -29,16 +38,31 @@ namespace Block
 
 	struct BlockDevice
 	{
-		Type			type;
-		BlockDriver*	drv;
-		void*			dev;
-		u8				name[64];
+		DeviceType			type;
+		BlockDeviceDriver*	drv;
+		void*				drvPriv;
+		u8					name[64];
 	};
 
-	extern Array<BlockDevice> devices;
+	struct BlockPartition
+	{
+		PartitionType	type;
+		BlockDevice*	device;
+		u32				lbaOffset;
+		u32				lbaCount;
+		u8				name[64];
+
+		u8 Read(u32 lba, u8* buffer);
+	};
+
+	//extern Array<BlockDevice> devices;
+	//extern Array<BlockPartition> partitions;
 
 	bool Init();
 
-	void Register(Type type, BlockDriver* drv, void* dev);
-	void Unregister(Type type, BlockDriver* drv, void* dev);
+	void RegisterDevice(DeviceType type, BlockDeviceDriver* drv, void* drvPriv);
+	void RegisterPartition(PartitionType type, BlockDevice* dev, void* drvPriv, u32 lbaOffset, u32 lbaCount);
+
+	Array<BlockDevice> GetDevices();
+	Array<BlockPartition> GetPartitions();
 }

@@ -6,7 +6,7 @@
 
 namespace ATA
 {
-	extern Block::BlockDriver drv;
+	extern Block::BlockDeviceDriver drv;
 
 	struct RegError
 	{
@@ -116,25 +116,13 @@ namespace ATA
 
 		regCommand.Write(CommandRegister::ATA_CMD_READ_PIO); // ATA_CMD_READ_PIO
 
-		while(!regAlternateStatus.Read().drq)
-			Print(".");
+		while(!regAlternateStatus.Read().drq);
 
-		//regStatus.Read();
-
-		Print("\n\nData:\n");
-
-		//u8 buffer[512];
 		u8* buffer = (u8*)dstBuffer;
 		for(unsigned a = 0; a < 256; a++)
 		{
 			u16* ptr = (u16*)buffer;
 			ptr[a] = regData.Read();
-
-			Print("%X%X",	buffer[a * 2 + 0], 
-							buffer[a * 2 + 1]);
-
-			if(a % 16 == 15)
-				Print("\n");
 		}
 	}
 
@@ -188,8 +176,7 @@ namespace ATA
 		regCommand.Write(CommandRegister::ATA_CMD_IDENTIFY);
 
 		StatusRegister st;
-		while((st = regStatus.Read()).busy)
-			Print(".");
+		while((st = regStatus.Read()).busy);
 
 		st.Print();
 		Print(" - Finished~!\n");
@@ -265,6 +252,58 @@ namespace ATA
 
 		//Interrupt::Enable();
 
+		Block::RegisterDevice(Block::DeviceType::HardDrive, &drv, nullptr);
+
 		return true;
 	}
+
+	u8 _Name(void* dev, u8* buffer)
+	{
+		strcpy("ata", (char*)buffer);
+	}
+
+	u32 _Size(void* dev)
+	{
+		return 99999;
+	}
+
+	u8 _Lock(void* dev)
+	{
+
+	}
+
+	u8 _Unlock(void* dev)
+	{
+
+	}
+
+	u32 _BlockSize(void* dev)
+	{
+		return 512;
+	}
+
+	u8 _Read(void* dev, u32 lba, u8* buffer)
+	{
+		Read(lba, buffer);
+
+		return 0;
+	}
+
+	u8 _Write(void* dev, u32 lba, u8* buffer)
+	{
+		
+	}
+
+	Block::BlockDeviceDriver drv 
+	{
+		.Name = _Name,
+		.Size = _Size,
+
+		.Lock = _Lock,
+		.Unlock = _Unlock,
+
+		.BlockSize = _BlockSize,
+		.Read = _Read,
+		.Write = _Write
+	};
 }
