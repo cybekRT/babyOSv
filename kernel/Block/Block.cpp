@@ -53,13 +53,8 @@ namespace Block
 		Print("Scanning MBR...\n");
 		for(auto& part : mbr.partitions)
 		{
-			/*Print("=====\n");
-			Print("Boot: %d\n", part.bootable);
-			Print("Type: %d\n", part.type);
-			Print("LBA: %d - %d\n", part.lbaFirst, part.lbaSize);
-			Print("Size: %d\n", part.lbaSize * 512 / 1024 / 1024);*/
-
-			if(part.type != 0 && part.reserved == 0)
+			auto devTotalLBA = dev->drv->Size(dev->drvPriv);
+			if(part.type != 0 && part.reserved == 0 && part.lbaFirst < devTotalLBA && part.lbaSize < devTotalLBA)
 			{
 				RegisterPartition(Block::PartitionType::Primary, dev, nullptr, part.lbaFirst, part.lbaSize);
 			}

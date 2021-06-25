@@ -4,10 +4,33 @@
 using FS::File;
 using FS::Directory;
 using FS::DirEntry;
-#include"Timer.h"
-u8 tolower(u8 c);
 
+u8 tolower(u8 c);
 u8 toupper(u8 c);
+
+u8 tolower(u8 c)
+{
+	if(c >= 'A' && c <= 'Z')
+	{
+		return c - ('A' - 'a');
+	}
+	else
+	{
+		return c;
+	}
+}
+
+u8 toupper(u8 c)
+{
+	if(c >= 'a' && c <= 'z')
+	{
+		return c - ('a' - 'A');
+	}
+	else
+	{
+		return c;
+	}
+}
 
 namespace FS
 {
@@ -18,7 +41,9 @@ namespace FS
 		u32 totalDataOffset; // Total data offset, not position in buffer
 		u32 size;
 		u8 bufferValid;
-		u8 buffer[512 * 4];
+		//u8 buffer[512 * 4];
+		u32 bufferSize;
+		u8 buffer[];
 	};
 
 	struct Directory
@@ -27,12 +52,22 @@ namespace FS
 		u32 currentCluster;
 		u32 dataOffset;
 		u8 bufferValid;
-		u8 buffer[512 * 4];
+		u32 bufferSize;
+		//u8 buffer[512 * 4];
+		u8 buffer[];
 	};
 }
 
-namespace FAT16
+namespace FAT
 {
+	enum class Type
+	{
+		Invalid = 0,
+		FAT12 = 12,
+		FAT16 = 16,
+		FAT32 = 32
+	};
+
 	struct BPB
 	{
 		u8 _unused1[3];
@@ -106,6 +141,7 @@ namespace FAT16
 	struct Info
 	{
 		//Block::BlockDevice* bd;
+		Type type;
 		Block::BlockPartition* part;
 		BPB* bpb;
 		u32 firstRootSector;
@@ -119,23 +155,52 @@ namespace FAT16
 	 *
 	 */
 
-	u16 NextCluster(void* fs, u16 cluster)
+	u32 NextCluster(void* fs, u16 cluster)
 	{
 		Info* info = (Info*)fs;
 
 		//u32 fatOffset = cluster + (cluster >> 1);
+		//Print("Cluster: %d", cluster);
+		//ASSERT(cluster < info->bpb->sectorsPerFat * 512 / 2, " - Invalid cluster");
+		//u16 nextCluster = *((u16*)info->fat + cluster); // FIXME: check for invalid clusters...
+
+		u32 nextCluster;
+
+		if(info->type == Type::FAT12)
+		{
+			u32 fatOffset = cluster + (cluster >> 1);
+			nextCluster = *(u16*)(info->fat + fatOffset);
+
+			if(cluster & 1)
+				nextCluster = nextCluster >> 4;
+			else
+				nextCluster = nextCluster & 0xfff;
+
+			if(nextCluster >= 0xFF8) // Last one...
+				nextCluster = 0;
+		}
+		else if(info->type == Type::FAT16)
+		{
+			nextCluster = *((u16*)info->fat + cluster);
+
+			if(nextCluster >= 0xFFF8) // Last one...
+				nextCluster = 0;
+		}
+		else
+		{
+			nextCluster = 0;
+		}
+
 		Print("Cluster: %d", cluster);
-		ASSERT(cluster < info->bpb->sectorsPerFat * 512 / 2, " - Invalid cluster");
-		u16 nextCluster = *((u16*)info->fat + cluster); // FIXME: check for invalid clusters...
-		Print("-> %d\n", nextCluster);
+		Print(" -> %d\n", nextCluster);
 
 		/*if(cluster & 1)
 			nextCluster = nextCluster >> 4;
 		else
 			nextCluster = nextCluster & 0xfff;*/
 
-		if(nextCluster >= 0xFFF8) // Last one...
-			nextCluster = 0;
+		//if(nextCluster >= 0xFFF8) // Last one...
+		//	nextCluster = 0;
 
 		return nextCluster;
 	}
@@ -148,7 +213,7 @@ namespace FAT16
 
 	u32 Name(u8* buffer)
 	{
-		char name[] = "FAT16";
+		char name[] = "FAT";
 		memcpy(buffer, name, sizeof(name));
 		return sizeof(name);
 	}
@@ -162,7 +227,7 @@ namespace FAT16
 		if(part->Read(0, buffer))
 			return FS::Status::Undefined;
 
-		//if(buffer[0] == 0xEB && buffer[2] == 0x90)
+		if(buffer[0] == 0xEB && buffer[2] == 0x90)
 			return FS::Status::Success;
 
 		return FS::Status::Undefined;
@@ -170,6 +235,7 @@ namespace FAT16
 
 	FS::Status Alloc(Block::BlockPartition* part, void** fs)
 	{
+		part->device->drv->Lock(part->device->drvPriv);
 		//bd->drv->Lock(bd->drvPriv);
 
 		BPB* bpb = (BPB*)Memory::Alloc(sizeof(BPB));
@@ -189,7 +255,21 @@ namespace FAT16
 		}
 		Print("Done!\n");
 
+		u32 totalSectors = (bpb->totalSectors > 0) ? bpb->totalSectors : bpb->totalSectorsHigh;
+
 		Info* info = (Info*)Memory::Alloc(sizeof(Info));
+
+		if(totalSectors < 4085)
+			info->type = Type::FAT12;
+		else if(totalSectors < 65525)
+			info->type = Type::FAT16;
+		else if(totalSectors < 268435445)
+			info->type = Type::FAT32;
+		else
+			info->type = Type::Invalid;
+
+		Print("Type: FAT%d\n", info->type);
+
 		//info->bd = bd;
 		info->part = part;
 		info->bpb = bpb;
@@ -212,6 +292,7 @@ namespace FAT16
 
 		*fs = (void*)info;
 
+		part->device->drv->Lock(part->device->drvPriv);
 		//bd->drv->Unlock(bd->drvPriv);
 		return FS::Status::Success;
 	}
@@ -230,12 +311,14 @@ namespace FAT16
 	FS::Status OpenRoot(void* fs, Directory** dir)
 	{
 		Info* info = (Info*)fs;
-		*dir = (Directory*)Memory::Alloc(sizeof(Directory));
+		u32 bufferSize = info->part->device->drv->BlockSize(info->part->device->drvPriv) * info->bpb->sectorsPerCluster;
+		*dir = (Directory*)Memory::Alloc(sizeof(Directory) + bufferSize);
 
 		(*dir)->firstCluster = 0;
 		(*dir)->currentCluster = (*dir)->firstCluster;
 		(*dir)->dataOffset = 0;
 		(*dir)->bufferValid = 0;
+		(*dir)->bufferSize = bufferSize;
 
 		return FS::Status::Success;
 	}
@@ -243,13 +326,14 @@ namespace FAT16
 	FS::Status OpenDirectory(void* fs, Directory* src, Directory** dir)
 	{
 		Info* info = (Info*)fs;
-		*dir = (Directory*)Memory::Alloc(sizeof(Directory));
+		*dir = (Directory*)Memory::Alloc(sizeof(Directory) + src->bufferSize);
 
 		(*dir)->firstCluster = src->firstCluster;
 		(*dir)->currentCluster = src->currentCluster;
 		(*dir)->dataOffset = src->dataOffset;
 		(*dir)->bufferValid = src->bufferValid;
-		memcpy((*dir)->buffer, src->buffer, sizeof(src->buffer));
+		(*dir)->bufferSize = src->bufferSize;
+		memcpy((*dir)->buffer, src->buffer, src->bufferSize);
 
 		return FS::Status::Success;
 	}
@@ -395,9 +479,10 @@ namespace FAT16
 	FS::Status OpenFile(void* fs, Directory* dir, File** file)
 	{
 		Info* info = (Info*)fs;
+		u32 bufferSize = info->part->device->drv->BlockSize(info->part->device->drvPriv) * info->bpb->sectorsPerCluster;
 		FAT16_DirEntry* fatEntry = (FAT16_DirEntry*)(dir->buffer + dir->dataOffset);
 
-		(*file) = (File*)Memory::Alloc(sizeof(File));
+		(*file) = (File*)Memory::Alloc(sizeof(File) + bufferSize);
 
 		(*file)->firstCluster = (fatEntry->clusterHigh << 16) | fatEntry->cluster;
 		(*file)->currentCluster = (*file)->firstCluster;
@@ -407,6 +492,7 @@ namespace FAT16
 
 		(*file)->totalDataOffset = 0;
 		(*file)->bufferValid = 0;
+		(*file)->bufferSize = bufferSize;
 		(*file)->size = fatEntry->size;
 
 		Print("  size: %d\n", (*file)->size);
@@ -448,12 +534,13 @@ namespace FAT16
 			//u32 sector = info->firstDataSector + file->currentCluster - 2 + 0x447000/512 + 161;
 			u32 sector = info->firstDataSector + (file->currentCluster - 2) * info->bpb->sectorsPerCluster;
 			//bd->drv->Read(bd->drvPriv, sector, file->buffer);
+			Print("Reading sector: %d (%d)\n", sector, info->bpb->sectorsPerCluster);
 			part->Read(sector, file->buffer);
 			file->bufferValid = 1;
 		}
 
 		// If there's need to read more data than in internal buffer, divide to 2 separate calls
-		u32 inBuffer = sizeof(file->buffer) - (file->totalDataOffset % sizeof(file->buffer));
+		u32 inBuffer = file->bufferSize - (file->totalDataOffset % file->bufferSize);
 		if(bufferSize > inBuffer)
 		{
 			FS::Status status;
@@ -462,7 +549,7 @@ namespace FAT16
 			//bd->drv->Lock(bd->drvPriv);
 			for(unsigned a = 0; a < bufferSize; )
 			{
-				u32 curSize = (bufferSize - (*readCount) > sizeof(file->buffer) ? sizeof(file->buffer) : bufferSize - (*readCount));
+				u32 curSize = (bufferSize - (*readCount) > file->bufferSize ? file->bufferSize : bufferSize - (*readCount));
 				//Print(".");
 				status = ReadFile(fs, file, buffer + (*readCount), curSize, &subread);
 				Print("Read: %u\n", subread);
@@ -482,7 +569,7 @@ namespace FAT16
 		}		
 
 		// Otherwise, read from internal buffer
-		u32 offset = (file->totalDataOffset % sizeof(file->buffer));
+		u32 offset = (file->totalDataOffset % file->bufferSize);
 		for(unsigned a = 0; a < bufferSize; a++)
 		{
 			if(file->totalDataOffset >= file->size)
@@ -494,7 +581,7 @@ namespace FAT16
 			(*readCount)++;
 		}
 
-		if(file->totalDataOffset % sizeof(file->buffer) == 0)
+		if(file->totalDataOffset % file->bufferSize == 0)
 			file->bufferValid = 0;
 
 		if((*readCount) == 0)

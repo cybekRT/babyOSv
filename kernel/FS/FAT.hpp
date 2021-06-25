@@ -1,4 +1,4 @@
-namespace FAT16
+namespace FAT
 {
 	bool Init();
 }

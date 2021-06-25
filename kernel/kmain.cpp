@@ -12,8 +12,7 @@
 #include"Block/ATA.hpp"
 
 #include"FS/FS.hpp"
-#include"FS/FS_FAT12.hpp"
-#include"FS/FAT16.hpp"
+#include"FS/FAT.hpp"
 
 #include"VFS.hpp"
 
@@ -164,8 +163,7 @@ extern "C" void kmain()
 	ATA::Init();
 
 	FS::Init();
-	//FS_FAT12::Init();
-	FAT16::Init();
+	FAT::Init();
 
 	VFS::Init();
 

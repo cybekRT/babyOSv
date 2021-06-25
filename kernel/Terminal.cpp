@@ -159,12 +159,12 @@ namespace Terminal
 						// TODO edgecase of min-int
 						char tmp[11] = {};
 						char* buf = tmp;
-						s32 v = va_arg(args, s32);
+						u32 v = va_arg(args, u32);
 
-						if(v < 0)
+						if(c == 'd' && v < 0)
 						{
 							PutChar('-');
-							v = -v;
+							v = -(s32)v;
 						}
 
 						do
