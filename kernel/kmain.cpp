@@ -193,6 +193,45 @@ extern "C" void kmain()
 	FS::Directory* dir;
 	VFS::OpenRoot(&dir);
 
+	for(;;)
+	{
+		for(auto part : Block::GetPartitions())
+		{
+			Print("\n\nPartition: %s\n\n", part.name);
+			Timer::Delay(200);
+			for(auto fsItem = FS::filesystems.data; fsItem != nullptr; fsItem = fsItem->next)
+			{
+				auto fs = fsItem->value;
+				if(fs->Probe(&part) != FS::Status::Success)
+					continue;
+
+				void* fsPriv;
+				fs->Alloc(&part, &fsPriv);
+
+				FS::Directory* dir;
+				fs->OpenRoot(fsPriv, &dir);
+
+				Print("Root:\n");
+				FS::DirEntry entry;
+				while(fs->ReadDirectory(fsPriv, dir, &entry) == FS::Status::Success)
+				{
+					if(!entry.isValid)
+						continue;
+
+					Print("- %s\n", entry.name);
+				}
+
+				fs->CloseDirectory(fsPriv, &dir);
+				fs->Dealloc(&part, &fsPriv);
+				Timer::Delay(1000);
+				break;
+			}
+
+			Memory::Physical::PrintMemoryMap();
+			Timer::Delay(1000);
+		}
+	}
+
 #if 0
 	{
 		auto bd = &Block::devices[0];

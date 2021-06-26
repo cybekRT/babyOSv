@@ -299,6 +299,15 @@ namespace FAT
 
 	FS::Status Dealloc(Block::BlockPartition* part, void** fs)
 	{
+		if(!fs)
+			return FS::Status::Success;
+
+		Info* info = (Info*)(*fs);
+		Memory::Free(info->bpb);
+		Memory::Free(info->fat);
+		Memory::Free(info);
+
+		(*fs) = nullptr;
 		return FS::Status::Success;
 	}
 
