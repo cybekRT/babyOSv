@@ -5,30 +5,34 @@
 #
 ####################
 ifeq ($(OS),Windows_NT)
-	NASM		= nasm
-	BOCHS		= D:/Programs/Bochs/bochsdbg-p4-smp.exe -f bochs-win.cfg
-	OUT			= $(PWD)/out
-	GCC_PREFIX	= i386-elf-
-	QEMU		= D:/Programs/Qemu/qemu-system-i386.exe
-	DD			= D:/Programs/Cygwin/bin/dd
-	PCEM		= D:/Programs/PCem/PCem.exe
-	VBOXMANAGE	= C:/Program\ Files/VirtualBox/VBoxManage.exe
-	CFS			= ../cFS/cFS-cli/cFS-cli
+	NASM				= nasm
+	BOCHS				= D:/Programs/Bochs/bochsdbg-p4-smp.exe -f bochs-win.cfg
+	OUT					= $(PWD)/out
+	GCC_PREFIX			= i386-elf-
+	QEMU				= D:/Programs/Qemu/qemu-system-i386.exe
+	DD					= D:/Programs/Cygwin/bin/dd
+	PCEM				= D:/Programs/PCem/PCem.exe
+	VBOXMANAGE			= C:/Program\ Files/VirtualBox/VBoxManage.exe
+	CFS					= ../cFS/cFS-cli/cFS-cli
+	QEMU_DOS_IMG		= -hda D:/Drop/dos.img
+	QEMU_DOSEXT_IMG		= 
 ####################
 #
 #	MacOS configuration
 #
 ####################
 else
-	NASM		= nasm
-	BOCHS		= /usr/local/osdev/bin/bochs -f bochs.cfg
-	OUT			= $(PWD)/out
-	GCC_PREFIX	= /usr/local/osdev/bin/i386-elf-
-	QEMU		= qemu-system-i386
-	DD			= dd
-	PCEM		= echo "Everyone loves Catalina..."
-	VBOXMANAGE	= vboxmanage
-	CFS			= ../cFS/cFS-cli/cFS-cli
+	NASM				= nasm
+	BOCHS				= /usr/local/osdev/bin/bochs -f bochs.cfg
+	OUT					= $(PWD)/out
+	GCC_PREFIX			= /usr/local/osdev/bin/i386-elf-
+	QEMU				= qemu-system-i386
+	DD					= dd
+	PCEM				= fail
+	VBOXMANAGE			= vboxmanage
+	CFS					= ../cFS/cFS-cli/cFS-cli
+	QEMU_DOS_IMG		= -hda /Users/cybek/dos.img
+	QEMU_DOSEXT_IMG		= -hdb /Users/cybek/dos-empty.img
 endif
 
 ####################
@@ -53,7 +57,7 @@ GCC_FLAGS	+= -mgeneral-regs-only -fno-isolate-erroneous-paths-attribute -fno-asy
 GCC_FLAGS	+= -Wall -Wextra -g3 -O0 -m32 -std=gnu++1z
 GCC_FLAGS	+= -fno-exceptions -fno-rtti
 NASM_FLAGS	 = -Iboot/
-QEMU_FLAGS	 = -hda /Users/cybek/dos.img -hdb /Users/cybek/dos-empty.img -vga std -boot ac -m 8 -d int -monitor stdio -d int -d cpu_reset -d guest_errors
+QEMU_FLAGS	 = $(QEMU_DOS_IMG) $(QEMU_DOSEXT_IMG) -vga std -boot ac -m 8 -d int -monitor stdio -d int -d cpu_reset -d guest_errors
 
 ####################
 #

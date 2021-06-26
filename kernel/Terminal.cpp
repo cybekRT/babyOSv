@@ -3,6 +3,7 @@
 
 namespace Terminal
 {
+	char* buffer = nullptr;
 	u32 cursorX = 0;
 	u32 cursorY = 0;
 	u8 color = 0x07;
@@ -18,8 +19,24 @@ namespace Terminal
 		return cursorY * 160 + cursorX * 2;
 	}
 
-	void PutChar(char c)
+	u8* GetBuffer()
 	{
+		return (u8*)buffer;
+	}
+
+	void SetBuffer(u8* buffer)
+	{
+		Terminal::buffer = (char*)buffer;
+	}
+
+	u32 PutChar(char c)
+	{
+		if(buffer)
+		{
+			(*buffer++) = c;
+			return 1;
+		}
+
 		char* const vmem = (char*)0x800b8000;
 
 		bool handled = false;
@@ -41,12 +58,12 @@ namespace Terminal
 			}
 
 			vmem[CursorToBuffer()] = 0;
-			return;
+			return 0;
 		}
 		else if(c == '\r')
 		{
 			cursorX = 0;
-			return;
+			return 0;
 		}
 		else if(c == '\t')
 		{
@@ -75,7 +92,7 @@ namespace Terminal
 		}
 
 		if(handled == true)
-			return;
+			return 0;
 
 		auto bufPos = CursorToBuffer();
 		vmem[bufPos + 0] = c;
@@ -87,19 +104,27 @@ namespace Terminal
 			cursorX = 0;
 			cursorY++;
 		}
+
+		return 1;
 	}
 
-	void PutString(const char* s)
+	u32 PutString(const char* s)
 	{
+		u32 len = 0;
+
 		while(*s)
 		{
-			PutChar(*s);
+			len += PutChar(*s);
 			s++;
 		}
+
+		return len;
 	}
 
-	void Print(const char *fmt, ...)
+	u32 Print(const char *fmt, ...)
 	{
+		u32 len = 0;
+
 		va_list args;
 		va_start(args, fmt);
 
@@ -116,7 +141,7 @@ namespace Terminal
 				}
 				else
 				{
-					PutChar(c);
+					len += PutChar(c);
 				}
 				
 			}
@@ -129,7 +154,7 @@ namespace Terminal
 					case 'c':
 					{
 						char v = va_arg(args, u32);
-						PutChar(v);
+						len += PutChar(v);
 
 						break;
 					}
@@ -147,9 +172,9 @@ namespace Terminal
 						}
 
 						if(c == 'X')
-							PutString(tmp + 6);
+							len += PutString(tmp + 6);
 						else
-							PutString(tmp);
+							len += PutString(tmp);
 
 						break;
 					}
@@ -161,9 +186,9 @@ namespace Terminal
 						char* buf = tmp;
 						u32 v = va_arg(args, u32);
 
-						if(c == 'd' && v < 0)
+						if(c == 'd' && (s32)v < 0)
 						{
-							PutChar('-');
+							len += PutChar('-');
 							v = -(s32)v;
 						}
 
@@ -177,7 +202,7 @@ namespace Terminal
 
 						do
 						{
-							PutChar(*buf--);
+							len += PutChar(*buf--);
 						} while(buf >= tmp);
 
 						break;
@@ -185,32 +210,33 @@ namespace Terminal
 					case 's':
 					{
 						const char* v = va_arg(args, const char*);
-						PutString(v);
+						len += PutString(v);
 
 						break;
 					}
 					default:
 					{
-						PutChar('%');
-						PutChar(c);
+						len += PutChar('%');
+						len += PutChar(c);
 						break;
 					}
 				}
 			}
 			else
 			{
-				PutChar(*fmt);
+				len += PutChar(*fmt);
 			}
 			
 			fmt++;
 		}
 
 		va_end(args);
+		return len;
 	}
 
-	void PutHex(unsigned long v)
+	u32 PutHex(unsigned long v)
 	{
-		Print("%x", v);
+		return Print("%x", v);
 	}
 
 	void GetXY(u32* x, u32* y)
