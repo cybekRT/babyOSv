@@ -23,7 +23,7 @@ namespace Keyboard
 """
 
 templateScanCode2Key = """
-#include"Keyboard_map.h"
+#include"Keyboard_map.hpp"
 namespace Keyboard
 {{
 	KeyCode scanCode2Key[] = {{
@@ -116,7 +116,7 @@ for line in lines:
 
 	keys[index] = key
 
-if pathOut.endswith(".h"):
+if pathOut.endswith(".hpp"):
 	# Write header file
 	with open(pathOut, "w") as f:
 		f.write("/// File is auto generated!\n")

@@ -5,34 +5,34 @@
 #
 ####################
 ifeq ($(OS),Windows_NT)
-	NASM				= nasm
-	BOCHS				= D:/Programs/Bochs/bochsdbg-p4-smp.exe -f bochs-win.cfg
-	OUT					= $(PWD)/out
-	GCC_PREFIX			= i386-elf-
-	QEMU				= D:/Programs/Qemu/qemu-system-i386.exe
-	DD					= D:/Programs/Cygwin/bin/dd
-	PCEM				= D:/Programs/PCem/PCem.exe
-	VBOXMANAGE			= C:/Program\ Files/VirtualBox/VBoxManage.exe
-	CFS					= ../cFS/cFS-cli/cFS-cli
-	QEMU_DOS_IMG		= -hda D:/Drop/dos.img
-	QEMU_DOSEXT_IMG		= 
+	NASM				:= nasm
+	BOCHS				:= D:/Programs/Bochs/bochsdbg-p4-smp.exe -f bochs-win.cfg
+	OUT					:= $(PWD)/out
+	GCC_PREFIX			:= i386-elf-
+	QEMU				:= D:/Programs/Qemu/qemu-system-i386.exe
+	DD					:= D:/Programs/Cygwin/bin/dd
+	PCEM				:= D:/Programs/PCem/PCem.exe
+	VBOXMANAGE			:= C:/Program\ Files/VirtualBox/VBoxManage.exe
+	CFS					:= ../cFS/cFS-cli/cFS-cli
+	QEMU_DOS_IMG		:= -hda D:/Drop/dos.img
+	QEMU_DOSEXT_IMG		:= 
 ####################
 #
 #	MacOS configuration
 #
 ####################
 else
-	NASM				= nasm
-	BOCHS				= /usr/local/osdev/bin/bochs -f bochs.cfg
-	OUT					= $(PWD)/out
-	GCC_PREFIX			= /usr/local/osdev/bin/i386-elf-
-	QEMU				= qemu-system-i386
-	DD					= dd
-	PCEM				= fail
-	VBOXMANAGE			= vboxmanage
-	CFS					= ../cFS/cFS-cli/cFS-cli
-	QEMU_DOS_IMG		= -hda /Users/cybek/dos.img
-	QEMU_DOSEXT_IMG		= -hdb /Users/cybek/dos-empty.img
+	NASM				:= nasm
+	BOCHS				:= /usr/local/osdev/bin/bochs -f bochs.cfg
+	OUT					:= $(PWD)/out
+	GCC_PREFIX			:= /usr/local/osdev/bin/i386-elf-
+	QEMU				:= qemu-system-i386
+	DD					:= dd
+	PCEM				:= fail
+	VBOXMANAGE			:= vboxmanage
+	CFS					:= ../cFS/cFS-cli/cFS-cli
+	QEMU_DOS_IMG		:= -hda /Users/cybek/dos.img
+	QEMU_DOSEXT_IMG		:= -hdb /Users/cybek/dos-empty.img
 endif
 
 ####################
@@ -41,8 +41,12 @@ endif
 #
 ####################
 
-SOURCES	= $(shell find kernel -name *.cpp) kernel/Keyboard_map.cpp
-AUTOGEN	= kernel/Keyboard_map.cpp kernel/Keyboard_map.h
+# If there's no "*.cpp", 'shell find' executes windows version of find...
+AUTOGEN_OUT	:= out/gen
+AUTOGEN		:= $(AUTOGEN_OUT)/Keyboard_map.cpp $(AUTOGEN_OUT)/Keyboard_map.hpp
+SOURCES		:= $(shell sh -c "find kernel -name *.cpp") 
+OUT_DIRS	:= $(shell sh -c "find kernel -type d")
+OUT_DIRS	:= $(OUT_DIRS:kernel%=out%) $(AUTOGEN_OUT)
 
 ####################
 #
@@ -50,14 +54,14 @@ AUTOGEN	= kernel/Keyboard_map.cpp kernel/Keyboard_map.h
 #
 ####################
 
-GCC			 = $(GCC_PREFIX)gcc
-LD			 = $(GCC_PREFIX)ld
-GCC_FLAGS	 = -include kernel/global.h -Ikernel/ -Iout/
+GCC			:= $(GCC_PREFIX)gcc
+LD			:= $(GCC_PREFIX)ld
+GCC_FLAGS	:= -include kernel/global.h -Ikernel/ -I$(AUTOGEN_OUT)/
 GCC_FLAGS	+= -mgeneral-regs-only -fno-isolate-erroneous-paths-attribute -fno-asynchronous-unwind-tables
-GCC_FLAGS	+= -Wall -Wextra -g3 -O0 -m32 -std=gnu++1z
-GCC_FLAGS	+= -fno-exceptions -fno-rtti
-NASM_FLAGS	 = -Iboot/
-QEMU_FLAGS	 = $(QEMU_DOS_IMG) $(QEMU_DOSEXT_IMG) -vga std -boot ac -m 8 -d int -monitor stdio -d int -d cpu_reset -d guest_errors
+GCC_FLAGS	+= -Wall -Wextra -g3 -O3 -m32 -march=i486 -std=gnu++1z
+GCC_FLAGS	+= -fno-exceptions -fno-rtti -fno-omit-frame-pointer
+NASM_FLAGS	:= -Iboot/
+QEMU_FLAGS	:= $(QEMU_DOS_IMG) $(QEMU_DOSEXT_IMG) -vga std -boot ac -m 8 -d int -monitor stdio -d int -d cpu_reset -d guest_errors
 
 ####################
 #
@@ -65,8 +69,8 @@ QEMU_FLAGS	 = $(QEMU_DOS_IMG) $(QEMU_DOSEXT_IMG) -vga std -boot ac -m 8 -d int -
 #
 ####################
 
-OBJS	 = $(SOURCES:kernel/%.cpp=out/%.o)
-DEPS	 = $(OBJS:%.o=%.d)
+OBJS	:= $(SOURCES:kernel/%.cpp=out/%.o)
+DEPS	:= $(OBJS:%.o=%.d)
 DEPS	:= $(DEPS:kernel%=out%)
 
 ####################
@@ -81,7 +85,7 @@ out/floppy.img: out out/boot1.bin out/boot2.bin out/kernel.bin floppy.json
 	$(CFS) floppy.json >/dev/null
 
 out:
-	mkdir out $(patsubst kernel/%,out/%,$(sort $(dir $(wildcard kernel/*/*)))) 2>/dev/null || true
+	mkdir $(OUT_DIRS) 2>/dev/null || true
 
 out/boot1.bin: boot/boot1.asm boot/FAT12.inc boot/FAT12_lite.asm
 	$(NASM) $(NASM_FLAGS) $< -o $@ -l out/boot1.lst -fbin 
@@ -95,10 +99,7 @@ out/kernel.elf: out/kmain_startup.o $(OBJS)
 out/kernel.bin: out/kernel.elf
 	$(GCC_PREFIX)objcopy -Obinary $< $@
 
-out/%.o: kernel/%.cpp kernel/linker.ld
-	$(GCC) $(GCC_FLAGS) -c $< -o $@
-
-out/%.o: out/%.cpp kernel/linker.ld
+out/%.o: kernel/%.cpp $(AUTOGEN) kernel/linker.ld
 	$(GCC) $(GCC_FLAGS) -c $< -o $@
 
 out/kmain_startup.o: kernel/kmain_startup.asm
@@ -113,13 +114,11 @@ out/%.d: kernel/%.cpp
 #
 ####################
 
-out/Keyboard_map.o: kernel/Keyboard_map.cpp kernel/Keyboard_map.h
+$(AUTOGEN_OUT)/Keyboard_map.cpp: kernel/Input/Keyboard_map.inc $(AUTOGEN_OUT)/Keyboard_map.hpp kernel/Input/Keyboard_map.py
+	python3 kernel/Input/Keyboard_map.py $@ $< >/dev/null
 
-kernel/Keyboard_map.cpp: kernel/Keyboard_map.inc kernel/Keyboard_map.h kernel/Keyboard_map.py
-	python3 kernel/Keyboard_map.py $@ $< >/dev/null
-
-kernel/Keyboard_map.h: kernel/Keyboard_map.inc kernel/Keyboard_map.py
-	python3 kernel/Keyboard_map.py $@ $< >/dev/null
+$(AUTOGEN_OUT)/Keyboard_map.hpp: kernel/Input/Keyboard_map.inc kernel/Input/Keyboard_map.py
+	python3 kernel/Input/Keyboard_map.py $@ $< >/dev/null
 
 ####################
 #

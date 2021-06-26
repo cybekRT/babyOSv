@@ -3,7 +3,3 @@
 *.o
 .DS_Store
 /out
-
-# Auto-generated files
-kernel/Keyboard_map.cpp
-kernel/Keyboard_map.h

@@ -96,4 +96,19 @@ namespace Memory
 
 	void* Alloc(unsigned bytes);
 	void Free(void* ptr);
+
+	template<class T>
+	T* Alloc()
+	{
+		T* v = (T*)Alloc(sizeof(T));
+		//v->T();
+		return v;
+	}
+
+	template<class T>
+	void Free(T* ptr)
+	{
+		//ptr->~T();
+		Memory::Free((void*)ptr);
+	}
 }

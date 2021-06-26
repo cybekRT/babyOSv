@@ -102,7 +102,7 @@ namespace FS::BlkFS
 	{
 		const char* dirs[] = { "dev", "part" };
 
-		if(dir->index >= sizeof(dirs) / sizeof(dirs[0]))
+		if((u32)dir->index >= sizeof(dirs) / sizeof(dirs[0]))
 			return Status::EOF;
 
 		entry->isDirectory = true;
@@ -118,7 +118,7 @@ namespace FS::BlkFS
 	FS::Status ReadDirectory_Devices(void* fs, Directory* dir, DirEntry* entry)
 	{
 		auto devices = Block::GetDevices();
-		if(dir->index >= devices.Size())
+		if((u32)dir->index >= devices.Size())
 			return Status::EOF;
 
 		auto dev = devices[dir->index];
@@ -134,7 +134,7 @@ namespace FS::BlkFS
 	FS::Status ReadDirectory_Partitions(void* fs, Directory* dir, DirEntry* entry)
 	{
 		auto partitions = Block::GetPartitions();
-		if(dir->index >= partitions.Size())
+		if((u32)dir->index >= partitions.Size())
 			return Status::EOF;
 
 		auto part = partitions[dir->index];
@@ -170,7 +170,7 @@ namespace FS::BlkFS
 
 	FS::Status ChangeDirectory(void* fs, Directory* dir)
 	{
-		if(dir->index < 0 || dir->index >= (u32)Type::Count)
+		if((u32)dir->index < 0 || (u32)dir->index >= (u32)Type::Count)
 			return Status::Undefined;
 
 		if(dir->type == Type::Root)
@@ -199,6 +199,7 @@ namespace FS::BlkFS
 		(*file)->dataLen = Print("Device: %s\nBlocks: %u\n", dev.name, dev.drv->Size(dev.drvPriv));
 
 		Terminal::SetBuffer(nullptr);
+		return Status::Success;
 	}
 
 	FS::Status OpenFile(void* fs, Directory* dir, File** file)

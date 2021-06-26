@@ -299,7 +299,7 @@ namespace FAT
 
 	FS::Status Dealloc(Block::BlockPartition* part, void** fs)
 	{
-
+		return FS::Status::Success;
 	}
 
 	/*

@@ -6,6 +6,8 @@ namespace Block::Dummy
 	u8 Name(void* dev, u8* buffer)
 	{
 		strcpy("dummy", (char*)buffer);
+
+		return 0;
 	}
 
 	u32 Size(void* dev)

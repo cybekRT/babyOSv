@@ -1,7 +1,7 @@
 #include"Thread.hpp"
 #include"Memory.h"
-#include"Array.h"
-#include"LinkedList.h"
+#include"Container/Array.h"
+#include"Container/LinkedList.h"
 #include"Interrupt.h"
 #include"Timer.h"
 
@@ -243,7 +243,7 @@ namespace Thread
 
 		(*thread)->stackSize = 8192;
 		(*thread)->stackBottom = Memory::Alloc((*thread)->stackSize);
-		(*thread)->stack = (*thread)->stackBottom + (*thread)->stackSize;
+		(*thread)->stack = (void*)((u8*)(*thread)->stackBottom + (*thread)->stackSize);
 
 		for(unsigned a = 0; a < (u32)Register::Count; a++)
 		{
@@ -301,6 +301,8 @@ namespace Thread
 		Interrupt::Disable();
 		raisedSignals.PushBack(SignalInfo { .signal = signal, .raisedTime = Timer::GetTicks(), .timeout = timeout });
 		Interrupt::Enable();
+
+		return Status::Success;
 	}
 
 	Status WaitForSignal(Signal signal, Timer::Time timeout)

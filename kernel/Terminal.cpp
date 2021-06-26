@@ -11,7 +11,10 @@ namespace Terminal
 	bool Init()
 	{
 		unsigned short* data = (unsigned short*)0x800b8000;
-		for(unsigned a = 0; a < 80 * 25 * 2; a++) data[a] = 0x0700;
+		for(unsigned a = 0; a < 80 * 25 * 2; a++)
+			data[a] = 0x0700;
+
+		return true;
 	}
 
 	u32 CursorToBuffer()
@@ -78,12 +81,12 @@ namespace Terminal
 			unsigned short* src = (unsigned short*)0x800b80a0;
 			unsigned short* dst = (unsigned short*)0x800b8000;
 
-			for(unsigned a = 0; a < 80*24; a++)
+			for(u32 a = 0; a < 80*24; a++)
 			{
 				*dst++ = *src++;
 			}
 
-			for(unsigned a = 0; a < 80; a++)
+			for(u32 a = 0; a < 80; a++)
 			{
 				*dst++ = 0x0700;
 			}

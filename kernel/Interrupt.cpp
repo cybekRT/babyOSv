@@ -72,18 +72,19 @@ namespace Interrupt
 
 	ISR(Dummy)
 	{
-		PutString("ISR: ");
+		/*PutString("ISR: ");
 		PutHex((unsigned)ptr);
-		PutString("\n");
+		PutString("\n");*/
 	}
 
 	ISR(IRQ_Dummy)
 	{
-		PutString("ISR: ");
+		/*PutString("ISR: ");
 		PutHex((unsigned)ptr);
-		PutString("\n");
+		PutString("\n");*/
 
-		HAL::Out8(0x20, 0x20);
+		//HAL::Out8(0x20, 0x20);
+		Interrupt::AckIRQ();
 	}
 
 	struct ISR_Registers
@@ -154,13 +155,13 @@ namespace Interrupt
 		Print("ESI: %x, EDI: %x\n", regs.esi, regs.edi);
 		Print(" DS: %x,  ES: %x,  FS: %x,  GS: %x\n", regs.ds, regs.es, regs.fs, regs.gs);
 
-		int* ebp;
+		u32* ebp;
 		__asm("mov %%ebp, %0" : "=m"(ebp));
 		Print("Callstack:\n");
 		while(ebp)
 		{
 			u32 addr = 0;
-			for(unsigned a = 0; a < 4; a++)
+			for(u32 a = 0; a < 4; a++)
 			{
 				if(ebp[a] >= _kernel_code_beg && ebp[a] <= _kernel_code_end)
 				{
@@ -171,7 +172,7 @@ namespace Interrupt
 			
 			Print(" - %p\n", addr);
 
-			ebp = (int*)(*ebp);
+			ebp = (u32*)(*ebp);
 		}
 
 		__asm("cli");

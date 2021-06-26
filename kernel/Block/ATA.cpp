@@ -124,6 +124,8 @@ namespace ATA
 			u16* ptr = (u16*)buffer;
 			ptr[a] = regData.Read();
 		}
+
+		return true;
 	}
 
 	bool Init()
@@ -260,21 +262,24 @@ namespace ATA
 	u8 _Name(void* dev, u8* buffer)
 	{
 		strcpy("ata", (char*)buffer);
+
+		return 0;
 	}
 
 	u32 _Size(void* dev)
 	{
+		// TODO: fixme
 		return 99999;
 	}
 
 	u8 _Lock(void* dev)
 	{
-
+		return 0;
 	}
 
 	u8 _Unlock(void* dev)
 	{
-
+		return 0;
 	}
 
 	u32 _BlockSize(void* dev)
@@ -291,7 +296,7 @@ namespace ATA
 
 	u8 _Write(void* dev, u32 lba, u8* buffer)
 	{
-		
+		return 0;
 	}
 
 	Block::BlockDeviceDriver drv 

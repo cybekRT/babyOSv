@@ -2,7 +2,7 @@
 #include"Memory.h"
 #include"Interrupt.h"
 #include"Timer.h"
-#include"Keyboard.h"
+#include"Input/Keyboard.h"
 #include"Thread.hpp"
 
 #include"ISA_DMA.hpp"
@@ -71,6 +71,23 @@ int strcat(const char* src, char* dst)
 
 	*dst = 0;
 	return len;
+}
+
+// Required if -O3 is used
+extern "C"
+{
+	void* memmove(void* destination, const void* source, unsigned num)
+	{
+		// FIXME for overlapping buffers
+		u8* src = (u8*)source;
+		u8* dst = (u8*)destination;
+		for(u32 a = 0; a < num; a++)
+		{
+			*dst++ = *src++;
+		}
+
+		return destination;
+	}
 }
 
 u8 tolower(u8 c);

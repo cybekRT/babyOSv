@@ -39,11 +39,13 @@ namespace VFS
 		(*dir)->fsInfo = nullptr;
 		(*dir)->fsPriv = nullptr;
 		(*dir)->fsDir = nullptr;
+
+		return Status::Success;
 	}
 
 	Status OpenDirectory(FS::Directory* src, FS::Directory** dir)
 	{
-
+		return Status::Fail;
 	}
 
 	Status CloseDirectory(FS::Directory** dir)
@@ -57,6 +59,7 @@ namespace VFS
 
 		Memory::Free((void*)*dir);
 		(*dir) = nullptr;
+		return Status::Success;
 	}
 
 	Status RewindDirectory(FS::Directory* dir)

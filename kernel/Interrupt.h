@@ -1,4 +1,4 @@
-#define ISR(name) __attribute__((interrupt)) void ISR_##name(void* ptr)
+#define ISR(name) __attribute__((interrupt)) void ISR_##name(void*)
 
 namespace Interrupt
 {

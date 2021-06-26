@@ -84,31 +84,31 @@ namespace Floppy
 
 	enum Command
 	{
-		FDD_CMD_READ_TRACK =                 2,	// generates IRQ6
-		FDD_CMD_SPECIFY =                    3,      // * set drive parameters
+		FDD_CMD_READ_TRACK =                 2,		// generates IRQ6
+		FDD_CMD_SPECIFY =                    3,		// * set drive parameters
 		FDD_CMD_SENSE_DRIVE_STATUS =         4,
-		FDD_CMD_WRITE_DATA =                 5,      // * write to the disk
-		FDD_CMD_READ_DATA =                  6,      // * read from the disk
-		FDD_CMD_RECALIBRATE =                7,      // * seek to cylinder 0
-		FDD_CMD_SENSE_INTERRUPT =            8,      // * ack IRQ6; get status of last command
+		FDD_CMD_WRITE_DATA =                 5,		// * write to the disk
+		FDD_CMD_READ_DATA =                  6,		// * read from the disk
+		FDD_CMD_RECALIBRATE =                7,		// * seek to cylinder 0
+		FDD_CMD_SENSE_INTERRUPT =            8,		// * ack IRQ6; get status of last command
 		FDD_CMD_WRITE_DELETED_DATA =         9,
 		FDD_CMD_READ_ID =                    10,	// generates IRQ6
 		FDD_CMD_READ_DELETED_DATA =          12,
-		FDD_CMD_FORMAT_TRACK =               13,     // *
+		FDD_CMD_FORMAT_TRACK =               13,	// *
 		FDD_CMD_DUMPREG =                    14,
-		FDD_CMD_SEEK =                       15,     // * seek both heads to cylinder X
+		FDD_CMD_SEEK =                       15,	// * seek both heads to cylinder X
 		FDD_CMD_VERSION =                    16,	// * used during initialization; once
 		FDD_CMD_SCAN_EQUAL =                 17,
 		FDD_CMD_PERPENDICULAR_MODE =         18,	// * used during initialization; once; maybe
-		FDD_CMD_CONFIGURE =                  19,     // * set controller parameters
-		FDD_CMD_LOCK =                       20,     // * protect controller params from a reset
+		FDD_CMD_CONFIGURE =                  19,	// * set controller parameters
+		FDD_CMD_LOCK =                       20,	// * protect controller params from a reset
 		FDD_CMD_VERIFY =                     22,
 		FDD_CMD_SCAN_LOW_OR_EQUAL =          25,
 		FDD_CMD_SCAN_HIGH_OR_EQUAL =         29,
 
 		FDD_CMD_OPTION_MULTITRACK		= 0x80,
-		FDD_CMD_OPTION_MFM			= 0x40,
-		FDD_CMD_OPTION_SKIP			= 0x20
+		FDD_CMD_OPTION_MFM				= 0x40,
+		FDD_CMD_OPTION_SKIP				= 0x20
 	};
 
 	extern Block::BlockDeviceDriver drv;
