@@ -8,10 +8,12 @@
 #include"ISA_DMA.hpp"
 
 #include"Block/Block.hpp"
+#include"Block/Dummy.hpp"
 #include"Block/Floppy.hpp"
 #include"Block/ATA.hpp"
 
 #include"FS/FS.hpp"
+#include"FS/BlkFS.hpp"
 #include"FS/FAT.hpp"
 
 #include"VFS.hpp"
@@ -159,11 +161,13 @@ extern "C" void kmain()
 	}*/
 
 	Block::Init();
+	Block::Dummy::Init();
 	Floppy::Init();
 	ATA::Init();
 
 	FS::Init();
 	FAT::Init();
+	FS::BlkFS::Init();
 
 	VFS::Init();
 
