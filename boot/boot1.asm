@@ -36,14 +36,15 @@ bootcode:
 	mov	[xBPB + BPB_t.driveNumber], dl
 	jmp	0:Init
 
-helloMsg db OS_NAME, 0xA, 0xD, "Loading kernel..."
+helloMsg db OS_NAME, 0xA, 0xD, "Loading stage2..."
 helloMsgLen equ ($ - helloMsg)
 db helloMsgLen
 ;;;;;
-
 %include"FAT12_lite.asm"
-kernelName db "BOOT    BIN"
-kernelDstSector dw BOOT2_ADDR
+fileName db "BOOT    BIN"
+FILE_SEG equ (BOOT2_ADDR >> 4)
+filePtr dw 0
+;filePtr dw BOOT2_ADDR
 
 Init:
 	; CS set to 0x0 with jump, but DS also needs to be set to 0x0...
@@ -69,20 +70,22 @@ Init:
 	mov	cx, 512
 	rep movsb
 
-	call	FindKernel
-	call	ReadKernel
-	call	ExecuteKernel
+	call	FindFile
+	call	ReadFile
+	call	ExecuteBoot2
 	jmp	Fail
 
-ExecuteKernel:
+ExecuteBoot2:
 	jmp	0x0:BOOT2_ADDR
 
 Fail:
-	mov	bx, 0xb800
-	mov	es, bx
-	mov	bx, 0
-	mov	byte [es:bx + 0], 'F'
-	mov	byte [es:bx + 2], 'B'
+	;mov	bx, 0xb800
+	;mov	es, bx
+	;mov	bx, 0
+	;mov	byte [es:bx + 0], 'F'
+	;mov	byte [es:bx + 2], 'B'
+
+	xchg bx, bx
 
 	; Boot other device...
 	cli

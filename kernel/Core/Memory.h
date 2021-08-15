@@ -96,6 +96,7 @@ namespace Memory
 
 	void* Alloc(unsigned bytes);
 	void Free(void* ptr);
+	u32 Size(void* ptr);
 
 	template<class T>
 	T* Alloc()

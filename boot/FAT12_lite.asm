@@ -3,10 +3,10 @@ rootLBA dw 0
 dataLBA dw 0
 
 rootEntryOffset dw 0
-kernelCluster dw 0
+fileCluster dw 0
 fatLBARead dw 0xFFFF
 
-FindKernel:
+FindFile:
 	; Calculate FAT LBA
 	mov	ax, [BPB_LOC + BPB_t.reservedSectors]
 	add	ax, [BPB_LOC + BPB_t.hiddenSectors]
@@ -40,7 +40,7 @@ FindKernel:
 	add	di, [rootEntryOffset]
 .loop:
 	mov	cx, 8+3
-	mov	si, kernelName
+	mov	si, fileName
 
 	rep cmpsb
 	je	.found
@@ -57,24 +57,25 @@ FindKernel:
 .found:
 	sub	di, 8+3
 	mov	ax, [di + FAT12_DirectoryEntry.cluster]
-	mov	[kernelCluster], ax
+	mov	[fileCluster], ax
+	ret
 
-ReadKernel:
+ReadFile:
 .loop:
-	cmp	word [kernelCluster], CLUSTER_LAST
+	cmp	word [cs:fileCluster], CLUSTER_LAST
 	je	.exit
 
-	mov	si, [kernelCluster]
+	mov	si, [cs:fileCluster]
 	shr	si, 1
-	add	si, [kernelCluster]
+	add	si, [cs:fileCluster]
 
 	mov	ax, si
 	shr	ax, 9
-	cmp	ax, [fatLBARead]
+	cmp	ax, [cs:fatLBARead]
 	je	.noRead
 
-	mov	[fatLBARead], ax
-	add	ax, [fatLBA]
+	mov	[cs:fatLBARead], ax
+	add	ax, [cs:fatLBA]
 
 	; Read FAT sector
 	push	ax
@@ -92,40 +93,46 @@ ReadKernel:
 	call	ReadSector
 
 .noRead:
-	mov	ax, [dataLBA]
-	add	ax, [kernelCluster]
+	mov	ax, [cs:dataLBA]
+	add	ax, [cs:fileCluster]
 	sub	ax, 2
 
-	mov	bx, 0
+	mov	bx, FILE_SEG
 	mov	es, bx
-	mov	bx, [kernelDstSector]
+	mov	bx, [cs:filePtr]
 	call	ReadSector
 
-	add	word [kernelDstSector], 512
+	mov bx, [cs:filePtr]
+	add	word [cs:filePtr], 512
+	cmp [cs:filePtr], bx
+	jb	FailX
 
 	; Calculate next cluster
-	mov	bx, [kernelCluster]
+	mov	bx, [cs:fileCluster]
 	shr	bx, 1
-	add	bx, [kernelCluster]
+	add	bx, [cs:fileCluster]
 	add	bx, FAT_LOC
 
-	test	word [kernelCluster], 1
+	test	word [cs:fileCluster], 1
 	jnz	.odd
 
 .even:
-	mov	ax, [bx]
+	mov	ax, [cs:bx]
 	and	ax, 0x0FFF
-	mov	[kernelCluster], ax
+	mov	[cs:fileCluster], ax
 	jmp	.loop
 
 .odd:
-	mov	ax, [bx]
+	mov	ax, [cs:bx]
 	shr	ax, 4
-	mov	[kernelCluster], ax
+	mov	[cs:fileCluster], ax
 	jmp	.loop
 
 .exit:
 	ret
+
+FailX:
+	xchg bx, bx
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
@@ -137,14 +144,14 @@ ReadKernel:
 ReadSector:
 	push	bx
 	; LBA 2 CHS
-	mov	bl, [BPB_LOC + BPB_t.sectorsPerTrack]
+	mov	bl, [cs:BPB_LOC + BPB_t.sectorsPerTrack]
 	div	bl
 
 	mov	cl, ah ; Sectors
 	inc	cl
 	xor	ah, ah
 
-	mov	bl, [BPB_LOC + BPB_t.headsCount]
+	mov	bl, [cs:BPB_LOC + BPB_t.headsCount]
 	div	bl
 
 	mov	dh, ah ; Heads
@@ -153,7 +160,7 @@ ReadSector:
 	; perform read
 	mov	ah, 02h
 	mov	al, 1
-	mov	dl, [BPB_LOC + BPB_t.driveNumber]
+	mov	dl, [cs:BPB_LOC + BPB_t.driveNumber]
 	pop	bx
 
 	int	13h

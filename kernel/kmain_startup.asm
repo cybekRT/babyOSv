@@ -26,6 +26,8 @@
 	extern __ctors_end
 
 [section .startup]
+jmp main
+db "<YOLO>"
 main:
 	cli
 
@@ -58,3 +60,4 @@ main:
 	_org_stack_beg dd __stack_beg
 	_org_stack_end dd __stack_end
 	_org_stack_size dd __stack_size
+db "</YOLO>"

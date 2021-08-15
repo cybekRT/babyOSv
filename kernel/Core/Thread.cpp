@@ -151,7 +151,7 @@ namespace Thread
 		memcpy(thread->name, (void*)"kmain", 6);
 		thread->state = State::Running;
 
-		thread->stackSize = 8192;
+		thread->stackSize = 8192*4;
 		//thread->stack = Memory::Alloc(thread->stackSize);
 		CreateKernelStack(thread);
 

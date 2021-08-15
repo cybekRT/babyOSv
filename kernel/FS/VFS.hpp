@@ -12,9 +12,10 @@ namespace VFS
 	Status RewindDirectory(FS::Directory* dir);
 
 	Status ReadDirectory(FS::Directory* dir, FS::DirEntry* entry);
-	Status ChangeDirectory(FS::Directory* dir);
+	Status ChangeDirectory(FS::Directory* dir, u8* name);
+	Status GetPath(FS::Directory* dir, u8* buffer);
 
-	Status OpenFile(FS::Directory* dir, FS::File** file);
+	Status OpenFile(FS::Directory* dir, u8* name, FS::File** file);
 	Status CloseFile(FS::File** file);
 
 	Status ReadFile(FS::File* file, u8* buffer, u32 bufferSize, u32* readCount);

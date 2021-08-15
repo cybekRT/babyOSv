@@ -10,11 +10,36 @@ main16:
 
 	mov	esp, stackBegin
 
-	mov	ax, 13h
+	;mov	ax, 13h
 	;int	10h
 
-	call	FindKernel
-	call	ReadKernel
+	; Display hello message
+	mov	ax, 0x1301
+	mov	bx, 0x000F
+	mov	cx, helloMsg1Len
+	mov	dx, 0x0200
+	mov	bp, helloMsg1
+	int	10h
+
+	call	FindFile
+
+	; Display hello message
+	mov	ax, 0x1301
+	mov	bx, 0x000F
+	mov	cx, helloMsg2Len
+	mov	dx, 0x0300
+	mov	bp, helloMsg2
+	int	10h
+
+	call	ReadFile
+
+	; Display hello message
+	mov	ax, 0x1301
+	mov	bx, 0x000F
+	mov	cx, helloMsg3Len
+	mov	dx, 0x0400
+	mov	bp, helloMsg3
+	int	10h
 
 	mov	bx, 0xb800
 	mov	es, bx
@@ -42,8 +67,17 @@ main16:
 
 %include"FAT12_lite.asm"
 
-kernelName db "KERNEL  BIN"
-kernelDstSector dw KERNEL_ADDR
+helloMsg1 db "Searching kernel..."
+helloMsg1Len equ ($ - helloMsg1)
+helloMsg2 db "Reading kernel..."
+helloMsg2Len equ ($ - helloMsg2)
+helloMsg3 db "Starting kernel..."
+helloMsg3Len equ ($ - helloMsg3)
+
+fileName db "KERNEL  BIN"
+FILE_SEG equ (KERNEL_ADDR >> 4)
+;filePtr dw KERNEL_ADDR
+filePtr dw 0
 xBPB equ BPB_LOC
 
 Fail:
@@ -169,7 +203,7 @@ main32:
 	lgdt	[GDT_Handle + 0x80000000]
 
 	push	BootloaderInfo
-	jmp	kmain + 0x80000000
+	jmp		kmain + 0x80000000
 .halt:
 	cli
 	hlt

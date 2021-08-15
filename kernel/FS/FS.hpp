@@ -5,6 +5,8 @@
 
 namespace FS
 {
+	constexpr u32 MaxFilenameLength = 256;
+
 	enum class Status
 	{
 		Success = 0,
@@ -21,7 +23,7 @@ namespace FS
 		bool isHidden : 1;
 
 		u32 size;
-		u8 name[256];
+		u8 name[MaxFilenameLength];
 	};
 
 	struct Directory;

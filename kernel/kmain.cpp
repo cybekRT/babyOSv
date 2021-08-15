@@ -130,6 +130,11 @@ void Halter()
 	}
 }
 
+extern "C" void __cxa_pure_virtual()
+{
+	ASSERT(false, "Pure virtual function calles :(");
+}
+
 extern "C" void kmain()
 {
 	ASSERT(sizeof(u64) == 8, "u64");
@@ -192,6 +197,20 @@ extern "C" void kmain()
 
 	FS::Directory* dir;
 	VFS::OpenRoot(&dir);
+
+	Array<int> array;
+	array.PushBack(5);
+	array.PushBack(1);
+	array.PushBack(2);
+	array.PushBack(59873);
+
+	auto itr = array.begin() + 0; //++itr; ++itr;
+	array.Insert(itr, 666);
+
+	for(auto itr : array)
+	{
+		Print("Value: %d\n", itr);
+	}
 
 #if 0
 	for(;;)
@@ -267,6 +286,7 @@ extern "C" void kmain()
 	}
 #endif
 
+#if 1
 	char tmp[64];
 	u8 tmpX = 0;
 	Keyboard::KeyEvent keyEvent;
@@ -366,7 +386,7 @@ extern "C" void kmain()
 
 							if(strcmp((char*)path, (char*)entry.name))
 							{
-								if(VFS::ChangeDirectory(dir) == Status::Success)
+								if(VFS::ChangeDirectory(dir, entry.name) == Status::Success)
 									changed = true;
 								break;
 							}
@@ -407,7 +427,7 @@ extern "C" void kmain()
 
 							if(strcmp((char*)path, (char*)entry.name))
 							{
-								VFS::OpenFile(dir, &file);
+								VFS::OpenFile(dir, entry.name, &file);
 								break;
 							}
 						}
@@ -455,6 +475,7 @@ extern "C" void kmain()
 
 		__asm("hlt");
 	}
+#endif
 
 	for(;;)
 	{

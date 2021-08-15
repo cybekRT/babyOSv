@@ -1,4 +1,5 @@
 #include"VFS.hpp"
+#include"Container/LinkedList.h"
 
 int strlen(const char* str);
 int strcpy(const char* src, char* dst);
@@ -19,6 +20,7 @@ namespace FS
 		FSInfo *fsInfo;
 		void* fsPriv;
 		FS::Directory* fsDir;
+		LinkedList<u8*> path;
 	};
 }
 
@@ -55,6 +57,12 @@ namespace VFS
 		if((*dir)->fsDir != nullptr)
 		{
 			(*dir)->fsInfo->CloseDirectory((*dir)->fsPriv, &(*dir)->fsDir);
+		}
+
+		while(!(*dir)->path.IsEmpty())
+		{
+			auto ptr = !(*dir)->path.PopFront();
+			Memory::Free((void*)ptr);
 		}
 
 		Memory::Free((void*)*dir);
@@ -115,66 +123,120 @@ namespace VFS
 		return Status::Fail;
 	}
 
-	Status ChangeDirectory(FS::Directory* dir)
+	Status ChangeDirectory(FS::Directory* dir, u8* name)
 	{
 		ASSERT(dir, "No dir");
 
+		FS::Status status;
+
 		if(dir->fsInfo != nullptr)
 		{
-			auto fsResult = dir->fsInfo->ChangeDirectory(dir->fsPriv, dir->fsDir);
-			Print("Result %x: %s:%d\n", fsResult, __FILE__, __LINE__);
-			return (fsResult == FS::Status::Success ? Status::Success : Status::Fail);
-		}
+			//status = dir->fsInfo->ChangeDirectory(dir->fsPriv, dir->fsDir);
 
-		//Block::BlockDevice* bd = nullptr;
-		Block::BlockPartition* part = nullptr;
-
-		unsigned a = 0;
-		for(auto& itr : Block::GetPartitions())
-		{
-			if(a++ == dir->index)
+			status = FS::Status::EOF;
+			Print("FSInfo2: %x", dir->fsInfo);
+			dir->fsInfo->RewindDirectory(dir->fsPriv, dir->fsDir);
+			FS::DirEntry entry;
+			Print("Reading directory...\n");
+			Print(" %x\n", dir);
+			Print(" %x\n", dir->fsInfo);
+			Print(" %x\n", dir->fsInfo->ReadDirectory);
+			while(dir->fsInfo->ReadDirectory(dir->fsPriv, dir->fsDir, &entry) == FS::Status::Success)
 			{
-				//bd = &itr;
-				part = &itr;
-				break;
+				Print(">");
+				if(!entry.isValid)
+					continue;
+
+				if(strcmp((char*)entry.name, (char*)name))
+				{
+					u8* pathBuffer = (u8*)Memory::Alloc(FS::MaxFilenameLength);
+					strcpy((char*)entry.name, (char*)pathBuffer);
+
+					status = dir->fsInfo->ChangeDirectory(dir->fsPriv, dir->fsDir);
+
+					if(status == FS::Status::Success)
+						dir->path.PushBack(pathBuffer);
+				}
 			}
-		}
 
-		if(!part)
+			Print("Result %x: %s:%d\n", status, __FILE__, __LINE__);
+			//return (fsResult == FS::Status::Success ? Status::Success : Status::Fail);
+		}
+		else
 		{
-			Print("Fail: %s:%d\n", __FILE__, __LINE__);
-			return Status::Fail;
+			//Block::BlockDevice* bd = nullptr;
+			Block::BlockPartition* part = nullptr;
+
+			unsigned a = 0;
+			for(auto& itr : Block::GetPartitions())
+			{
+				if(a++ == dir->index)
+				{
+					//bd = &itr;
+					part = &itr;
+					break;
+				}
+			}
+
+			if(!part)
+			{
+				Print("Fail: %s:%d\n", __FILE__, __LINE__);
+				return Status::Fail;
+			}
+
+			auto fsItr = FS::filesystems.data;
+			while(fsItr)
+			{
+				if(fsItr->value->Probe(part) == FS::Status::Success)
+					break;
+
+				fsItr = fsItr->next;
+			}
+
+			if(!fsItr)
+			{
+				Print("Fail: %s:%d\n", __FILE__, __LINE__);
+				return Status::Fail;
+			}
+
+			dir->fsInfo = fsItr->value;
+			dir->fsInfo->Alloc(part, &dir->fsPriv);
+			dir->fsInfo->OpenRoot(dir->fsPriv, &dir->fsDir);
+			Print("FSInfo: %x\n", dir->fsInfo);
 		}
-
-		auto fsItr = FS::filesystems.data;
-		while(fsItr)
-		{
-			if(fsItr->value->Probe(part) == FS::Status::Success)
-				break;
-
-			fsItr = fsItr->next;
-		}
-
-		if(!fsItr)
-		{
-			Print("Fail: %s:%d\n", __FILE__, __LINE__);
-			return Status::Fail;
-		}
-
-		dir->fsInfo = fsItr->value;
-		dir->fsInfo->Alloc(part, &dir->fsPriv);
-		dir->fsInfo->OpenRoot(dir->fsPriv, &dir->fsDir);
 
 		return Status::Success;
 	}
 
-	Status OpenFile(FS::Directory* dir, FS::File** file)
+	Status GetPath(FS::Directory* dir)
+	{
+
+	}
+
+	Status IsRoot(FS::Directory* dir, bool* result)
+	{
+
+	}
+
+	Status OpenFile(FS::Directory* dir, u8* name, FS::File** file)
 	{
 		ASSERT(dir, "No dir");
 		ASSERT(file, "Invalid pointer to file");
 
 		if(dir->fsInfo != nullptr)
 		{
+			dir->fsInfo->RewindDirectory(dir->fsPriv, dir->fsDir);
+
+			FS::DirEntry entry;
+			while(dir->fsInfo->ReadDirectory(dir->fsPriv, dir->fsDir, &entry) == FS::Status::Success)
+			{
+				if(!entry.isValid)
+					continue;
+
+				if(strcmp((char*)entry.name, (char*)name))
+					break;
+			}
+
 			(*file) = (FS::File*)Memory::Alloc(sizeof(FS::File));
 			(*file)->fsInfo = dir->fsInfo;
 			(*file)->fsPriv = dir->fsPriv;

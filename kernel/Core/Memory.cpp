@@ -192,8 +192,10 @@ namespace Memory
 		// First fit
 		auto ptr = mallocPage;
 		auto prevPtr = (MallocHeader*)nullptr;
+		Print("Checking:\n");
 		while(ptr)
 		{
+			Print(" - %p\n", ptr);
 			if(ptr->length >= bytes)
 			{
 				if(ptr->length > bytes + sizeof(MallocHeader))
@@ -211,7 +213,19 @@ namespace Memory
 				if(prevPtr)
 					prevPtr->next = ptr->next;
 				else
+				{
 					mallocPage = ptr->next;
+					if(!mallocPage)
+					{
+						Memory::Physical::PrintMemoryMap();
+						for(;;)
+						{
+							__asm("hlt");
+						}
+					}
+					ASSERT(mallocPage, "Out of memory?");
+					//Print("MallocPage = ptr->next = %p", ptr->next);
+				}
 
 				ptr->next = nullptr;
 
@@ -235,10 +249,12 @@ namespace Memory
 	{
 		MallocHeader* hdr = &((MallocHeader*)ptr)[-1];
 
+		//Print("MallocPage: %p, Hdr: %p\n", mallocPage, hdr);
 		if(hdr < mallocPage)
 		{
 			hdr->next = mallocPage;
 			mallocPage = hdr;
+			//Print("MallocPage = Hdr = %p\n", mallocPage);
 		}
 		else
 		{
@@ -260,10 +276,41 @@ namespace Memory
 
 			if(ptr == nullptr)
 			{
+				Print("Prev: %p, Ptr: %p, Hdr: %p, Hdr->next: %p\n", prevPtr, ptr, hdr, hdr->next);
 				prevPtr->next = hdr;
-				hdr->next = nullptr;
+				//hdr->next = nullptr;
 			}
 		}
 		// TODO: merge entries
 	}
+
+	u32 Size(void* ptr)
+	{
+		MallocHeader* hdr = &((MallocHeader*)ptr)[-1];
+		return hdr->length - sizeof(MallocHeader);;
+	}
+}
+
+void* operator new(unsigned long size)
+{
+	Print("New: %d bytes\n", size);
+	return Memory::Alloc(size);
+}
+
+void* operator new[](unsigned long size)
+{
+	Print("New[]: %d bytes\n", size);
+	return Memory::Alloc(size);
+}
+
+void operator delete(void* ptr, unsigned long size)
+{
+	Print("Delete: %p - %d\n", ptr, size);
+	Memory::Free(ptr);
+}
+
+void operator delete[](void* ptr, unsigned long size)
+{
+	Print("Delete[]: %p - %d\n", ptr, size);
+	Memory::Free(ptr);
 }
