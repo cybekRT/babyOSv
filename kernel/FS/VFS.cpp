@@ -109,7 +109,7 @@ namespace VFS
 				entry->isHidden = 0;
 				entry->isSymlink = 0;
 
-				strcpy((char*)itr.name, (char*)entry->name);
+				strcpy((char*)itr->name, (char*)entry->name);
 
 				return Status::Success;
 			}
@@ -173,7 +173,7 @@ namespace VFS
 				if(a++ == dir->index)
 				{
 					//bd = &itr;
-					part = &itr;
+					part = itr;
 					break;
 				}
 			}

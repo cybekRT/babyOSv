@@ -192,10 +192,8 @@ namespace Memory
 		// First fit
 		auto ptr = mallocPage;
 		auto prevPtr = (MallocHeader*)nullptr;
-		Print("Checking:\n");
 		while(ptr)
 		{
-			Print(" - %p\n", ptr);
 			if(ptr->length >= bytes)
 			{
 				if(ptr->length > bytes + sizeof(MallocHeader))

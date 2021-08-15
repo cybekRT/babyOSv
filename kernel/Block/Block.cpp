@@ -7,8 +7,8 @@ int strcpy(const char* src, char* dst);
 
 namespace Block
 {
-	Array<BlockDevice> devices;
-	Array<BlockPartition> partitions;
+	Array<BlockDevice*> devices;
+	Array<BlockPartition*> partitions;
 
 	uint8 devicesTypesCount[(unsigned)DeviceType::Count] = { 0 };
 	const char* deviceTypeName[] = { "unk", "fdd", "hdd", "cd" };
@@ -73,7 +73,7 @@ namespace Block
 		bd->name[nameLen+1] = 0;
 
 		Print("Registering device: %s\n", bd->name);
-		devices.PushBack(*bd);
+		devices.PushBack(bd);
 
 		RegisterPartition(PartitionType::Raw, bd, drvPriv, 0, bd->drv->Size(drvPriv));
 		ScanMBR(bd);
@@ -94,15 +94,15 @@ namespace Block
 		part->name[nameLen+1] = 0;
 
 		Print("Registering partition: %s (%d %d)\n", part->name, part->lbaOffset, part->lbaCount);
-		partitions.PushBack(*part);
+		partitions.PushBack(part);
 	}
 
-	Array<BlockDevice> GetDevices()
+	Array<BlockDevice*>& GetDevices()
 	{
 		return devices;
 	}
 
-	Array<BlockPartition> GetPartitions()
+	Array<BlockPartition*>& GetPartitions()
 	{
 		return partitions;
 	}

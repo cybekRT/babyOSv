@@ -122,7 +122,7 @@ namespace FS::BlkFS
 			return Status::EOF;
 
 		auto dev = devices[dir->index];
-		strcpy((char*)dev.name, (char*)entry->name);
+		strcpy((char*)dev->name, (char*)entry->name);
 
 		return Status::Success;
 	}
@@ -138,7 +138,7 @@ namespace FS::BlkFS
 			return Status::EOF;
 
 		auto part = partitions[dir->index];
-		strcpy((char*)part.name, (char*)entry->name);
+		strcpy((char*)part->name, (char*)entry->name);
 
 		return Status::Success;
 	}
@@ -196,7 +196,7 @@ namespace FS::BlkFS
 			return Status::Undefined;
 
 		auto dev = devices[(*file)->index];
-		(*file)->dataLen = Print("Device: %s\nBlocks: %u\n", dev.name, dev.drv->Size(dev.drvPriv));
+		(*file)->dataLen = Print("Device: %s\nBlocks: %u\n", dev->name, dev->drv->Size(dev->drvPriv));
 
 		Terminal::SetBuffer(nullptr);
 		return Status::Success;

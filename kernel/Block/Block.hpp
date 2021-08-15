@@ -63,6 +63,6 @@ namespace Block
 	void RegisterDevice(DeviceType type, BlockDeviceDriver* drv, void* drvPriv);
 	void RegisterPartition(PartitionType type, BlockDevice* dev, void* drvPriv, u32 lbaOffset, u32 lbaCount);
 
-	Array<BlockDevice> GetDevices();
-	Array<BlockPartition> GetPartitions();
+	Array<BlockDevice*>& GetDevices();
+	Array<BlockPartition*>& GetPartitions();
 }
