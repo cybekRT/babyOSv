@@ -18,7 +18,7 @@ class Array
 		public:
 			Iterator(T* ptr) : ptr(ptr)
 			{
-				//Print("Iterator(%p)\n", ptr);
+				
 			}
 
 			virtual T& operator*() override
@@ -28,7 +28,6 @@ class Array
 
 			virtual const Iterator operator+(int v) const
 			{
-				Print("Iterator(%p + %d)\n", ptr, v);
 				return Iterator(ptr + v);
 			}
 
@@ -126,19 +125,12 @@ public:
 
 	Iterator end()
 	{
-		//Print("Iterator::end, Objs: %p, Size: %d\n", objs, size);
 		return Iterator(objs + size);
 	}
 
 	void Insert(Iterator itr, const T& v)
 	{
 		u32 pos = (u32)((&(*itr)) - (&(*begin())));
-		T* ptrItr = &(*itr);
-		T* ptrBegin = &(*begin());
-		//Print("Itr: %p, Beg: %p, Diff: %p\n", ptrItr, ptrBegin, ptrItr - ptrBegin);
-		//Print("Pos: %d, Size: %d\n", pos, size);
-		//Print("Begin: %p, End: %p\n", &(*begin()), &(*end()));
-		//Print("Itr: %p\n", &(*itr));
 
 		if(size + 1 > capacity)
 			Realloc();
@@ -147,7 +139,6 @@ public:
 		{
 			for(unsigned a = size - 1; a > pos; a--)
 			{
-				//Print(".");
 				objs[a] = objs[a - 1];
 				if(a == 0)
 					break;
@@ -156,8 +147,6 @@ public:
 
 		objs[pos] = v;
 		size++;
-
-		//Print("Done~!\n");
 	}
 
 	void PushFront(const T& v)
