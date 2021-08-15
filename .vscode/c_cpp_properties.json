@@ -3,12 +3,15 @@
         {
             "name": "Mac",
             "includePath": [
-                "${workspaceFolder}/kernel"
+                "${workspaceFolder}/kernel",
+                "${workspaceFolder}/kernel/Core",
+                "${workspaceFolder}/out/gen"
             ],
             "defines": [],
             "macFrameworkPath": [],
             "intelliSenseMode": "gcc-x86",
-            "compilerPath": "/usr/local/osdev/bin/i386-elf-gcc",
+            //"compilerPath": ["/usr/local/osdev/bin/i386-elf-gcc", "D:/Programs/gcc/bin/i386-elf-g++.exe"],
+            "compilerPath": "D:/Programs/gcc/bin/i386-elf-g++.exe",
             "cStandard": "c11",
             "cppStandard": "gnu++14",
             "compilerArgs": [

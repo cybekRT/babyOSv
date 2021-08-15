@@ -56,7 +56,7 @@ OUT_DIRS	:= $(OUT_DIRS:kernel%=out%) $(AUTOGEN_OUT)
 
 GCC			:= $(GCC_PREFIX)gcc
 LD			:= $(GCC_PREFIX)ld
-GCC_FLAGS	:= -include kernel/global.h -Ikernel/ -I$(AUTOGEN_OUT)/
+GCC_FLAGS	:= -include kernel/global.h -Ikernel/ -Ikernel/Core -I$(AUTOGEN_OUT)/
 GCC_FLAGS	+= -mgeneral-regs-only -fno-isolate-erroneous-paths-attribute -fno-asynchronous-unwind-tables
 GCC_FLAGS	+= -Wall -Wextra -g3 -O3 -m32 -march=i486 -std=gnu++1z
 GCC_FLAGS	+= -fno-exceptions -fno-rtti -fno-omit-frame-pointer

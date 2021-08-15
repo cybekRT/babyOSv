@@ -16,7 +16,7 @@
 #include"FS/BlkFS.hpp"
 #include"FS/FAT.hpp"
 
-#include"VFS.hpp"
+#include"FS/VFS.hpp"
 
 int strlen(const char* str)
 {
@@ -193,6 +193,7 @@ extern "C" void kmain()
 	FS::Directory* dir;
 	VFS::OpenRoot(&dir);
 
+#if 0
 	for(;;)
 	{
 		for(auto part : Block::GetPartitions())
@@ -231,6 +232,7 @@ extern "C" void kmain()
 			Timer::Delay(1000);
 		}
 	}
+#endif
 
 #if 0
 	{
