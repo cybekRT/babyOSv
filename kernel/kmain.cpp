@@ -193,7 +193,13 @@ extern "C" void kmain()
 
 	VFS::Init();
 
-	Print("Mounting floppy...\n");
+	if(VFS::Mount("fdd0r1", "fdd") != Status::Success)
+	{
+		Print("No floppy :<\n");
+		for(;;);
+	}
+
+	//Print("Mounting floppy...\n");
 
 	FS::Directory* dir;
 	VFS::OpenRoot(&dir);

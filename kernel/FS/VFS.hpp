@@ -7,7 +7,8 @@ namespace VFS
 {
 	Status Init();
 
-	Status Mount(Block::BlockPartition* part);
+	//Status Mount(Block::BlockPartition* part);
+	Status Mount(char* partName, char* mountPoint);
 
 	Status OpenRoot(FS::Directory** dir);
 	Status OpenDirectory(FS::Directory* src, FS::Directory** dir);

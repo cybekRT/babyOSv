@@ -28,8 +28,69 @@ namespace FS
 
 namespace VFS
 {
+	struct MountPoint
+	{
+		char		name[Path::MaxLength];
+		FS::FSInfo*	fsInfo;
+		void*		fsPriv;
+	};
+
+	Array<MountPoint> mountPoints;
+
 	Status Init()
 	{
+		return Status::Success;
+	}
+
+	Status Mount(char* partName, char* mountPoint)
+	{
+		auto parts = Block::GetPartitions();
+		Block::BlockPartition* part = nullptr;
+
+		for(auto itr : parts)
+		{
+			if(strcmp((char*)itr->name, partName))
+			{
+				part = itr;
+				break;
+			}
+		}
+
+		if(!part)
+		{
+			Print("No partition...\n");
+			return Status::Fail;
+		}
+
+		auto fss = FS::filesystems;
+		FS::FSInfo* fsInfo = nullptr;
+		for(auto itr : fss)
+		{
+			if(itr.value->Probe(part) == FS::Status::Success)
+			{
+				fsInfo = itr.value;
+				break;
+			}
+		}
+
+		if(!fsInfo)
+		{
+			Print("No filesystem...\n");
+			return Status::Fail;
+		}
+
+		void* fsPriv;
+		if(fsInfo->Alloc(part, &fsPriv) != FS::Status::Success)
+			return Status::Fail;
+
+		MountPoint mp = {
+			.fsInfo = fsInfo,
+			.fsPriv = fsPriv,
+		};
+
+		strcpy(mountPoint, mp.name);
+		mountPoints.PushBack(mp);
+
 		return Status::Success;
 	}
 
@@ -112,6 +173,8 @@ namespace VFS
 				entry->isHidden = 0;
 				entry->isSymlink = 0;
 
+				Print("Itr name: %s\n", itr->name);
+				Print("Entry name: %s\n", entry->name);
 				strcpy((char*)itr->name, (char*)entry->name);
 
 				return Status::Success;
@@ -160,8 +223,13 @@ namespace VFS
 					if(status == FS::Status::Success)
 					{
 						//dir->path.PushBack(pathBuffer);
-						Print("Adding path: %s\n", entry.name);
-						dir->path.Add((char*)entry.name);
+						if(strcmp((char*)entry.name, ".."))
+						{
+							Print("Adding path: %s\n", entry.name);
+							dir->path.Add((char*)entry.name);
+						}
+						else
+							dir->path.GoUp();
 					}
 				}
 			}
