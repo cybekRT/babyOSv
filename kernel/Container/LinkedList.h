@@ -118,6 +118,8 @@ public:
 
 			ptr->next = item;
 		}
+
+		ASSERT((u32)data != (u32)-1, "Data pointer corrupted~!");
 	}
 
 	void Remove(LinkedListItem<X>* item)
@@ -143,6 +145,8 @@ public:
 			ptrPrev = data;
 			data = data->next;
 		}
+
+		ASSERT((u32)data != (u32)-1, "Data pointer corrupted~!");
 	}
 
 	X PopFront()
@@ -153,6 +157,8 @@ public:
 		data = item->next;
 		auto itemData = item->value;
 		Memory::Free(item);
+
+		ASSERT((u32)data != (u32)-1, "Data pointer corrupted~!");
 		return itemData;
 	}
 
@@ -171,6 +177,8 @@ public:
 		prevItem->next = nullptr;
 		auto itemData = item->value;
 		Memory::Free(item);
+
+		ASSERT((u32)data != (u32)-1, "Data pointer corrupted~!");
 		return itemData;
 	}
 
@@ -198,10 +206,13 @@ public:
 
 	u32 Size()
 	{
+		ASSERT((u32)data != (u32)-1, "Data pointer corrupted~!");
+
 		u32 count = 0;
 		auto ptr = data;
 		while(ptr)
 		{
+			Print("Ptr: %p, Count: %d\n", ptr, count);
 			ptr = ptr->next;
 			count++;
 		}

@@ -98,7 +98,7 @@ public:
 
 	~Array()
 	{
-		Memory::Free(objs);
+		//Memory::Free(objs);
 	}
 
 	u32 Size()

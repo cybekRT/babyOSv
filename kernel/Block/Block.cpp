@@ -97,12 +97,12 @@ namespace Block
 		partitions.PushBack(part);
 	}
 
-	Array<BlockDevice*>& GetDevices()
+	Array<BlockDevice*> GetDevices()
 	{
 		return devices;
 	}
 
-	Array<BlockPartition*>& GetPartitions()
+	Array<BlockPartition*> GetPartitions()
 	{
 		return partitions;
 	}

@@ -27,18 +27,18 @@ int strlen(const char* str)
 	return len;
 }
 
-bool strcmp(char* a, char* b)
+int strcmp(char* a, char* b)
 {
 	while(*a || *b)
 	{
 		if(*a != *b)
-			return false;
+			return (*a - *b);
 
 		a++;
 		b++;
 	}
 
-	return true;
+	return 0;
 }
 
 int strcpy(const char* src, char* dst)
@@ -273,7 +273,7 @@ extern "C" void kmain()
 		FS::DirEntry entry;
 		while(fs->ReadDirectory(fsPriv, dir, &entry) == FS::Status::Success)
 		{
-			if(strcmp((char*)entry.name, "splash"))
+			if(!strcmp((char*)entry.name, "splash"))
 			{
 				Print("Found~!\n");
 				FS::File* f;
@@ -324,7 +324,7 @@ extern "C" void kmain()
 					tmpX = 0;
 					Print("\nExecuting: %s\n", tmp);
 
-					if(strcmp(tmp, "help"))
+					if(!strcmp(tmp, "help"))
 					{
 						Terminal::Print("=== Available commands:               ===\n");
 						Terminal::Print("=== dir - lists current directory     ===\n");
@@ -334,16 +334,16 @@ extern "C" void kmain()
 						Terminal::Print("=== fail - kernel panic               ===\n");
 						Terminal::Print("\n");
 					}
-					else if(strcmp(tmp, "mem"))
+					else if(!strcmp(tmp, "mem"))
 					{
 						Memory::Physical::PrintMemoryMap();
 					}
-					else if(strcmp(tmp, "fail"))
+					else if(!strcmp(tmp, "fail"))
 					{
 						u8* x = (u8*)0x1234;
 						*x = 5;
 					}
-					else if(strcmp(tmp, "dir"))
+					else if(!strcmp(tmp, "dir"))
 					{
 						//bd->drv->Lock(bd->dev);
 
@@ -390,7 +390,7 @@ extern "C" void kmain()
 							if(!entry.isValid)
 								continue;
 
-							if(strcmp((char*)path, (char*)entry.name))
+							if(!strcmp((char*)path, (char*)entry.name))
 							{
 								if(VFS::ChangeDirectory(dir, entry.name) == Status::Success)
 									changed = true;
@@ -431,7 +431,7 @@ extern "C" void kmain()
 							if(!entry.isValid || entry.isDirectory)
 								continue;
 
-							if(strcmp((char*)path, (char*)entry.name))
+							if(!strcmp((char*)path, (char*)entry.name))
 							{
 								VFS::OpenFile(dir, entry.name, &file);
 								break;

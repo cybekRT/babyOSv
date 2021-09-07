@@ -49,7 +49,7 @@ namespace VFS
 
 		for(auto itr : parts)
 		{
-			if(strcmp((char*)itr->name, partName))
+			if(!strcmp((char*)itr->name, partName))
 			{
 				part = itr;
 				break;
@@ -104,6 +104,8 @@ namespace VFS
 		(*dir)->fsInfo = nullptr;
 		(*dir)->fsPriv = nullptr;
 		(*dir)->fsDir = nullptr;
+		new Path((*dir)->path);
+		// TODO: use new everywhere and call constructors~!!!
 
 		return Status::Success;
 	}
@@ -163,8 +165,11 @@ namespace VFS
 
 		unsigned a = 0;
 		//for(const auto& itr : Block::GetDevices())
+		Print("Checking...\n");
 		for(const auto& itr : Block::GetPartitions())
 		{
+			//Print("Itr name: %s\n", itr->name);
+			//Print("Entry name: %s\n", entry->name);
 			//Print("a = %d, index = %d\n", a, dir->index);
 			if(a == dir->index)
 			{
@@ -173,8 +178,8 @@ namespace VFS
 				entry->isHidden = 0;
 				entry->isSymlink = 0;
 
-				Print("Itr name: %s\n", itr->name);
-				Print("Entry name: %s\n", entry->name);
+				//Print("Itr name: %s\n", itr->name);
+				//Print("Entry name: %s\n", entry->name);
 				strcpy((char*)itr->name, (char*)entry->name);
 
 				return Status::Success;
@@ -213,7 +218,7 @@ namespace VFS
 				if(!entry.isValid)
 					continue;
 
-				if(strcmp((char*)entry.name, (char*)name))
+				if(!strcmp((char*)entry.name, (char*)name))
 				{
 					//u8* pathBuffer = (u8*)Memory::Alloc(FS::MaxFilenameLength);
 					//strcpy((char*)entry.name, (char*)pathBuffer);
@@ -223,7 +228,7 @@ namespace VFS
 					if(status == FS::Status::Success)
 					{
 						//dir->path.PushBack(pathBuffer);
-						if(strcmp((char*)entry.name, ".."))
+						if(!strcmp((char*)entry.name, ".."))
 						{
 							Print("Adding path: %s\n", entry.name);
 							dir->path.Add((char*)entry.name);
@@ -311,7 +316,7 @@ namespace VFS
 				if(!entry.isValid)
 					continue;
 
-				if(strcmp((char*)entry.name, (char*)name))
+				if(!strcmp((char*)entry.name, (char*)name))
 					break;
 			}
 

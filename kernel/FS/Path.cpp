@@ -32,6 +32,9 @@ void Path::ToString(char* buf)
 		return;
 	}
 
+	Print("This: %p\n", this);
+	Print("This: %p\n", &paths);
+	Print("Path parts: %d\n", paths.Size());
 	buf[0] = 0;
 	for(auto itr : paths)
 	{
