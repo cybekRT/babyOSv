@@ -3,6 +3,15 @@
 #include"Memory.h"
 #include"Iterator.hpp"
 
+#define offsetof(type, member) \
+		((unsigned)(&(((type*)0)->member)))
+
+#define container_of(ptr, type, member) \
+	({ \
+		const typeof( ((type*)0)->member) *__mptr = (ptr); \
+		(type *)( (char*)__mptr - offsetof(type, member) ); \
+	})
+
 template<class X>
 class LinkedListItem
 {
@@ -34,34 +43,57 @@ protected:
 
 			virtual T& operator*() override
 			{
+				//LinkedListItem<T> *item = container_of(ptr, LinkedListItem<T>, value);
+				//return item->value;
 				return *ptr;
 			}
 
 			virtual const Iterator operator+(int v) const
 			{
-				auto p = ptr;
+				//auto p = ptr;
+				LinkedListItem<T> *item = container_of(ptr, LinkedListItem<T>, value);
 				for(unsigned a = 0; a < v; a++)
-					p = p->next;
-				return Iterator(p);
+					item = item->next;
+				if(!item)
+					return Iterator<T>(nullptr);
+				else
+					return Iterator(&item->value);
 			}
 
 			virtual Iterator& operator++() override
 			{
-				ptr = ptr->next;
+				//ptr = ptr->next;
+				LinkedListItem<T> *item = container_of(ptr, LinkedListItem<T>, value);
+				item = item->next;
+				if(!item)
+					ptr = nullptr;
+				else
+					ptr = &item->value;
 				return *this;
 			}
 
 			virtual const Iterator operator++(int)
 			{
 				Iterator prev = *this;
-				ptr = ptr->next;
+				LinkedListItem<T> *item = container_of(ptr, LinkedListItem<T>, value);
+				item = item->next;
+				if(!item)
+					ptr = nullptr;
+				else
+					ptr = &(item->next)->value;
 				return prev;
 			}
 
 			virtual Iterator& operator+=(int v) override
 			{
+				LinkedListItem<T> *item = container_of(ptr, LinkedListItem<T>, value);
 				for(unsigned a = 0; a < v; a++)
-					ptr = ptr->next;
+					item = item->next;
+				
+				if(!item)
+					ptr = nullptr;
+				else
+					ptr = &item->value;
 				return *this;
 			}
 
@@ -81,11 +113,12 @@ public:
 
 	LinkedList<X>() : data(nullptr)
 	{
-
+		Print("LinkedList<X>()\n");
 	}
 
 	LinkedList<X>(const LinkedList<X>& arg) : data(nullptr)
 	{
+		Print("LinkedList<X>(&arg)\n");
 		auto ptr = arg.data;
 		while(ptr)
 		{
@@ -94,14 +127,28 @@ public:
 		}
 	}
 
-	Iterator<LinkedListItem<X>> begin()
+	~LinkedList<X>()
 	{
-		return Iterator(data);
+		Print("~LinkedList<X>()\n");
+		Clear();
 	}
 
-	Iterator<LinkedListItem<X>> end()
+	Iterator<X> begin()
 	{
-		return Iterator<LinkedListItem<X>>(nullptr);
+		return Iterator<X>(data ? &data->value : nullptr);
+	}
+
+	Iterator<X> end()
+	{
+		return Iterator<X>(nullptr);
+	}
+
+	void Clear()
+	{
+		while(data)
+		{
+			Remove(data);
+		}
 	}
 
 	void PushBack(X value)
@@ -134,12 +181,18 @@ public:
 
 	void Remove(LinkedListItem<X>* item)
 	{
+		if(!item)
+			return;
+
 		if(data == item)
 		{
 			data = item->next;
 			Memory::Free(item);
 			return;
 		}
+
+		Print("Data: %p != Item: %p\n", data, item);
+		return;
 
 		LinkedListItem<X>* ptrPrev = nullptr;
 		LinkedListItem<X>* ptr = data;

@@ -39,6 +39,6 @@ void Path::ToString(char* buf)
 	for(auto itr : paths)
 	{
 		strcat("/", buf);
-		strcat(itr.value, buf);
+		strcat((const char*)*itr, buf);
 	}
 }

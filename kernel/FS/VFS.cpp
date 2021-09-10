@@ -68,9 +68,9 @@ namespace VFS
 		FS::FSInfo* fsInfo = nullptr;
 		for(auto itr : fss)
 		{
-			if(itr.value->Probe(part) == FS::Status::Success)
+			if(itr->Probe(part) == FS::Status::Success)
 			{
-				fsInfo = itr.value;
+				fsInfo = itr;
 				break;
 			}
 		}

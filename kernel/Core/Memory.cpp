@@ -301,7 +301,7 @@ void* operator new[](unsigned long size)
 	return Memory::Alloc(size);
 }
 
-void operator delete(void* ptr, unsigned long size)
+void operator delete(void* ptr, unsigned int size)
 {
 	Print("Delete: %p - %d\n", ptr, size);
 	Memory::Free(ptr);
