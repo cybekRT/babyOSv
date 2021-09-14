@@ -174,8 +174,8 @@ extern "C" void __cxa_pure_virtual()
 
 //extern void (*__ctors_beg)();
 //extern void (*__ctors_end)();
-extern char* __ctors_beg;
-extern char* __ctors_end;
+extern u32* _ctors_beg;
+extern u32* _ctors_end;
 
 extern "C" void kmain()
 {
@@ -188,14 +188,19 @@ extern "C" void kmain()
 	Memory::Init();
 	Interrupt::Init();
 
-	for(char* ptr = __ctors_beg; ptr != __ctors_end; ptr+=4)
+	Print("Ctors beg: %p\n", _ctors_beg);
+	Print("Ctors end: %p\n", _ctors_end);
+	for(u32* ptr = _ctors_beg; ptr != _ctors_end; ptr++)
 	{
-		Print("Calling: %p\n", ptr);
-		void (*func)() = (void (*)())ptr;
-		func();
+		Print("Pointer: %p\n", ptr);
+		void (*func)() = (void (*)())(*ptr);
+		Print("Calling: %p\n", func);
+		if(func)
+			func();
+		// FIXME~!
 	}
 
-	for(;;);
+	//for(;;);
 
 	Thread::Init();
 	Timer::Init();

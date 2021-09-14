@@ -59,7 +59,7 @@ LD			:= $(GCC_PREFIX)ld
 GCC_FLAGS	:= -include kernel/global.h -Ikernel/ -Ikernel/Core -I$(AUTOGEN_OUT)/
 GCC_FLAGS	+= -Wall -Wextra -Wno-unused-parameter -g3 -O0 -m32 -march=i486 -std=gnu++1z 
 GCC_FLAGS	+= -mgeneral-regs-only -fno-isolate-erroneous-paths-attribute -fno-asynchronous-unwind-tables
-GCC_FLAGS	+= -fno-exceptions -fno-rtti -fno-omit-frame-pointer -fno-use-cxa-atexit
+GCC_FLAGS	+= -fno-exceptions -fno-rtti -fno-omit-frame-pointer -fno-use-cxa-atexit -fno-stack-protector
 NASM_FLAGS	:= -Iboot/
 QEMU_FLAGS	:= $(QEMU_DOS_IMG) $(QEMU_DOSEXT_IMG) -vga std -boot ac -m 8 -d int -monitor stdio -d int -d cpu_reset -d guest_errors
 

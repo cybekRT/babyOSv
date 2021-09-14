@@ -22,6 +22,8 @@
 	extern __stack_end
 	extern __stack_size
 
+	global _ctors_beg
+	global _ctors_end
 	extern __ctors_beg
 	extern __ctors_end
 
@@ -60,4 +62,6 @@ main:
 	_org_stack_beg dd __stack_beg
 	_org_stack_end dd __stack_end
 	_org_stack_size dd __stack_size
+	_ctors_beg dd __ctors_beg
+	_ctors_end dd __ctors_end
 db "</YOLO>"
