@@ -23,7 +23,7 @@ ifeq ($(OS),Windows_NT)
 ####################
 else
 	NASM				:= nasm
-	BOCHS				:= /usr/local/osdev/bin/bochs -f bochs.cfg
+	BOCHS				:= bochs -f bochs.cfg
 	OUT					:= $(PWD)/out
 	GCC_PREFIX			:= /usr/local/osdev/bin/i386-elf-
 	QEMU				:= qemu-system-i386

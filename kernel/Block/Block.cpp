@@ -68,6 +68,8 @@ namespace Block
 		bd->drv = drv;
 		bd->drvPriv = drvPriv;
 
+		Print("Type: %d, %p\n", type, &deviceTypeName[(unsigned)type]);
+		Print("Type name: %s\n", deviceTypeName[(unsigned)type]);
 		auto nameLen = strcpy(deviceTypeName[(unsigned)type], (char*)bd->name);
 		bd->name[nameLen] = '0' + devicesTypesCount[(unsigned)type]++;
 		bd->name[nameLen+1] = 0;
@@ -89,6 +91,8 @@ namespace Block
 
 		static int x = 0;
 		auto nameLen = strcpy((char*)dev->name, (char*)part->name);
+		Print("Dev: %s, Part: %s\n", dev->name, part->name);
+		Print("Type: %d\n", type);
 		nameLen += strcat(partTypeName[(u8)type], (char*)part->name);
 		part->name[nameLen] = '0' + x++;
 		part->name[nameLen+1] = 0;

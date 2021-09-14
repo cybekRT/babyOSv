@@ -172,6 +172,11 @@ extern "C" void __cxa_pure_virtual()
 	ASSERT(false, "Pure virtual function calles :(");
 }
 
+//extern void (*__ctors_beg)();
+//extern void (*__ctors_end)();
+extern char* __ctors_beg;
+extern char* __ctors_end;
+
 extern "C" void kmain()
 {
 	ASSERT(sizeof(u64) == 8, "u64");
@@ -181,8 +186,17 @@ extern "C" void kmain()
 
 	Terminal::Init();
 	Memory::Init();
-
 	Interrupt::Init();
+
+	for(char* ptr = __ctors_beg; ptr != __ctors_end; ptr+=4)
+	{
+		Print("Calling: %p\n", ptr);
+		void (*func)() = (void (*)())ptr;
+		func();
+	}
+
+	for(;;);
+
 	Thread::Init();
 	Timer::Init();
 	Keyboard::Init();

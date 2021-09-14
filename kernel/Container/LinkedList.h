@@ -161,7 +161,8 @@ public:
 	void PushBack(X value)
 	{
 		//LinkedListItem<X>* item = (LinkedListItem<X>*)Memory::Alloc(sizeof(*item));
-		auto item = new LinkedListItem<X>();// Memory::Alloc<LinkedListItem<X>>();
+		//auto item = new LinkedListItem<X>();// Memory::Alloc<LinkedListItem<X>>();
+		auto item = Memory::Alloc<LinkedListItem<X>>();
 
 		item->value = value;
 		item->next = nullptr;

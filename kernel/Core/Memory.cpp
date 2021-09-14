@@ -289,7 +289,7 @@ namespace Memory
 	}
 }
 
-//#include<cstddef>
+#include<cstddef>
 
 //extern "C" 
 //{

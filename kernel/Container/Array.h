@@ -94,6 +94,8 @@ public:
 	Array(u32 capacity) : capacity(capacity), size(0)
 	{
 		objs = (T*)Memory::Alloc(capacity * sizeof(T));
+		//objs = nullptr;
+		//capacity = 0;
 	}
 
 	~Array()
