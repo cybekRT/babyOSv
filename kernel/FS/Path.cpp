@@ -21,7 +21,11 @@ void Path::Add(char* dir)
 void Path::GoUp()
 {
 	if(!paths.IsEmpty())
+	{
+		Print("Popping path~! Before: %d~!", paths.Size());
 		paths.PopBack();
+		Print("New size: %d\n", paths.Size());
+	}
 }
 
 void Path::ToString(char* buf)
@@ -38,9 +42,12 @@ void Path::ToString(char* buf)
 	buf[0] = 0;
 	for(auto itr : paths)
 	{
+		Print("Itr: \"%s\"\n", itr);
 		//Print("- %p (%x) - %p\n", itr, (*itr), buf);
 		strcat("/", buf);
+		Print("- \"%s\"\n", buf);
 		//strcat((const char*)*itr, buf);
 		strcat(itr, buf);
+		Print("- \"%s\"\n", buf);
 	}
 }

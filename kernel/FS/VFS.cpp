@@ -245,7 +245,7 @@ namespace VFS
 					if(status == FS::Status::Success)
 					{
 						//dir->path.PushBack(pathBuffer);
-						if(!strcmp((char*)entry.name, ".."))
+						if(strcmp((char*)entry.name, ".."))
 						{
 							Print("Adding path: %s\n", entry.name);
 							dir->path.Add((char*)entry.name);
@@ -256,8 +256,21 @@ namespace VFS
 				}
 			}
 
+			if(status != FS::Status::Success && strcmp((char*)name, "..") == 0)
+			{
+				dir->fsInfo->CloseDirectory(dir->fsPriv, &dir->fsDir);
+
+				dir->fsDir = nullptr;
+				dir->fsInfo = nullptr;
+				dir->fsPriv = nullptr;
+
+				dir->path.GoUp();
+
+				return Status::Success;
+			}
+
 			Print("Result %x: %s:%d\n", status, __FILE__, __LINE__);
-			//return (fsResult == FS::Status::Success ? Status::Success : Status::Fail);
+			return (status == FS::Status::Success ? Status::Success : Status::Fail);
 		}
 		else
 		{
@@ -269,6 +282,11 @@ namespace VFS
 					mp = &itr;
 					break;
 				}
+			}
+
+			if(!mp)
+			{
+				return Status::Fail;
 			}
 
 			dir->fsInfo = mp->fsInfo;
@@ -321,6 +339,7 @@ namespace VFS
 			dir->path.Add((char*)part->name);*/
 		}
 
+		Print("ChangeDirectory: success~!\n");
 		return Status::Success;
 	}
 

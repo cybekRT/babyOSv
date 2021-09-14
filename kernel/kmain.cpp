@@ -129,6 +129,11 @@ extern "C"
 
 u8 tolower(u8 c);
 
+namespace Interrupt
+{
+	void Print();
+}
+
 void YoLo()
 {
 	for(;;)
@@ -153,6 +158,8 @@ void YoLo()
 
 		Terminal::SetColor(cc[0], cc[1]);
 		Terminal::SetXY(cx, cy);
+
+		Interrupt::Print();
 
 		Thread::SetState(nullptr, Thread::State::Running);
 		Timer::Delay(500);
@@ -466,7 +473,7 @@ extern "C" void kmain()
 
 						(*dst) = 0;
 
-						FS::DirEntry entry;
+						/*FS::DirEntry entry;
 						VFS::RewindDirectory(dir);
 
 						bool changed = false;
@@ -481,9 +488,10 @@ extern "C" void kmain()
 									changed = true;
 								break;
 							}
-						}
+						}*/
 
-						if(changed)
+						//if(changed)
+						if(VFS::ChangeDirectory(dir, path) == Status::Success)
 							Print("Changed to: %s\n", path);
 						else
 							Print("Directory \"%s\" not found!\n", path);

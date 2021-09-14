@@ -25,7 +25,7 @@ typedef u32 size_t;
 { \
 	if(!(cond)) \
 	{ \
-		Print("\n\nAssert failed: %s:%d (%s) - %s\n\n", __FILE__, __LINE__, __FUNCTION__, msg); \
+		Terminal::Print("\n\nAssert failed: %s:%d (%s) - %s\n\n", __FILE__, __LINE__, __FUNCTION__, msg); \
 		for(;;) \
 		{ \
 			 __asm("int $0xfe\ncli\nhlt\n"); \

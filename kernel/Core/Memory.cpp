@@ -143,7 +143,8 @@ namespace Memory
 	{
 		u32 length;
 		MallocHeader* next;
-		u8 padding[8];
+		u8 used;
+		u8 padding[7];
 	} __attribute__((packed));
 
 	MallocHeader* mallocPage = nullptr;
@@ -162,6 +163,7 @@ namespace Memory
 
 		newHeader->length = totalSize - sizeof(MallocHeader);
 		newHeader->next = nullptr;
+		newHeader->used = false;
 
 		if(mallocPage == nullptr)
 		{
@@ -203,9 +205,11 @@ namespace Memory
 					auto newHeader = (MallocHeader*)(((char*)ptr) + bytes);
 					ptr->length = bytes;
 					ptr->next = newHeader;
+					ptr->used = true;
 
 					newHeader->length = oldLength - bytes;
 					newHeader->next = oldNext;
+					newHeader->used = false;
 				}
 
 				if(prevPtr)
@@ -247,6 +251,15 @@ namespace Memory
 	{
 		MallocHeader* hdr = &((MallocHeader*)ptr)[-1];
 
+		if(!hdr->used)
+		{
+			return;
+			FAIL("Double free~!\n");
+			//Print("Double free~!\n"); for(;;);
+		}
+
+		hdr->used = false;
+
 		//Print("MallocPage: %p, Hdr: %p\n", mallocPage, hdr);
 		if(hdr < mallocPage)
 		{
@@ -260,6 +273,12 @@ namespace Memory
 			auto prevPtr = (MallocHeader*)nullptr;
 			while(ptr)
 			{
+				if(ptr == hdr || ptr->next == hdr)
+				{
+					FAIL("Cycle in malloc list~!\n");
+					//Print("Oopsie...\n"); for(;;);
+				}
+
 				if(ptr->next > hdr)
 				{
 					hdr->next = ptr->next;

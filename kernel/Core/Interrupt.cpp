@@ -284,6 +284,16 @@ namespace Interrupt
 	}
 
 	u32 disableCount = 1;
+
+	void Print()
+	{
+		u32 x, y;
+		Terminal::GetXY(&x, &y);
+		Terminal::SetXY(40, 2);
+		Terminal::Print("Interrupt: %d   ", disableCount);
+		Terminal::SetXY(x, y);
+	}
+
 	void Enable()
 	{
 		ASSERT(disableCount > 0, "Interrupts disableCount == 0");
@@ -293,6 +303,8 @@ namespace Interrupt
 		{
 			__asm("sti");
 		}
+
+		Print();
 	}
 
 	void Disable()
@@ -303,12 +315,15 @@ namespace Interrupt
 		}
 
 		disableCount++;
+		Print();
 	}
 	
 	bool IsEnabled()
 	{
 		u32 v;
 		__asm("pushf \r\n pop %0" : "=r"(v) : : "memory");
+
+		Print();
 
 		return !!(v & 0x200);
 	}
