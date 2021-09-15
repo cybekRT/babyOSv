@@ -35,6 +35,10 @@ else
 	QEMU_DOSEXT_IMG		:= -hdb /Users/cybek/dos-empty.img
 endif
 
+ifeq ($(CHROMEOS),1)
+GCC_PREFIX=i686-linux-gnu-
+endif
+
 ####################
 #
 #	Internal configuration

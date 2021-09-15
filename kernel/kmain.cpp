@@ -190,24 +190,25 @@ extern "C" void kmain()
 	ASSERT(sizeof(u32) == 4, "u32");
 	ASSERT(sizeof(u16) == 2, "u16");
 	ASSERT(sizeof(u8) == 1, "u8");
+	ASSERT(sizeof(size_t) == 4, "u32");
 
 	Terminal::Init();
 	Memory::Init();
 	Interrupt::Init();
 
-	Print("Ctors beg: %p\n", _ctors_beg);
-	Print("Ctors end: %p\n", _ctors_end);
+	/* Call global constructors */
+	Print("Constructors: (%p - %p)\n", _ctors_beg, _ctors_end);
 	for(u32* ptr = _ctors_beg; ptr != _ctors_end; ptr++)
 	{
-		Print("Pointer: %p\n", ptr);
 		void (*func)() = (void (*)())(*ptr);
-		Print("Calling: %p\n", func);
+		Print("- %p\n", func);
+		ASSERT(func, "Invalid constructor function~!");
 		if(func)
 			func();
-		// FIXME~!
 	}
 
-	//for(;;);
+	Print("Kernel beg: %p\n", _kernel_beg);
+	Print("Kernel end: %p\n", _kernel_end);
 
 	Thread::Init();
 	Timer::Init();

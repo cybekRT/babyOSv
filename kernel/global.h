@@ -18,7 +18,8 @@ typedef sint32 s32;
 typedef sint16 s16;
 typedef sint8 s8;
 
-typedef u32 size_t;
+//typedef u32 size_t;
+#include<cstddef>
 
 //#define ASSERT(x) ASSERT(x, "")
 #define ASSERT(cond, msg) \

@@ -11,12 +11,12 @@ SECTIONS
 	.startup : {
 		*(.startup)
 	}
-	.text : {
+	.text ALIGN(16): {
 		*(.text)
 	}
 	__kernel_code_end = .;
 	__kernel_data_beg = .;
-	.data : {
+	.data ALIGN(16): {
 		*(.data)
 		*(.rodata)
 		*(.cstring)
@@ -29,7 +29,7 @@ SECTIONS
 		__stack_beg = .;
 	}
 
-	.ctors : {
+	.ctors ALIGN(16): {
 		__ctors_beg = .;
 		*(.ctors)
 		__ctors_end = .;

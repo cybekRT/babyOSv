@@ -308,41 +308,37 @@ namespace Memory
 	}
 }
 
-//#include<cstddef>
+void* operator new(size_t size)
+{
+	//Print("New: %d bytes\n", size);
+	return Memory::Alloc(size);
+}
 
-//extern "C"
-//{
-	void* operator new(size_t size)
-	{
-		//Print("New: %d bytes\n", size);
-		return Memory::Alloc(size);
-	}
+void* operator new[](size_t size)
+{
+	//Print("New[]: %d bytes\n", size);
+	return Memory::Alloc(size);
+}
 
-	void* operator new[](size_t size)
-	{
-		//Print("New[]: %d bytes\n", size);
-		return Memory::Alloc(size);
-	}
+void operator delete(void* ptr, size_t size)
+{
+	//Print("Delete: %p - %d\n", ptr, size);
+	Memory::Free(ptr);
+}
 
-	void operator delete(void* ptr, size_t size)
-	{
-		//Print("Delete: %p - %d\n", ptr, size);
-		Memory::Free(ptr);
-	}
+void operator delete(void* ptr)
+{
+	//Print("Delete: %p - ...\n", ptr);
+}
 
-	void operator delete(void* ptr)
-	{
-		//Print("Delete: %p - ...\n", ptr);
-	}
+void operator delete[](void* ptr, size_t size)
+{
+	//Print("Delete[]: %p - %d\n", ptr, size);
+	Memory::Free(ptr);
+}
 
-	void operator delete[](void* ptr, size_t size)
-	{
-		//Print("Delete[]: %p - %d\n", ptr, size);
-		Memory::Free(ptr);
-	}
-
-	void operator delete[](void* ptr)
-	{
-		//Print("Delete[]: %p - ...\n", ptr);
-	}
-//}
+void operator delete[](void* ptr)
+{
+	Memory::Free(ptr);
+	//Print("Delete[]: %p - ...\n", ptr);
+}
