@@ -18,121 +18,7 @@
 
 #include"FS/VFS.hpp"
 
-class Test
-{
-	static int xd;
-
-	public:
-		LinkedList<int*> arr;
-
-	Test()
-	{
-		Print("%s()\n", __FUNCTION__);
-		arr.PushBack(new int(xd++));
-		arr.PushBack(new int(xd++));
-		arr.PushBack(new int(xd++));
-
-		Print("Values:\n");
-		for(auto itr : arr)
-		{
-			Print("- %d\n", *itr);
-		}
-	}
-
-	~Test()
-	{
-		Print("%s()\n", __FUNCTION__);
-
-		Print("Values:\n");
-		for(auto itr : arr)
-		{
-			Print("- %d\n", *itr);
-			*itr = -666;
-			delete itr;
-		}
-	}
-};
-
-int Test::xd = 0;
-
-int strlen(const char* str)
-{
-	unsigned len = 0;
-	while(*str++)
-		len++;
-
-	return len;
-}
-
-int strcmp(char* a, char* b)
-{
-	while(*a || *b)
-	{
-		if(*a != *b)
-			return (*a - *b);
-
-		a++;
-		b++;
-	}
-
-	return 0;
-}
-
-int strcpy(const char* src, char* dst)
-{
-	int len = 0;
-	while(*src)
-	{
-		*dst++ = *src++;
-		len++;
-	}
-
-	*dst = 0;
-	return len;
-}
-
-int strcat(const char* src, char* dst)
-{
-	int len = 0;
-
-	while(*dst)
-	{
-		dst++;
-	}
-
-	while(*src)
-	{
-		*dst++ = *src++;
-		len++;
-	}
-
-	*dst = 0;
-	return len;
-}
-
-// Required if -O3 is used
-extern "C"
-{
-	void* memmove(void* destination, const void* source, unsigned num)
-	{
-		// FIXME for overlapping buffers
-		u8* src = (u8*)source;
-		u8* dst = (u8*)destination;
-		for(u32 a = 0; a < num; a++)
-		{
-			*dst++ = *src++;
-		}
-
-		return destination;
-	}
-}
-
 u8 tolower(u8 c);
-
-namespace Interrupt
-{
-	void Print();
-}
 
 void YoLo()
 {
@@ -159,18 +45,8 @@ void YoLo()
 		Terminal::SetColor(cc[0], cc[1]);
 		Terminal::SetXY(cx, cy);
 
-		Interrupt::Print();
-
 		Thread::SetState(nullptr, Thread::State::Running);
 		Timer::Delay(500);
-	}
-}
-
-void Halter()
-{
-	for(;;)
-	{
-		__asm("hlt");
 	}
 }
 
@@ -179,8 +55,6 @@ extern "C" void __cxa_pure_virtual()
 	ASSERT(false, "Pure virtual function calles :(");
 }
 
-//extern void (*__ctors_beg)();
-//extern void (*__ctors_end)();
 extern u32* _ctors_beg;
 extern u32* _ctors_end;
 
@@ -207,17 +81,15 @@ extern "C" void kmain()
 			func();
 	}
 
-	Print("Kernel beg: %p\n", _kernel_beg);
-	Print("Kernel end: %p\n", _kernel_end);
+	Memory::Physical::PrintMemoryMap();
+	for(;;);
 
 	Thread::Init();
 	Timer::Init();
 	Keyboard::Init();
 
 	Thread::Thread* testThread;
-	Thread::Thread* halterThread;
 	Thread::Create(&testThread, YoLo, (u8*)"YoLo");
-	Thread::Create(&halterThread, Halter, (u8*)"Halter");
 
 	Interrupt::Enable();
 
@@ -263,93 +135,8 @@ extern "C" void kmain()
 		for(;;);
 	}
 
-	//Print("Mounting floppy...\n");
-
 	FS::Directory* dir;
 	VFS::OpenRoot(&dir);
-
-	/*auto t1 = new Test();
-	auto t2 = new Test();
-	Test t3(*t2);
-	delete t2;
-	//for(;;);*/
-
-	//t3.~Test();
-
-	/*Print("====================\n");
-	{
-		Path p;
-		Print(">===================\n");
-		p.Add("YoLo");
-		Print("<===================\n");
-	}*/
-
-	//for(;;);
-
-	/*for(;;)
-	{
-		break;
-		Timer::Delay(-1);
-	}*/
-
-	Print("==========\n");
-	Path* p = new Path();
-	Print("Path pointer: %p\n", p);
-
-	Array<int> array;
-	array.PushBack(5);
-	array.PushBack(1);
-	array.PushBack(2);
-	array.PushBack(59873);
-
-	auto itr = array.begin() + 0; //++itr; ++itr;
-	array.Insert(itr, 666);
-
-	for(auto itr : array)
-	{
-		Print("Value: %d\n", itr);
-	}
-
-#if 0
-	for(;;)
-	{
-		for(auto part : Block::GetPartitions())
-		{
-			Print("\n\nPartition: %s\n\n", part.name);
-			Timer::Delay(200);
-			for(auto fsItem = FS::filesystems.data; fsItem != nullptr; fsItem = fsItem->next)
-			{
-				auto fs = fsItem->value;
-				if(fs->Probe(&part) != FS::Status::Success)
-					continue;
-
-				void* fsPriv;
-				fs->Alloc(&part, &fsPriv);
-
-				FS::Directory* dir;
-				fs->OpenRoot(fsPriv, &dir);
-
-				Print("Root:\n");
-				FS::DirEntry entry;
-				while(fs->ReadDirectory(fsPriv, dir, &entry) == FS::Status::Success)
-				{
-					if(!entry.isValid)
-						continue;
-
-					Print("- %s\n", entry.name);
-				}
-
-				fs->CloseDirectory(fsPriv, &dir);
-				fs->Dealloc(&part, &fsPriv);
-				Timer::Delay(1000);
-				break;
-			}
-
-			Memory::Physical::PrintMemoryMap();
-			Timer::Delay(1000);
-		}
-	}
-#endif
 
 #if 0
 	{
@@ -392,7 +179,6 @@ extern "C" void kmain()
 	Print("> ");
 	for(;;)
 	{
-		//Print(".");
 		while(Keyboard::ReadEvent(&keyEvent))
 		{
 			if(keyEvent.type == Keyboard::KeyType::Released)
@@ -474,24 +260,6 @@ extern "C" void kmain()
 
 						(*dst) = 0;
 
-						/*FS::DirEntry entry;
-						VFS::RewindDirectory(dir);
-
-						bool changed = false;
-						while(VFS::ReadDirectory(dir, &entry) == Status::Success)
-						{
-							if(!entry.isValid)
-								continue;
-
-							if(!strcmp((char*)path, (char*)entry.name))
-							{
-								if(VFS::ChangeDirectory(dir, entry.name) == Status::Success)
-									changed = true;
-								break;
-							}
-						}*/
-
-						//if(changed)
 						if(VFS::ChangeDirectory(dir, path) == Status::Success)
 							Print("Changed to: %s\n", path);
 						else

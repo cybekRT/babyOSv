@@ -46,7 +46,7 @@ struct IDT_Entry
 #define ICW1_INTERVAL4	0x04		/* Call address interval 4 (8) */
 #define ICW1_LEVEL	0x08		/* Level triggered (edge) mode */
 #define ICW1_INIT	0x10		/* Initialization - required! */
- 
+
 #define ICW4_8086	0x01		/* 8086/88 (MCS-80/85) mode */
 #define ICW4_AUTO	0x02		/* Auto (normal) EOI */
 #define ICW4_BUF_SLAVE	0x08		/* Buffered mode/slave */
@@ -169,7 +169,7 @@ namespace Interrupt
 					break;
 				}
 			}
-			
+
 			Print(" - %p\n", addr);
 
 			ebp = (u32*)(*ebp);
@@ -285,15 +285,6 @@ namespace Interrupt
 
 	u32 disableCount = 1;
 
-	void Print()
-	{
-		u32 x, y;
-		Terminal::GetXY(&x, &y);
-		Terminal::SetXY(40, 2);
-		Terminal::Print("Interrupt: %d   ", disableCount);
-		Terminal::SetXY(x, y);
-	}
-
 	void Enable()
 	{
 		ASSERT(disableCount > 0, "Interrupts disableCount == 0");
@@ -303,8 +294,6 @@ namespace Interrupt
 		{
 			__asm("sti");
 		}
-
-		Print();
 	}
 
 	void Disable()
@@ -315,15 +304,12 @@ namespace Interrupt
 		}
 
 		disableCount++;
-		Print();
 	}
-	
+
 	bool IsEnabled()
 	{
 		u32 v;
 		__asm("pushf \r\n pop %0" : "=r"(v) : : "memory");
-
-		Print();
 
 		return !!(v & 0x200);
 	}
