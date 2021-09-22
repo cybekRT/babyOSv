@@ -91,6 +91,8 @@ namespace Thread
 		u32 stackSize;
 
 		u32 regs[(u32)Register::Count];
+
+		void PushD(u32 v);
 	};
 
 	bool Init();

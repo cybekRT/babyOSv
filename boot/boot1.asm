@@ -85,8 +85,6 @@ Fail:
 	;mov	byte [es:bx + 0], 'F'
 	;mov	byte [es:bx + 2], 'B'
 
-	xchg bx, bx
-
 	; Boot other device...
 	cli
 	hlt

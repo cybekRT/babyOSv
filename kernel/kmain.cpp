@@ -81,8 +81,7 @@ extern "C" void kmain()
 			func();
 	}
 
-	Memory::Physical::PrintMemoryMap();
-	for(;;);
+	//Memory::Physical::PrintMemoryMap();
 
 	Thread::Init();
 	Timer::Init();

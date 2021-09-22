@@ -12,6 +12,8 @@ namespace Thread
 	Thread* currentThread = nullptr;
 	Array<Thread*> threads;
 
+	__attribute((interrupt)) void _NextThread(void*);
+
 	struct SignalInfo
 	{
 		Signal signal;
@@ -111,7 +113,7 @@ namespace Thread
 
 		void *stackPhys = Memory::Physical::Alloc(newStackSize);
 		thread->stackBottom = Memory::Logical::Map(stackPhys, newStackBeg - newStackSize, newStackSize);
-		//thread->stack = newStackBeg; 
+		//thread->stack = newStackBeg;
 
 		u32 currentESP;
 		u32 currentEBP;
@@ -144,6 +146,9 @@ namespace Thread
 	bool Init()
 	{
 		Interrupt::Disable();
+
+		Interrupt::Register(250, _NextThread);
+
 		Thread* thread = (Thread*)Memory::Alloc(sizeof(Thread));
 
 		thread->process = nullptr;
@@ -172,10 +177,22 @@ namespace Thread
 		thread->stack = (void*)ptr;
 	}
 
-	__attribute((naked)) void NextThread()
+	void NextThread()
+	{
+		Print("Switch task...\n");
+		__asm("int $250");
+		Print("Return~!\n");
+	}
+
+	//__attribute((naked)) void NextThread()
+	__attribute((interrupt)) void _NextThread(void*)
 	{
 		if(currentThread == nullptr || currentThread->state == State::Unstoppable)
-			__asm("ret");
+		{
+			Print("No...\n");
+			return;
+			//__asm("ret");
+		}
 
 		__asm("cli");
 
@@ -202,6 +219,8 @@ namespace Thread
 		currentThread = threads.PopFront();
 		currentThread->state = State::Running;
 
+		Print("Next thread: %s\n", currentThread->name);
+
 		//Terminal::Print("Switching to: %s\n", currentThread->name);
 
 		__asm("mov %0, %%esp" : : "a"(currentThread->stack));
@@ -220,17 +239,18 @@ namespace Thread
 		__asm("popl %ebx");
 		__asm("popl %eax");
 
-		__asm("sti"); // FIXME why...
-		__asm("ret");
+		//__asm("sti"); // FIXME why...
+		BREAK;
+		//__asm("iret");
 	}
 
-	__attribute((naked)) void ThreadStart()
+	/*__attribute((naked)) void ThreadStart()
 	{
 		currentThread->state = State::Running;
 		__asm("iret");
 
 		// TODO return code
-	}
+	}*/
 
 	Status Create(Thread** thread, void (*entry)(), u8* name)
 	{
@@ -250,15 +270,41 @@ namespace Thread
 			(*thread)->regs[a] = 0;
 		}
 
-		(*thread)->regs[(u32)Register::EIP] = (u32)entry;
-		(*thread)->regs[(u32)Register::CS] = (u32)0x08;
+		//(*thread)->regs[(u32)Register::EIP] = (u32)entry;
+		//(*thread)->regs[(u32)Register::CS] = (u32)0x08;
 		(*thread)->regs[(u32)Register::DS] = (u32)0x10;
 
-		Push((*thread), 0x0200);
+		EFlags eflags = {
+			.carry	= 				0,
+			.unused1 = 				0,
+			.parity = 				0,
+			.unused2 = 				0,
+			.auxiliary = 			0,
+			.unused3 = 				0,
+			.zero = 				0,
+			.sign = 				0,
+			.trap = 				0,
+			.interrupt = 			1,
+			.direction = 			0,
+			.overflow = 			0,
+			.ioPrivLevel = 			0,
+			.nestedTask = 			0,
+			.unused4 = 				0,
+			.resume = 				0,
+			.mode8086 = 			0,
+			.alignmentCheck = 		0,
+			.virtualInt = 			0,
+			.virtualIntPending = 	0,
+			.id = 					0,
+			.unused5 = 				0,
+		};
+
+		//Push((*thread), 0x0200);
+		Push((*thread), *(u32*)&eflags);
 		Push((*thread), 0x8);
 		Push((*thread), (u32)entry);
-		Push((*thread), (u32)ThreadStart);
-		
+		//Push((*thread), (u32)ThreadStart);
+
 		Push((*thread), 0);
 		Push((*thread), 0);
 		Push((*thread), 0);
