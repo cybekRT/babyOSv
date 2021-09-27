@@ -72,14 +72,14 @@ extern "C" void kmain()
 
 	/* Call global constructors */
 	Print("Constructors: (%p - %p)\n", _ctors_beg, _ctors_end);
-	for(u32* ptr = _ctors_beg; ptr != _ctors_end; ptr++)
+	/*for(u32* ptr = _ctors_beg; ptr != _ctors_end; ptr++)
 	{
 		void (*func)() = (void (*)())(*ptr);
 		Print("- %p\n", func);
 		ASSERT(func, "Invalid constructor function~!");
 		if(func)
 			func();
-	}
+	}*/
 
 	//Memory::Physical::PrintMemoryMap();
 
