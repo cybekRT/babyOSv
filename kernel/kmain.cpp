@@ -20,7 +20,7 @@
 
 u8 tolower(u8 c);
 
-void YoLo()
+int YoLo(void*)
 {
 	for(;;)
 	{
@@ -45,9 +45,10 @@ void YoLo()
 		Terminal::SetColor(cc[0], cc[1]);
 		Terminal::SetXY(cx, cy);
 
-		Thread::SetState(nullptr, Thread::State::Running);
 		Timer::Delay(500);
 	}
+
+	return 0;
 }
 
 extern "C" void __cxa_pure_virtual()
@@ -88,7 +89,7 @@ extern "C" void kmain()
 	Keyboard::Init();
 
 	Thread::Thread* testThread;
-	Thread::Create(&testThread, YoLo, (u8*)"YoLo");
+	Thread::Create(&testThread, (u8*)"YoLo", YoLo);
 
 	Interrupt::Enable();
 

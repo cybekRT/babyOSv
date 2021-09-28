@@ -1,6 +1,7 @@
 #include"Interrupt.h"
 #include"Memory.h"
 #include"HAL.h"
+#include"Thread.hpp"
 
 struct IDT_Entry
 {
@@ -126,7 +127,6 @@ namespace Interrupt
 		crashed = true;
 
 		__asm("cli");
-		PutString("\n===== General Protection Fault =====\n");
 
 		__asm("mov %%eax, %0" : "=m"(regs.eax));
 		__asm("mov %%ebx, %0" : "=m"(regs.ebx));
@@ -146,6 +146,11 @@ namespace Interrupt
 		regs.cs = _registers->cs;
 		regs.eip = _registers->eip;
 		regs.eflags = _registers->eflags;
+
+		PutString("\n");
+		Print("===== %s =====\n", Thread::currentThread->name);
+		PutString("===== General Protection Fault =====");
+		PutString("\n");
 
 		Print("Address: %x:%x\n", regs.cs, regs.eip);
 		Print("Flags:   %x\n", regs.eflags);

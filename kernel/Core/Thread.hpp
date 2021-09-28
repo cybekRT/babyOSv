@@ -91,14 +91,18 @@ namespace Thread
 		u32 stackSize;
 
 		u32 regs[(u32)Register::Count];
+		int (*entry)(void*);
+		void* entryArgs;
 
-		void PushD(u32 v);
+		u32 returnValue;
 	};
+
+	extern Thread* currentThread;
 
 	bool Init();
 	void NextThread();
 
-	Status Create(Thread** thread, void (*entry)(), u8* name);
+	Status Create(Thread** thread, u8* name, int (*entry)(void*), void* threadData = nullptr);
 	Status Join(Thread** thread, int* code);
 
 	void SetState(Thread* thread, State state);

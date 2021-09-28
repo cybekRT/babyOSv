@@ -35,7 +35,7 @@ namespace Thread
 
 	LinkedList<Thread2Signal> waitingThreads;
 
-	void Awaker()
+	int Awaker(void*)
 	{
 		for(;;)
 		{
@@ -163,7 +163,7 @@ namespace Thread
 		threads.PushBack(thread);
 		currentThread = thread;
 
-		Create(&awakerThread, Awaker, (u8*)"Awaker");
+		Create(&awakerThread, (u8*)"Awaker", Awaker);
 
 		Interrupt::Enable();
 		return true;
@@ -240,20 +240,24 @@ namespace Thread
 		__asm("popl %ebx");
 		__asm("popl %eax");
 
-		//__asm("sti"); // FIXME why...
-		BREAK;
 		__asm("iret");
 	}
 
-	/*__attribute((naked)) void ThreadStart()
+	__attribute((naked)) void ThreadStart()
 	{
 		currentThread->state = State::Running;
-		__asm("iret");
 
-		// TODO return code
-	}*/
+		currentThread->returnValue = currentThread->entry(currentThread->entryArgs);
 
-	Status Create(Thread** thread, void (*entry)(), u8* name)
+		currentThread->state = State::Unstoppable;
+		Print("Thread \"%s\" terminated~! (%d)\n", currentThread->name, currentThread->returnValue);
+
+		currentThread->state = State::Zombie;
+		NextThread();
+		for(;;);
+	}
+
+	Status Create(Thread** thread, u8* name, int (*entry)(void*), void* threadData)
 	{
 		(*thread) = (Thread*)Memory::Alloc(sizeof(Thread));
 
@@ -271,8 +275,8 @@ namespace Thread
 			(*thread)->regs[a] = 0;
 		}
 
-		//(*thread)->regs[(u32)Register::EIP] = (u32)entry;
-		//(*thread)->regs[(u32)Register::CS] = (u32)0x08;
+		(*thread)->entry = entry;
+		(*thread)->entryArgs = threadData;
 		(*thread)->regs[(u32)Register::DS] = (u32)0x10;
 
 		EFlags eflags = {
@@ -300,11 +304,9 @@ namespace Thread
 			.unused5 = 				0,
 		};
 
-		//Push((*thread), 0x0200);
 		Push((*thread), *(u32*)&eflags);
 		Push((*thread), 0x8);
-		Push((*thread), (u32)entry);
-		//Push((*thread), (u32)ThreadStart);
+		Push((*thread), (u32)ThreadStart);
 
 		Push((*thread), 0);
 		Push((*thread), 0);
