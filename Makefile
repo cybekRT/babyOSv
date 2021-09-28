@@ -98,7 +98,7 @@ out/boot2.bin: boot/boot2.asm boot/FAT12.inc boot/FAT12_lite.asm
 	$(NASM) $(NASM_FLAGS) $< -fbin -o $@ -l out/boot2.lst
 
 out/kernel.elf: out/kmain_startup.o $(OBJS)
-	$(LD) -nostdlib -nolibc -nostartfiles -nodefaultlibs -m elf_i386 -Map out/kernel.map -T kernel/linker.ld $^ -o $@
+	$(LD) -nostdlib -m elf_i386 -Map out/kernel.map -T kernel/linker.ld $^ -o $@
 
 out/kernel.bin: out/kernel.elf
 	$(GCC_PREFIX)objcopy -Obinary $< $@

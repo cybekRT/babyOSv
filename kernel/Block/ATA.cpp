@@ -166,8 +166,6 @@ namespace ATA
 
 		//regFeatures.Write(0);
 
-		__asm("xchg %bx, %bx");
-
 		// Identify
 		regDriveHead.Write( { .driveNumber = 0, .reserved1 = 1, .reserved2 = 1 } );
 		regSectorCount.Write(0);
@@ -193,23 +191,7 @@ namespace ATA
 		for(unsigned a = 0; a < 256; a++)
 		{
 			while(!regStatus.Read().drq);
-
-			//u32 v = (regData.Read() << 16) | regData.Read();
-
 			idenDataU16[a] = regData.Read();
-
-			/*u8* tmptr = (u8*)&idenDataU16[a];
-
-			u8 tmp = tmptr[0];
-			tmptr[0] = tmptr[1];
-			tmptr[1] = tmp;*/
-
-			//Print("%c%c%c%c", v >> 24, v >> 16, v >> 8, v);
-			//u32 v = (HAL::In16(0x1F0) << 16) | HAL::In16(0x1F0);
-			//Print("%x ", v);
-
-			//if(a % 16 == 7)
-			//	Print("\n");
 		}
 
 		Print("Serial: %s\n", idenData.SerialNumber);
@@ -247,13 +229,6 @@ namespace ATA
 			Print("Size: %d\n", part.lbaSize * 512 / 1024 / 1024);
 		}
 
-		/*for(unsigned a = 0; a < 512; a++)
-		{
-
-		}*/
-
-		//Interrupt::Enable();
-
 		Block::RegisterDevice(Block::DeviceType::HardDrive, &drv, nullptr);
 
 		return true;
@@ -268,8 +243,44 @@ namespace ATA
 
 	u32 _Size(void* dev)
 	{
-		// TODO: fixme
-		return 99999;
+		// Identify
+		regDriveHead.Write( { .driveNumber = 0, .reserved1 = 1, .reserved2 = 1 } );
+		regSectorCount.Write(0);
+		regLBALow.Write(0);
+		regLBAMid.Write(0);
+		regLBAHigh.Write(0);
+
+		regCommand.Write(CommandRegister::ATA_CMD_IDENTIFY);
+
+		StatusRegister st;
+		while((st = regStatus.Read()).busy);
+
+		st.Print();
+		Print(" - Finished~!\n");
+
+		Print("Status: ");
+		regStatus.Read().Print();
+		Print("\n");
+
+		Print("Identify:\n");
+		IDENTIFY_DEVICE_DATA idenData;
+		u16* idenDataU16 = (u16*)&idenData;
+		for(unsigned a = 0; a < 256; a++)
+		{
+			while(!regStatus.Read().drq);
+			idenDataU16[a] = regData.Read();
+		}
+
+		Print("Max LBA48: %x%x\n", 	idenData.Max48BitLBA[0], 
+									idenData.Max48BitLBA[1]);
+		Print("LbaSupported: %d\n", idenData.Capabilities.LbaSupported);
+
+		if(!idenData.Capabilities.LbaSupported)
+			return 0;
+
+		u32 maxLba = (idenData.Max48BitLBA[0] << 32) || idenData.Max48BitLBA[1];
+
+		return maxLba;
 	}
 
 	u8 _Lock(void* dev)
@@ -303,11 +314,11 @@ namespace ATA
 	{
 		.Name = _Name,
 		.Size = _Size,
+		.BlockSize = _BlockSize,
 
 		.Lock = _Lock,
 		.Unlock = _Unlock,
 
-		.BlockSize = _BlockSize,
 		.Read = _Read,
 		.Write = _Write
 	};

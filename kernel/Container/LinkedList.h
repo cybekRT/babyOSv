@@ -43,20 +43,16 @@ protected:
 		public:
 			Iterator(T* ptr) : ptr(ptr)
 			{
-				Print("LinkedIterator: %p\n", ptr);
+				
 			}
 
 			virtual T& operator*() override
 			{
-				//LinkedListItem<T> *item = container_of(ptr, LinkedListItem<T>, value);
-				//return item->value;
-				Print("*itr - %p (%x)\n", ptr, *ptr);
 				return *ptr;
 			}
 
 			virtual const Iterator operator+(int v) const
 			{
-				//auto p = ptr;
 				LinkedListItem<T> *item = container_of(ptr, LinkedListItem<T>, value);
 				for(unsigned a = 0; a < v; a++)
 					item = item->next;
@@ -68,7 +64,6 @@ protected:
 
 			virtual Iterator& operator++() override
 			{
-				//ptr = ptr->next;
 				LinkedListItem<T> *item = container_of(ptr, LinkedListItem<T>, value);
 				item = item->next;
 				if(!item)
@@ -119,12 +114,11 @@ public:
 
 	LinkedList<X>() : data(nullptr)
 	{
-		//Print("LinkedList<X>()\n");
+		
 	}
 
 	LinkedList<X>(const LinkedList<X>& arg) : data(nullptr)
 	{
-		//Print("LinkedList<X>(&arg)\n");
 		auto ptr = arg.data;
 		while(ptr)
 		{
@@ -135,9 +129,7 @@ public:
 
 	~LinkedList<X>()
 	{
-		//Print("~LinkedList<X>()\n");
-		Clear(); // FIXME
-		//Print("...~LinkedList<X>()\n");
+		Clear();
 	}
 
 	Iterator<X> begin()
@@ -160,9 +152,7 @@ public:
 
 	void PushBack(X value)
 	{
-		//LinkedListItem<X>* item = (LinkedListItem<X>*)Memory::Alloc(sizeof(*item));
-		auto item = new LinkedListItem<X>();// Memory::Alloc<LinkedListItem<X>>();
-		//auto item = Memory::Alloc<LinkedListItem<X>>();
+		auto item = new LinkedListItem<X>();
 
 		item->value = value;
 		item->next = nullptr;
@@ -195,13 +185,9 @@ public:
 		if(data == item)
 		{
 			data = item->next;
-			//Memory::Free(item);
 			delete item;
 			return;
 		}
-
-		//Print("Data: %p != Item: %p\n", data, item);
-		//return;
 
 		LinkedListItem<X>* ptrPrev = nullptr;
 		LinkedListItem<X>* ptr = data;
@@ -210,7 +196,6 @@ public:
 			if(ptr == item)
 			{
 				ptrPrev->next = item->next;
-				//Memory::Free(item);
 				delete item;
 				return;
 			}
@@ -229,7 +214,6 @@ public:
 		auto item = data;
 		data = item->next;
 		auto itemData = item->value;
-		//Memory::Free(item);
 		delete item;
 
 		ASSERT((u32)data != (u32)-1, "Data pointer corrupted~!");
@@ -253,7 +237,6 @@ public:
 		else
 			data = nullptr;
 		auto itemData = item->value;
-		//Memory::Free(item);
 		delete item;
 
 		ASSERT((u32)data != (u32)-1, "Data pointer corrupted~!");
@@ -290,7 +273,6 @@ public:
 		auto ptr = data;
 		while(ptr)
 		{
-			//Print("Ptr: %p, Count: %d\n", ptr, count);
 			ptr = ptr->next;
 			count++;
 		}

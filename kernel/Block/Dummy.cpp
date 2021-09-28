@@ -44,11 +44,11 @@ namespace Block::Dummy
 	{
 		.Name = Name,
 		.Size = Size,
+		.BlockSize = BlockSize,
 
 		.Lock = Lock,
 		.Unlock = Unlock,
 
-		.BlockSize = BlockSize,
 		.Read = Read,
 		.Write = Write
 	};

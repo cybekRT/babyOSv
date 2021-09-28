@@ -148,12 +148,6 @@ namespace VFS
 	Status RewindDirectory(FS::Directory* dir)
 	{
 		ASSERT(dir, "No dir");
-		//ASSERT(dir->fsInfo, "No fsInfo");
-
-		Print("Dir: %p\n", dir);
-		Print("FS info: %p\n", dir->fsInfo);
-		//Print("Name dir: %p\n", dir->fsInfo->Name);
-		//Print("Rewind dir: %p\n", dir->fsInfo->RewindDirectory);
 
 		if(dir->fsInfo != nullptr)
 		{
@@ -179,14 +173,8 @@ namespace VFS
 		dir->index++;
 
 		unsigned a = 0;
-		//for(const auto& itr : Block::GetDevices())
-		Print("Checking...\n");
-		//for(const auto& itr : Block::GetPartitions())
 		for(auto mp : mountPoints)
 		{
-			//Print("Itr name: %s\n", itr->name);
-			//Print("Entry name: %s\n", entry->name);
-			//Print("a = %d, index = %d\n", a, dir->index);
 			if(a == dir->index)
 			{
 				entry->isValid = 1;
@@ -194,9 +182,6 @@ namespace VFS
 				entry->isHidden = 0;
 				entry->isSymlink = 0;
 
-				//Print("Itr name: %s\n", itr->name);
-				//Print("Entry name: %s\n", entry->name);
-				//strcpy((char*)itr->name, (char*)entry->name);
 				strcpy(mp.name, (char*)entry->name);
 
 				return Status::Success;
@@ -207,7 +192,6 @@ namespace VFS
 			a++;
 		}
 
-		//Print("[%d] last index... %d\n", a, dir->index);
 		return Status::Fail;
 	}
 
@@ -219,16 +203,10 @@ namespace VFS
 
 		if(dir->fsInfo != nullptr)
 		{
-			//status = dir->fsInfo->ChangeDirectory(dir->fsPriv, dir->fsDir);
-
 			status = FS::Status::EOF;
-			Print("FSInfo2: %x", dir->fsInfo);
 			dir->fsInfo->RewindDirectory(dir->fsPriv, dir->fsDir);
 			FS::DirEntry entry;
 			Print("Reading directory...\n");
-			Print(" %x\n", dir);
-			Print(" %x\n", dir->fsInfo);
-			Print(" %x\n", dir->fsInfo->ReadDirectory);
 			while(dir->fsInfo->ReadDirectory(dir->fsPriv, dir->fsDir, &entry) == FS::Status::Success)
 			{
 				Print(">");
@@ -237,14 +215,10 @@ namespace VFS
 
 				if(!strcmp((char*)entry.name, (char*)name))
 				{
-					//u8* pathBuffer = (u8*)Memory::Alloc(FS::MaxFilenameLength);
-					//strcpy((char*)entry.name, (char*)pathBuffer);
-
 					status = dir->fsInfo->ChangeDirectory(dir->fsPriv, dir->fsDir);
 
 					if(status == FS::Status::Success)
 					{
-						//dir->path.PushBack(pathBuffer);
 						if(strcmp((char*)entry.name, ".."))
 						{
 							Print("Adding path: %s\n", entry.name);
@@ -292,51 +266,8 @@ namespace VFS
 			dir->fsInfo = mp->fsInfo;
 			dir->fsPriv = mp->fsPriv;
 			dir->fsInfo->OpenRoot(dir->fsPriv, &dir->fsDir);
-			Print("FSInfo: %x\n", dir->fsInfo);
 
 			dir->path.Add((char*)mp->name);
-
-			//Block::BlockDevice* bd = nullptr;
-			/*Block::BlockPartition* part = nullptr;
-
-			unsigned a = 0;
-			for(auto& itr : Block::GetPartitions())
-			{
-				if(a++ == dir->index)
-				{
-					//bd = &itr;
-					part = itr;
-					break;
-				}
-			}
-
-			if(!part)
-			{
-				Print("Fail: %s:%d\n", __FILE__, __LINE__);
-				return Status::Fail;
-			}
-
-			auto fsItr = FS::filesystems.data;
-			while(fsItr)
-			{
-				if(fsItr->value->Probe(part) == FS::Status::Success)
-					break;
-
-				fsItr = fsItr->next;
-			}
-
-			if(!fsItr)
-			{
-				Print("Fail: %s:%d\n", __FILE__, __LINE__);
-				return Status::Fail;
-			}
-
-			dir->fsInfo = fsItr->value;
-			dir->fsInfo->Alloc(part, &dir->fsPriv);
-			dir->fsInfo->OpenRoot(dir->fsPriv, &dir->fsDir);
-			Print("FSInfo: %x\n", dir->fsInfo);
-
-			dir->path.Add((char*)part->name);*/
 		}
 
 		Print("ChangeDirectory: success~!\n");

@@ -140,7 +140,6 @@ namespace FAT
 
 	struct Info
 	{
-		//Block::BlockDevice* bd;
 		Type type;
 		Block::BlockPartition* part;
 		BPB* bpb;
@@ -158,12 +157,6 @@ namespace FAT
 	u32 NextCluster(void* fs, u16 cluster)
 	{
 		Info* info = (Info*)fs;
-
-		//u32 fatOffset = cluster + (cluster >> 1);
-		//Print("Cluster: %d", cluster);
-		//ASSERT(cluster < info->bpb->sectorsPerFat * 512 / 2, " - Invalid cluster");
-		//u16 nextCluster = *((u16*)info->fat + cluster); // FIXME: check for invalid clusters...
-
 		u32 nextCluster;
 
 		if(info->type == Type::FAT12)
@@ -190,17 +183,6 @@ namespace FAT
 		{
 			nextCluster = 0;
 		}
-
-		Print("Cluster: %d", cluster);
-		Print(" -> %d\n", nextCluster);
-
-		/*if(cluster & 1)
-			nextCluster = nextCluster >> 4;
-		else
-			nextCluster = nextCluster & 0xfff;*/
-
-		//if(nextCluster >= 0xFFF8) // Last one...
-		//	nextCluster = 0;
 
 		return nextCluster;
 	}
@@ -270,13 +252,11 @@ namespace FAT
 
 		Print("Type: FAT%d\n", info->type);
 
-		//info->bd = bd;
 		info->part = part;
 		info->bpb = bpb;
 		info->fat = fat;
 
 		info->firstRootSector = info->bpb->reservedSectors 
-					//+ info->bpb->hiddenSectors 
 					+ info->bpb->sectorsPerFat * info->bpb->fatsCount;
 		info->firstDataSector = info->firstRootSector + info->bpb->rootEntriesCount * 32 / 512;
 		Print("Root entries: %d\n", info->bpb->rootEntriesCount);
@@ -369,7 +349,6 @@ namespace FAT
 	FS::Status ReadDirectory(void* fs, Directory* dir, DirEntry* entry)
 	{
 		Info* info = (Info*)fs;
-		//auto bd = info->bd;
 		auto part = info->part;
 
 		if(dir->bufferValid)
@@ -402,24 +381,11 @@ namespace FAT
 			u32 firstSector = (dir->firstCluster == 0) 
 					? (info->firstRootSector + dir->currentCluster * info->bpb->sectorsPerCluster) 
 					: (info->firstDataSector + (dir->currentCluster - 2) * info->bpb->sectorsPerCluster);
-			//u32 sector = info->firstDataSector + (file->currentCluster - 2) * info->bpb->sectorsPerCluster;
 
-			//bd->drv->Read(bd->drvPriv, firstSector + dir->currentCluster, dir->buffer);
 			for(unsigned a = 0; a < info->bpb->sectorsPerCluster; a++)
 			{
-				/*Print("Cluster: %d -> sector %d\n", 
-						dir->currentCluster,
-						firstSector + (dir->currentCluster - 2) * info->bpb->sectorsPerCluster + a);
-				part->Read(firstSector + (dir->currentCluster - 2) * info->bpb->sectorsPerCluster + a, dir->buffer + 512 * a);*/
-
-				/*Print("Cluster: %d -> sector %d\n", 
-						dir->currentCluster,
-						firstSector + a);*/
 				part->Read(firstSector + a, dir->buffer + 512 * a);
 			}
-			
-			//if(dir->currentCluster == 0)
-			//	dir->dataOffset += 32;
 
 			dir->bufferValid = 1;
 		}
@@ -470,9 +436,7 @@ namespace FAT
 			return FS::Status::Undefined;
 		}
 
-		//dir->firstCluster = dir->currentCluster = (fatEntry->clusterHigh << 16) | fatEntry->cluster;
 		dir->firstCluster = dir->currentCluster = fatEntry->cluster;
-		Print("Directory cluster: %x\n", dir->firstCluster);
 		dir->dataOffset = 0;
 		dir->bufferValid = 0;
 
@@ -495,16 +459,11 @@ namespace FAT
 
 		(*file)->firstCluster = (fatEntry->clusterHigh << 16) | fatEntry->cluster;
 		(*file)->currentCluster = (*file)->firstCluster;
-// 5eec00
-		Print("Opened file, cluster: %d\n", (*file)->firstCluster);
-		Print("%x %x -> %x\n", (fatEntry->clusterHigh << 16), fatEntry->cluster, (*file)->firstCluster);
 
 		(*file)->totalDataOffset = 0;
 		(*file)->bufferValid = 0;
 		(*file)->bufferSize = bufferSize;
 		(*file)->size = fatEntry->size;
-
-		Print("  size: %d\n", (*file)->size);
 
 		return FS::Status::Success;
 	}
@@ -522,7 +481,6 @@ namespace FAT
 	FS::Status ReadFile(void* fs, File* file, u8* buffer, u32 bufferSize, u32* readCount)
 	{
 		Info* info = (Info*)fs;
-		//auto bd = info->bd;
 		auto part = info->part;
 
 		(*readCount) = 0;
@@ -540,9 +498,7 @@ namespace FAT
 					return FS::Status::EOF;
 			}
 
-			//u32 sector = info->firstDataSector + file->currentCluster - 2 + 0x447000/512 + 161;
 			u32 sector = info->firstDataSector + (file->currentCluster - 2) * info->bpb->sectorsPerCluster;
-			//bd->drv->Read(bd->drvPriv, sector, file->buffer);
 			Print("Reading sector: %d (%d)\n", sector, info->bpb->sectorsPerCluster);
 			part->Read(sector, file->buffer);
 			file->bufferValid = 1;
@@ -555,11 +511,11 @@ namespace FAT
 			FS::Status status;
 			u32 subread;
 
-			//bd->drv->Lock(bd->drvPriv);
+			part->device->drv->Lock(part->device->drvPriv);
 			for(unsigned a = 0; a < bufferSize; )
 			{
 				u32 curSize = (bufferSize - (*readCount) > file->bufferSize ? file->bufferSize : bufferSize - (*readCount));
-				//Print(".");
+
 				status = ReadFile(fs, file, buffer + (*readCount), curSize, &subread);
 				Print("Read: %u\n", subread);
 				a += subread;
@@ -571,9 +527,8 @@ namespace FAT
 				}
 			}
 
-			//bd->drv->Unlock(bd->drvPriv);
+			part->device->drv->Unlock(part->device->drvPriv);
 
-			Print("OK!\n");
 			return status;
 		}		
 
@@ -595,7 +550,6 @@ namespace FAT
 
 		if((*readCount) == 0)
 		{
-			Print("EOF\n");
 			return FS::Status::EOF;
 		}
 

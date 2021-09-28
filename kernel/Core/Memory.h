@@ -63,7 +63,7 @@ namespace Memory
 		struct MemoryMap
 		{
 			void* address[340];
-			unsigned length[340];
+			u32 length[340];
 			bool used[340];
 
 			MemoryMap* next;

@@ -26,12 +26,14 @@ namespace Block
 	struct BlockDeviceDriver
 	{
 		u8 (*Name)(void* dev, u8* buffer);
+
+		/* Number of sectors */
 		u32 (*Size)(void* dev);
+		u32 (*BlockSize)(void* dev);
 
 		u8 (*Lock)(void* dev);
 		u8 (*Unlock)(void* dev);
 
-		u32 (*BlockSize)(void* dev);
 		u8 (*Read)(void* dev, u32 lba, u8* buffer);
 		u8 (*Write)(void* dev, u32 lba, u8* buffer);
 	};
