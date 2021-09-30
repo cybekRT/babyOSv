@@ -15,7 +15,7 @@ namespace Thread
 
 		ESI,
 		EDI,
-		ESP,
+		//ESP,
 		EBP,
 
 		//CS,
@@ -103,8 +103,10 @@ namespace Thread
 	void NextThread();
 
 	Status Create(Thread** thread, u8* name, int (*entry)(void*), void* threadData = nullptr);
+	Status Start(Thread* thread);
 	Status Join(Thread** thread, int* code);
 
+	State GetState(Thread* thread);
 	void SetState(Thread* thread, State state);
 	Status RaiseSignal(Signal signal, Timer::Time timeout = 0);
 	Status WaitForSignal(Signal signal, Timer::Time timeout = (Timer::Time)-1);

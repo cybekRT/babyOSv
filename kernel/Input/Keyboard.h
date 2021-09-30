@@ -41,11 +41,8 @@ namespace Keyboard
 	bool Init();
 
 	bool ReadEvent(KeyEvent* event);
+	bool WaitAndReadEvent(KeyEvent* event);
 	bool IsKeyPressed(KeyCode key);
-
-	PS2_StatusRegister ReadStatus();
-	void SendCommand(u8 cmd);
-	u8 ReadCommandResponse();
 }
 
 inline Keyboard::KeyMod operator|(Keyboard::KeyMod a, Keyboard::KeyMod b)

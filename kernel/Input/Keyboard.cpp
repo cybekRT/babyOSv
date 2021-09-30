@@ -2,6 +2,7 @@
 #include"Interrupt.h"
 #include"HAL.h"
 #include"Keyboard.h"
+#include"Thread.hpp"
 
 #include"Keyboard_map.cpp"
 
@@ -79,39 +80,15 @@ namespace Keyboard
 			__asm("int $0xfe");
 		}
 
-		events.PushBack(event);
-
 		Interrupt::AckIRQ();
+
+		events.PushBack(event);
+		Thread::RaiseSignal( { .type = Thread::Signal::IRQ, .addr = Interrupt::IRQ_KEYBOARD } );
 	}
 
 	bool Init()
 	{
 		Interrupt::Register(Interrupt::IRQ2INT(Interrupt::IRQ_KEYBOARD), ISR_Keyboard);
-
-		/*SendCommand(0x20);
-		u8 resp = ReadCommandResponse();
-
-		resp &= ~(1 << 6);
-
-		SendCommand(0x60);
-		SendCommand(resp);
-
-		SendCommand(0xff);*/
-
-		/*SendCommand(0xF5);
-		resp = ReadCommandResponse();
-		Print("Status: %x\n", resp);
-
-		SendCommand(0xF2);
-		resp = ReadCommandResponse();
-		Print("Status: %x\n", resp);
-
-		resp = ReadCommandResponse();
-		Print("Status: %x\n", resp);
-		resp = ReadCommandResponse();
-		Print("Status: %x\n", resp);
-
-		HALT;*/
 
 		return true;
 	}
@@ -126,41 +103,20 @@ namespace Keyboard
 		return true;
 	}
 
+	bool WaitAndReadEvent(KeyEvent* event)
+	{
+		while(events.IsEmpty())
+			Thread::WaitForSignal( { .type = Thread::Signal::IRQ, .addr = Interrupt::IRQ_KEYBOARD } );
+
+		*event = events.PopFront();
+		return true;
+	}
+
 	bool IsKeyPressed(KeyCode key)
 	{
 		u32 mapIndex = ((u32)key) / 8;
 		u32 mapBit = ((u32)key) % 8;
 
 		return keysMap[mapIndex] & (1 << mapBit);
-	}
-
-	Keyboard::PS2_StatusRegister ReadStatus()
-	{
-		Keyboard::PS2_StatusRegister reg;
-		*(u8*)&reg = HAL::In8(0x64);
-
-		return reg;
-	}
-
-	void SendCommand(u8 cmd)
-	{
-		PS2_StatusRegister status;
-		do
-		{
-			status = ReadStatus();
-		} while(status.inputBuffer);
-
-		HAL::Out8(0x64, cmd);
-	}
-
-	u8 ReadCommandResponse()
-	{
-		PS2_StatusRegister status;
-		do
-		{
-			status = ReadStatus();
-		} while(!status.outputBuffer);
-
-		return HAL::In8(0x64);
 	}
 }

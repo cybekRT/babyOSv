@@ -40,6 +40,7 @@ namespace Timer
 		ticks++;
 
 		Interrupt::AckIRQ();
+		//Print(".");
 
 		Thread::NextThread();
 	}
@@ -52,7 +53,7 @@ namespace Timer
 	bool Init()
 	{
 		Interrupt::Register(Interrupt::IRQ2INT(Interrupt::IRQ_TIMER), ISR_Timer);
-		Interrupt::Register(255, ISR_255);
+		//Interrupt::Register(255, ISR_255);
 
 		HAL::Out8(PIT_PORT_COMMAND, PIT_COMMAND_CHANNEL_0 | PIT_COMMAND_AMODE_LOHIBYTE | PIT_COMMAND_OPMODE_3 | PIT_COMMAND_BMODE_BINARY);
 		HAL::Out8(PIT_PORT_CHANNEL_0, 0xA9);
@@ -69,16 +70,22 @@ namespace Timer
 	bool tested = false;
 	void Delay(Time ms)
 	{
+		auto prevState = Thread::GetState(Thread::currentThread);
+		//Thread::SetState(Thread::currentThread, Thread::State::Waiting);
+
+		Thread::WaitForSignal(Thread::Signal { .type = Thread::Signal::Timeout, .addr = 0 }, ms);
+
 		// FIXME: call to delay if interrupts are disabled
 		//__asm("pushf");
 		//__asm("sti");
 
-		Time time = ticks + ms;
+		/*Time time = ticks + ms;
 		while(ticks < time)
 		{
 			__asm("int $0xff");
-		}
+		}*/
 
+		Thread::SetState(Thread::currentThread, prevState);
 		//__asm("popf");
 	}
 }

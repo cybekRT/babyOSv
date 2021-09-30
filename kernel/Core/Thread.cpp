@@ -10,6 +10,8 @@ int strlen(const char* str);
 namespace Thread
 {
 	Thread* currentThread = nullptr;
+
+	Thread* idleThread = nullptr;
 	Array<Thread*> threads;
 
 	__attribute((naked, noreturn)) void _NextThread(void*);
@@ -35,23 +37,14 @@ namespace Thread
 
 	LinkedList<Thread2Signal> waitingThreads;
 
-	int Awaker(void*)
+	int Idle(void*)
 	{
 		for(;;)
 		{
-			//while(!raisedSignals.IsEmpty())
-			for(unsigned a = 0; a < raisedSignals.Size(); a++)
+			while(!raisedSignals.IsEmpty())
 			{
 				SignalInfo sigInfo = raisedSignals.PopFront();
 				Signal sig = sigInfo.signal;
-
-				/*if(Timer::GetTicks() < sigInfo.raisedTime + sigInfo.timeout)
-				{
-					Terminal::Print("== %d %d %d ==\n", (u32)Timer::GetTicks(), (u32)sigInfo.raisedTime, (u32)sigInfo.timeout);
-					//raisedSignals.PushBack(sigInfo);
-				}*/
-
-				//Terminal::Print("Received signal: %u : %u\n", sig.type, sig.addr);
 
 				auto t2s = waitingThreads.data;
 				while(t2s)
@@ -65,8 +58,6 @@ namespace Thread
 							(*t2s->value.signal) = sig;
 						else if(timeout)
 							(*t2s->value.signal) = Signal { .type = Signal::Type::Timeout, .addr = 0 };
-
-						//Terminal::Print("Waking thread: %s\n", t2s->value.thread->name);
 
 						t2s->value.thread->state = State::Running;
 						threads.PushBack(t2s->value.thread);
@@ -89,8 +80,6 @@ namespace Thread
 				{
 					(*t2s->value.signal) = Signal { .type = Signal::Type::Timeout, .addr = 0 };
 
-					//Terminal::Print("Waking thread by timeout: %s\n", t2s->value.thread->name);
-
 					t2s->value.thread->state = State::Running;
 					threads.PushBack(t2s->value.thread);
 
@@ -102,7 +91,10 @@ namespace Thread
 					t2s = t2s->next;
 			}
 
-			NextThread();
+			if(threads.Size() > 0)
+				NextThread();
+			else
+				__asm("hlt");
 		}
 	}
 
@@ -113,7 +105,6 @@ namespace Thread
 
 		void *stackPhys = Memory::Physical::Alloc(newStackSize);
 		thread->stackBottom = Memory::Logical::Map(stackPhys, newStackBeg - newStackSize, newStackSize);
-		//thread->stack = newStackBeg;
 
 		u32 currentESP;
 		u32 currentEBP;
@@ -142,12 +133,11 @@ namespace Thread
 		__asm("mov %0, %%ebp" : : "r"(newEBP));
 	}
 
-	Thread* awakerThread;
 	bool Init()
 	{
 		Interrupt::Disable();
 
-		Interrupt::Register(250, _NextThread);
+		Interrupt::Register(255, _NextThread);
 
 		Thread* thread = (Thread*)Memory::Alloc(sizeof(Thread));
 
@@ -163,7 +153,10 @@ namespace Thread
 		threads.PushBack(thread);
 		currentThread = thread;
 
-		Create(&awakerThread, (u8*)"Awaker", Awaker);
+		//Create(&awakerThread, (u8*)"Awaker", Awaker);
+		Create(&idleThread, (u8*)"Idle", Idle);
+
+		//Start(awakerThread);
 
 		Interrupt::Enable();
 		return true;
@@ -180,7 +173,7 @@ namespace Thread
 	void NextThread()
 	{
 		//Print("Switch task...\n");
-		__asm("int $250");
+		__asm("int $255");
 		//Print("Return~!\n");
 	}
 
@@ -188,7 +181,7 @@ namespace Thread
 	{
 		if(currentThread == nullptr || currentThread->state == State::Unstoppable)// || threads.Size() == 0)
 		{
-			//Print("No...\n");
+			//Print("No... %s\n", currentThread->name);
 			__asm("iret");
 			//return;
 			//__asm("ret");
@@ -217,7 +210,11 @@ namespace Thread
 		if(currentThread->state == State::Running)
 			threads.PushBack(currentThread);
 
-		currentThread = threads.PopFront();
+		if(threads.Size() == 0)
+			currentThread = idleThread;
+		else
+			currentThread = threads.PopFront();
+
 		currentThread->state = State::Running;
 
 		//Print("Next thread: %s (%d)\n", currentThread->name, threads.Size());
@@ -321,12 +318,17 @@ namespace Thread
 		Push((*thread), 0x10);
 		Push((*thread), 0x10);
 
-		Interrupt::Disable();
-		threads.PushBack((*thread));
 		Terminal::Print("Created thread: %s\n", (*thread)->name);
-		Interrupt::Enable();
 
 		return Status::Success;
+	}
+
+	Status Start(Thread* thread)
+	{
+		Interrupt::Disable();
+		threads.PushBack(thread);
+		Terminal::Print("Started thread: %s\n", thread->name);
+		Interrupt::Enable();
 	}
 
 	Status Join(Thread** thread, int* code)
@@ -335,6 +337,11 @@ namespace Thread
 			(*code) = -1;
 
 		return Status::Fail;
+	}
+
+	State GetState(Thread* thread)
+	{
+		return thread->state;
 	}
 
 	void SetState(Thread* thread, State state)

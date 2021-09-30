@@ -72,7 +72,7 @@ extern "C" void kmain()
 	Interrupt::Init();
 
 	/* Call global constructors */
-	Print("Constructors: (%p - %p)\n", _ctors_beg, _ctors_end);
+	//Print("Constructors: (%p - %p)\n", _ctors_beg, _ctors_end);
 	/*for(u32* ptr = _ctors_beg; ptr != _ctors_end; ptr++)
 	{
 		void (*func)() = (void (*)())(*ptr);
@@ -90,6 +90,7 @@ extern "C" void kmain()
 
 	Thread::Thread* testThread;
 	Thread::Create(&testThread, (u8*)"YoLo", YoLo);
+	Thread::Start(testThread);
 
 	Interrupt::Enable();
 
@@ -181,7 +182,7 @@ extern "C" void kmain()
 	Print("> ");
 	for(;;)
 	{
-		while(Keyboard::ReadEvent(&keyEvent))
+		while(Keyboard::WaitAndReadEvent(&keyEvent))
 		{
 			if(keyEvent.type == Keyboard::KeyType::Released)
 				continue;
@@ -350,8 +351,9 @@ extern "C" void kmain()
 			}
 		}
 
-		__asm("sti");
-		__asm("hlt");
+		//__asm("sti");
+		//__asm("hlt");
+		//Timer::Delay(100);
 	}
 #endif
 
