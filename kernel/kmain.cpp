@@ -18,6 +18,7 @@
 
 #include"FS/VFS.hpp"
 
+bool shellReady = false;
 u8 tolower(u8 c);
 
 int YoLo(void*)
@@ -46,6 +47,7 @@ int YoLo(void*)
 		Terminal::SetXY(cx, cy);
 
 		Timer::Delay(500);
+		Print("YoLo~!");
 	}
 
 	return 0;
@@ -90,7 +92,6 @@ extern "C" void kmain()
 
 	Thread::Thread* testThread;
 	Thread::Create(&testThread, (u8*)"YoLo", YoLo);
-	Thread::Start(testThread);
 
 	Interrupt::Enable();
 
@@ -141,6 +142,8 @@ extern "C" void kmain()
 	FS::Directory* dir;
 	VFS::OpenRoot(&dir);
 
+	Thread::Start(testThread);
+
 #if 0
 	{
 		auto bd = &Block::devices[0];
@@ -180,6 +183,7 @@ extern "C" void kmain()
 	Keyboard::KeyEvent keyEvent;
 	Print("=== If you need help, write \"help\" ===\n");
 	Print("> ");
+	shellReady = true;
 	for(;;)
 	{
 		while(Keyboard::WaitAndReadEvent(&keyEvent))
