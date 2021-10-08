@@ -190,10 +190,9 @@ public:
 		}
 
 		LinkedListItem<X>* ptrPrev = nullptr;
-		LinkedListItem<X>* ptr = data;
 		while(data)
 		{
-			if(ptr == item)
+			if(data == item)
 			{
 				ptrPrev->next = item->next;
 				delete item;
