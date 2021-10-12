@@ -190,17 +190,20 @@ public:
 		}
 
 		LinkedListItem<X>* ptrPrev = nullptr;
-		while(data)
+		LinkedListItem<X>* ptr = data;
+		while(ptr)
 		{
-			if(data == item)
+			if(ptr == item)
 			{
+				// Print("Removed 2? %p, %p, %p\n", ptrPrev, data, item->next);
 				ptrPrev->next = item->next;
 				delete item;
+				__asm("popf");
 				return;
 			}
 
-			ptrPrev = data;
-			data = data->next;
+			ptrPrev = ptr;
+			ptr = ptr->next;
 		}
 
 		ASSERT((u32)data != (u32)-1, "Data pointer corrupted~!");
