@@ -23,7 +23,7 @@ public:
 
 	LinkedList<X>() : data(nullptr)
 	{
-		
+
 	}
 
 	void PushBack(X value)
@@ -44,7 +44,7 @@ public:
 			while(ptr->next != nullptr)
 			{
 				ASSERT(ptr != ptr->next, "LinkedList next pointing to itself");
-				
+
 				ptr = ptr->next;
 			}
 
@@ -88,6 +88,22 @@ public:
 		return itemData;
 	}
 
+	X PopBack()
+	{
+		ASSERT(!IsEmpty(), "Pop from empty linked list");
+
+		auto item = data;
+		while(item->next != nullptr)
+		{
+
+		}
+
+		data = item->next;
+		auto itemData = item->value;
+		Memory::Free(item);
+		return itemData;
+	}
+
 	X Front()
 	{
 		ASSERT(!IsEmpty(), "Pop from empty linked list");
@@ -97,7 +113,7 @@ public:
 	X Back()
 	{
 		ASSERT(!IsEmpty(), "Pop from empty linked list");
-		
+
 		auto item = data;
 		while(item->next)
 			item = item->next;
