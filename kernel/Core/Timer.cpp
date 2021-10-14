@@ -40,7 +40,6 @@ namespace Timer
 		ticks++;
 
 		Interrupt::AckIRQ();
-		//Print(".");
 
 		Thread::NextThread();
 	}

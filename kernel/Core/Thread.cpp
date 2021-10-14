@@ -66,11 +66,12 @@ namespace Thread
 
 						t2s->value.thread->state = State::Running;
 						threads.PushBack(t2s->value.thread);
-						Print("Thread \"%s\" is wakeing up: %s\n", currentThread->name, "signal");
+						// Print("Thread \"%s\" is waking up (signal): %s\n", currentThread->name, t2s->value.thread->name);
 
 						auto item = t2s;
 						t2s = t2s->next;
 						waitingThreads.Remove(item);
+						// Print("Ok?\n");
 					}
 					else
 						t2s = t2s->next;
@@ -80,20 +81,28 @@ namespace Thread
 			//if(waitingThreads.Size() > 1)
 			//	Print("Waiting size: %d\n", waitingThreads.Size());
 			auto t2s = waitingThreads.data;
-			Print("Threads waiting:\n");
+			// Print("Threads (bef) waiting:\n");
 			static bool wasKmain = false;
 
+			// bool haltForever = false;
 			while(t2s)
 			{
-				Print("- %s\n", t2s->value.thread->name);
-				bool timeout = (t2s->value.timeout != (Timer::Time)-1) && (Timer::GetTicks() >= t2s->value.sleepTime + t2s->value.timeout);
-				if(!strcmp((char*)t2s->value.thread->name, "kmain"))
-					wasKmain = true;
+				// if(t2s->value.thread == idleThread)
+				// {
+				// 	Print("WTFx~!?\n");
+				// 	//for(;;);
+				// }
 
-				if(wasKmain && shellReady && waitingThreads.Size() == 1 && strcmp((char*)t2s->value.thread->name, "kmain"))
-				{
-					for(;;);
-				}
+				// Print("- %s\n", t2s->value.thread->name);
+				bool timeout = (t2s->value.timeout != (Timer::Time)-1) && (Timer::GetTicks() >= t2s->value.sleepTime + t2s->value.timeout);
+				// if(!strcmp((char*)t2s->value.thread->name, "kmain"))
+				// 	wasKmain = true;
+
+				// if(wasKmain && shellReady && waitingThreads.Size() == 1 && strcmp((char*)t2s->value.thread->name, "kmain"))
+				// {
+				// 	//for(;;);
+				// 	haltForever = true;
+				// }
 
 				//	Print("Waiting: %s - %d\n", t2s->value.thread->name, timeout);
 
@@ -102,16 +111,19 @@ namespace Thread
 					/*if(strcmp((char*)t2s->value.thread->name, "kmain"))
 						Print("Timeout: %s - %d\n", t2s->value.thread->name, timeout);*/
 
-					Print("Thread \"%s\" is wakeing up: %s\n", currentThread->name, "timeout");
+					// Print("Thread \"%s\" is wakeing up: %s\n", t2s->value.thread->name, "timeout");
 
 					(*t2s->value.signal) = Signal { .type = Signal::Type::Timeout, .addr = 0 };
 
+					// Print("Thread \"%s\" is waking up (timeout): %s\n", currentThread->name, t2s->value.thread->name);
 					t2s->value.thread->state = State::Running;
 					threads.PushBack(t2s->value.thread);
 
 					auto item = t2s;
 					t2s = t2s->next;
+					// Print("Removing item: %s\n", item->value.thread->name);
 					waitingThreads.Remove(item);
+					// Print("Ok?\n");
 				}
 				else
 					t2s = t2s->next;
@@ -177,7 +189,7 @@ namespace Thread
 		//thread->stack = Memory::Alloc(thread->stackSize);
 		CreateKernelStack(thread);
 
-		threads.PushBack(thread);
+		//threads.PushBack(thread);
 		currentThread = thread;
 
 		//Create(&awakerThread, (u8*)"Awaker", Awaker);
@@ -395,13 +407,13 @@ namespace Thread
 		//Terminal::Print("Thread %s waiting for signal %d:%d...\n", currentThread->name, signal.type, signal.addr);
 		currentThread->state = State::Waiting;
 		waitingThreads.PushBack(Thread2Signal { .thread = currentThread, .signal = &signal, .sleepTime = Timer::GetTicks(), .timeout = timeout } );
-		Print("Waiting size: %d\n", waitingThreads.Size());
-		Print("Thread \"%s\" waiting for signal: %d, timeout: %d\n", currentThread->name, signal.type, timeout);
+		// Print("Waiting size: %d\n", waitingThreads.Size());
+		// Print("Thread \"%s\" waiting for signal: %d, timeout: %d\n", currentThread->name, signal.type, timeout);
 
-		Interrupt::Enable();
 		NextThread();
+		Interrupt::Enable();
 
-		Print("Thread \"%s\" finished waiting: %d\n", currentThread->name, signal.type);
+		// Print("Thread \"%s\" finished waiting: %d\n", currentThread->name, signal.type);
 		if(signal.type == Signal::Type::Timeout)
 			return Status::Timeout;
 

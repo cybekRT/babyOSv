@@ -108,7 +108,6 @@ namespace Keyboard
 		while(events.IsEmpty())
 		{
 			Thread::WaitForSignal( { .type = Thread::Signal::IRQ, .addr = Interrupt::IRQ_KEYBOARD } );
-			Print("Events: %d\n", events.Size());
 		}
 
 		*event = events.PopFront();

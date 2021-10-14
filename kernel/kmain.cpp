@@ -47,7 +47,6 @@ int YoLo(void*)
 		Terminal::SetXY(cx, cy);
 
 		Timer::Delay(500);
-		Print("YoLo~!");
 	}
 
 	return 0;
