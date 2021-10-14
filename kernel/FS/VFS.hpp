@@ -6,6 +6,8 @@ namespace VFS
 {
 	Status Init();
 
+	Status Mount(Block::BlockPartition* part, );
+
 	Status OpenRoot(FS::Directory** dir);
 	Status OpenDirectory(FS::Directory* src, FS::Directory** dir);
 	Status CloseDirectory(FS::Directory** dir);
