@@ -144,14 +144,18 @@ public:
 
 	void Clear()
 	{
+		__asm("pushf\ncli");
 		while(data)
 		{
 			Remove(data);
 		}
+
+		__asm("popf");
 	}
 
 	void PushBack(X value)
 	{
+		__asm("pushf\ncli");
 		auto item = new LinkedListItem<X>();
 
 		item->value = value;
@@ -175,17 +179,25 @@ public:
 		}
 
 		ASSERT((u32)data != (u32)-1, "Data pointer corrupted~!");
+		__asm("popf");
 	}
 
 	void Remove(LinkedListItem<X>* item)
 	{
 		if(!item)
+		{
+			Print("Not removed~!\n");
 			return;
+		}
+		__asm("pushf\ncli");
 
 		if(data == item)
 		{
+			//Print("Removing first item~!\n");
 			data = item->next;
 			delete item;
+			// Print("Removed 1?\n");
+			__asm("popf");
 			return;
 		}
 
@@ -206,11 +218,14 @@ public:
 			ptr = ptr->next;
 		}
 
+		// Print("Removed 3?\n");
 		ASSERT((u32)data != (u32)-1, "Data pointer corrupted~!");
+		__asm("popf");
 	}
 
 	X PopFront()
 	{
+		__asm("pushf\ncli");
 		ASSERT(!IsEmpty(), "Pop from empty linked list");
 
 		auto item = data;
@@ -219,11 +234,13 @@ public:
 		delete item;
 
 		ASSERT((u32)data != (u32)-1, "Data pointer corrupted~!");
+		__asm("popf");
 		return itemData;
 	}
 
 	X PopBack()
 	{
+		__asm("pushf\ncli");
 		ASSERT(!IsEmpty(), "Pop from empty linked list");
 
 		auto item = data;
@@ -242,6 +259,7 @@ public:
 		delete item;
 
 		ASSERT((u32)data != (u32)-1, "Data pointer corrupted~!");
+		__asm("popf");
 		return itemData;
 	}
 

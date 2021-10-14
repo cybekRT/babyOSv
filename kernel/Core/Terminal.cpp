@@ -126,6 +126,7 @@ namespace Terminal
 
 	u32 Print(const char *fmt, ...)
 	{
+		__asm("pushf\ncli");
 		u32 len = 0;
 
 		va_list args;
@@ -234,6 +235,7 @@ namespace Terminal
 		}
 
 		va_end(args);
+		__asm("popf");
 		return len;
 	}
 

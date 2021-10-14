@@ -42,7 +42,10 @@ namespace Thread
 	{
 		for(;;)
 		{
-			Interrupt::Disable();
+			//Interrupt::Disable();
+			__asm("pushf\ncli");
+
+			// Print("========== Idle ==========\n");
 
 			//Terminal::Print("idle,");
 
@@ -129,7 +132,26 @@ namespace Thread
 					t2s = t2s->next;
 			}
 
-			Interrupt::Enable();
+			// auto t2sx = waitingThreads.data;
+			// Print("Threads (aft) waiting:\n");
+			// while(t2sx)
+			// {
+			// 	Print("- %s\n", t2sx->value.thread->name);
+			// 	t2sx = t2sx->next;
+			// }
+
+			// Print("Threads running:\n");
+
+			// for(auto t : threads)
+			// {
+			// 	Print("- %s\n", t->name);
+			// }
+
+			// //if(haltForever)
+			// //	for(;;);
+
+			//Interrupt::Enable();
+			__asm("popf");
 			if(threads.Size() > 0)
 				NextThread();
 			else
@@ -218,6 +240,8 @@ namespace Thread
 
 	__attribute((naked, noreturn)) void _NextThread(void*)
 	{
+		__asm("cli");
+
 		if(currentThread == nullptr || currentThread->state == State::Unstoppable)// || threads.Size() == 0)
 		{
 			//Print("No... %s\n", currentThread->name);
@@ -226,8 +250,6 @@ namespace Thread
 			//__asm("ret");
 		}
 		//Print("Prev thread: %s (%d)\n", currentThread->name, threads.Size());
-
-		__asm("cli");
 
 		__asm("pushl %eax");
 		__asm("pushl %ebx");
@@ -246,8 +268,24 @@ namespace Thread
 		__asm("mov %%esp, %0" : "=a"(currentThread->stack));
 
 		// Change thread
-		if(currentThread->state == State::Running)
+		if(currentThread->state == State::Running)// && currentThread != idleThread)
+		{
+			//for(unsigned a = 0; a < threads.Size(); a++)
+			/*for(auto t : threads)
+			{
+//				Thread* t = threads[a];
+				if(t->name == currentThread->name)
+				{
+					Print("Thread: %s, exists: %s\n", t->name, currentThread->name);
+					__asm("int $250");
+					for(;;);
+				}
+			}*/
+
 			threads.PushBack(currentThread);
+		}
+		// else
+		// 	Print("Not running: %s, %d\n", currentThread->name, currentThread->state);
 
 		if(threads.Size() == 0)
 			currentThread = idleThread;
@@ -404,8 +442,32 @@ namespace Thread
 	{
 		Interrupt::Disable();
 
+		// if(currentThread == idleThread)
+		// {
+		// 	Print("WTF~!?\n");
+		// 	//for(;;);
+		// }
+
 		//Terminal::Print("Thread %s waiting for signal %d:%d...\n", currentThread->name, signal.type, signal.addr);
 		currentThread->state = State::Waiting;
+
+		for(auto t : waitingThreads)
+		{
+			if(t.thread == currentThread)
+			{
+				Print("Thread: %s, double waiting~! (%d:%d)\n", currentThread->name, signal.type, signal.addr);
+
+				Print("Waiting threads (x):\n");
+				for(auto tt : waitingThreads)
+				{
+					Print("- %s, %d:%d\n", tt.thread->name, tt.signal->type, tt.signal->addr);
+				}
+
+				__asm("int $250");
+				for(;;);
+			}
+		}
+
 		waitingThreads.PushBack(Thread2Signal { .thread = currentThread, .signal = &signal, .sleepTime = Timer::GetTicks(), .timeout = timeout } );
 		// Print("Waiting size: %d\n", waitingThreads.Size());
 		// Print("Thread \"%s\" waiting for signal: %d, timeout: %d\n", currentThread->name, signal.type, timeout);

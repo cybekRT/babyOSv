@@ -69,6 +69,7 @@ namespace Timer
 	bool tested = false;
 	void Delay(Time ms)
 	{
+		__asm("pushf\ncli");
 		auto prevState = Thread::GetState(Thread::currentThread);
 		//Thread::SetState(Thread::currentThread, Thread::State::Waiting);
 
@@ -85,6 +86,6 @@ namespace Timer
 		}*/
 
 		Thread::SetState(Thread::currentThread, prevState);
-		//__asm("popf");
+		__asm("popf");
 	}
 }
