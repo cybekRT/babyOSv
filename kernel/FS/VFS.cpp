@@ -1,5 +1,6 @@
 #include"VFS.hpp"
 #include"Container/LinkedList.h"
+#include"Path.hpp"
 
 int strlen(const char* str);
 int strcpy(const char* src, char* dst);
@@ -20,7 +21,8 @@ namespace FS
 		FSInfo *fsInfo;
 		void* fsPriv;
 		FS::Directory* fsDir;
-		LinkedList<u8*> path;
+		//LinkedList<u8*> path;
+		Path path;
 	};
 }
 
@@ -59,13 +61,14 @@ namespace VFS
 			(*dir)->fsInfo->CloseDirectory((*dir)->fsPriv, &(*dir)->fsDir);
 		}
 
-		while(!(*dir)->path.IsEmpty())
+		/*while(!(*dir)->path.IsEmpty())
 		{
 			auto ptr = !(*dir)->path.PopFront();
 			Memory::Free((void*)ptr);
-		}
+		}*/
 
-		Memory::Free((void*)*dir);
+		//Memory::Free((void*)*dir);
+		Memory::Free(*dir);
 		(*dir) = nullptr;
 		return Status::Success;
 	}
@@ -149,13 +152,17 @@ namespace VFS
 
 				if(strcmp((char*)entry.name, (char*)name))
 				{
-					u8* pathBuffer = (u8*)Memory::Alloc(FS::MaxFilenameLength);
-					strcpy((char*)entry.name, (char*)pathBuffer);
+					//u8* pathBuffer = (u8*)Memory::Alloc(FS::MaxFilenameLength);
+					//strcpy((char*)entry.name, (char*)pathBuffer);
 
 					status = dir->fsInfo->ChangeDirectory(dir->fsPriv, dir->fsDir);
 
 					if(status == FS::Status::Success)
-						dir->path.PushBack(pathBuffer);
+					{
+						//dir->path.PushBack(pathBuffer);
+						Print("Adding path: %s\n", entry.name);
+						dir->path.Add((char*)entry.name);
+					}
 				}
 			}
 
@@ -203,14 +210,17 @@ namespace VFS
 			dir->fsInfo->Alloc(part, &dir->fsPriv);
 			dir->fsInfo->OpenRoot(dir->fsPriv, &dir->fsDir);
 			Print("FSInfo: %x\n", dir->fsInfo);
+
+			dir->path.Add((char*)part->name);
 		}
 
 		return Status::Success;
 	}
 
-	Status GetPath(FS::Directory* dir)
+	Status GetPath(FS::Directory* dir, Path& path)
 	{
-
+		path = dir->path;
+		return Status::Success;
 	}
 
 	Status IsRoot(FS::Directory* dir, bool* result)

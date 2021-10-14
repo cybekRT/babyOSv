@@ -463,7 +463,14 @@ extern "C" void kmain()
 					}
 				}
 
-				Print("\n> ");
+				Print("\n");
+
+				Path dirPath;
+				VFS::GetPath(dir, dirPath);
+				char tmp[Path::MaxLength];
+				dirPath.ToString(tmp);
+
+				Print("%s> ", tmp);
 			}
 			else if(keyEvent.ascii)
 			{

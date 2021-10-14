@@ -1,3 +1,5 @@
+#pragma once
+
 #include<Container/LinkedList.h>
 
 class Path

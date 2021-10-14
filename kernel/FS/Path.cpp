@@ -12,7 +12,10 @@ Path::~Path()
 
 void Path::Add(char* dir)
 {
-	paths.PushBack(dir);
+	u32 len = strlen(dir);
+	char* tmp = (char*)Memory::Alloc(len + 1);
+	strcpy(dir, tmp);
+	paths.PushBack(tmp);
 }
 
 void Path::GoUp()
