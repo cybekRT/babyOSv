@@ -102,6 +102,7 @@ namespace Memory
 	T* Alloc()
 	{
 		T* v = (T*)Alloc(sizeof(T));
+		//new(v) T();
 		//v->T();
 		return v;
 	}

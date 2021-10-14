@@ -204,6 +204,10 @@ extern "C" void kmain()
 	FS::Directory* dir;
 	VFS::OpenRoot(&dir);
 
+	Print("==========\n");
+	Path* p = new Path();
+	Print("Path pointer: %p\n", p);
+
 	Array<int> array;
 	array.PushBack(5);
 	array.PushBack(1);

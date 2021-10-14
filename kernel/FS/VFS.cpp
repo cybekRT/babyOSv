@@ -2,6 +2,8 @@
 #include"Container/LinkedList.h"
 #include"Path.hpp"
 
+#include<new>
+
 int strlen(const char* str);
 int strcpy(const char* src, char* dst);
 
@@ -96,15 +98,19 @@ namespace VFS
 
 	Status OpenRoot(FS::Directory** dir)
 	{
-		ASSERT(dir, "Invalid poitner to dir");
+		ASSERT(dir, "Invalid pointer to dir");
 
+		//for(;;);
 		(*dir) = (FS::Directory*)Memory::Alloc(sizeof(FS::Directory));
+		//new( (*dir)) FS::Directory();
 		(*dir)->index = -1;
 
 		(*dir)->fsInfo = nullptr;
 		(*dir)->fsPriv = nullptr;
 		(*dir)->fsDir = nullptr;
-		new Path((*dir)->path);
+		new( &(*dir)->path ) Path();
+		//new Path((*dir)->path);
+		//new(*dir) FS::Directory();
 		// TODO: use new everywhere and call constructors~!!!
 
 		return Status::Success;
