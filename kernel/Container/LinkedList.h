@@ -93,12 +93,14 @@ public:
 		ASSERT(!IsEmpty(), "Pop from empty linked list");
 
 		auto item = data;
+		typeof(item) prevItem = nullptr;
 		while(item->next != nullptr)
 		{
-
+			prevItem = item;
+			item = item->next;
 		}
 
-		data = item->next;
+		prevItem->next = nullptr;
 		auto itemData = item->value;
 		Memory::Free(item);
 		return itemData;
