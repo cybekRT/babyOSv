@@ -84,6 +84,16 @@ public:
 
 	}
 
+	LinkedList<X>(const LinkedList<X>& arg) : data(nullptr)
+	{
+		auto ptr = arg.data;
+		while(ptr)
+		{
+			PushBack(ptr->value);
+			ptr = ptr->next;
+		}
+	}
+
 	Iterator<LinkedListItem<X>> begin()
 	{
 		return Iterator(data);
