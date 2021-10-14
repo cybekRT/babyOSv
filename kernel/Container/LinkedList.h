@@ -198,7 +198,7 @@ public:
 				// Print("Removed 2? %p, %p, %p\n", ptrPrev, data, item->next);
 				ptrPrev->next = item->next;
 				delete item;
-				__asm("popf");
+				//__asm("popf");
 				return;
 			}
 
