@@ -1,6 +1,7 @@
 #pragma once
 
 #include"Memory.h"
+#include"Iterator.hpp"
 
 template<class X>
 class LinkedListItem
@@ -18,12 +19,79 @@ public:
 template<class X>
 class LinkedList
 {
+protected:
+	template<class T = LinkedListItem<X>>
+	class Iterator : public OneWayIterator<T>
+	{
+		private:
+			T* ptr;
+
+		public:
+			Iterator(T* ptr) : ptr(ptr)
+			{
+				
+			}
+
+			virtual T& operator*() override
+			{
+				return *ptr;
+			}
+
+			virtual const Iterator operator+(int v) const
+			{
+				auto p = ptr;
+				for(unsigned a = 0; a < v; a++)
+					p = p->next;
+				return Iterator(p);
+			}
+
+			virtual Iterator& operator++() override
+			{
+				ptr = ptr->next;
+				return *this;
+			}
+
+			virtual const Iterator operator++(int)
+			{
+				Iterator prev = *this;
+				ptr = ptr->next;
+				return prev;
+			}
+
+			virtual Iterator& operator+=(int v) override
+			{
+				for(unsigned a = 0; a < v; a++)
+					ptr = ptr->next;
+				return *this;
+			}
+
+			virtual bool operator==(const OneWayIterator<T> &arg) override
+			{
+				return (ptr == static_cast<const Iterator*>(&arg)->ptr);
+			}
+
+			virtual bool operator!=(const OneWayIterator<T> &arg) override
+			{
+				return (ptr != static_cast<const Iterator*>(&arg)->ptr);
+			}
+	};
+
 public:
 	LinkedListItem<X>* data;
 
 	LinkedList<X>() : data(nullptr)
 	{
 
+	}
+
+	Iterator<LinkedListItem<X>> begin()
+	{
+		return Iterator(data);
+	}
+
+	Iterator<LinkedListItem<X>> end()
+	{
+		return Iterator<LinkedListItem<X>>(nullptr);
 	}
 
 	void PushBack(X value)
