@@ -571,6 +571,7 @@ extern "C" void kmain()
 			}
 		}
 
+		__asm("sti");
 		__asm("hlt");
 	}
 #endif

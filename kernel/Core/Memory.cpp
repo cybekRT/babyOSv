@@ -121,7 +121,7 @@ namespace Memory
 		PutString("Memory init...\n");
 
 		memoryEntries = (MemoryInfo_t*)(((unsigned)_bootloader_info_ptr->memoryEntries) | 0x80000000);
-		memoryEntriesCount = *_bootloader_info_ptr->memoryEntriesCount;	
+		memoryEntriesCount = *_bootloader_info_ptr->memoryEntriesCount;
 
 		Logical::DisableFirstMegabyteMapping();
 		SortEntries();
@@ -182,7 +182,7 @@ namespace Memory
 	void* Alloc(unsigned bytes)
 	{
 		bytes += sizeof(MallocHeader);
-		
+
 		if(mallocPage == nullptr)
 		{
 			if(!MallocResize(bytes))
@@ -264,7 +264,7 @@ namespace Memory
 				{
 					hdr->next = ptr->next;
 					ptr->next = hdr;
-					
+
 					break;
 				}
 
@@ -289,9 +289,9 @@ namespace Memory
 	}
 }
 
-#include<cstddef>
+//#include<cstddef>
 
-//extern "C" 
+//extern "C"
 //{
 	void* operator new(size_t size)
 	{

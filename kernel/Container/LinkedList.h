@@ -95,7 +95,7 @@ protected:
 				LinkedListItem<T> *item = container_of(ptr, LinkedListItem<T>, value);
 				for(unsigned a = 0; a < v; a++)
 					item = item->next;
-				
+
 				if(!item)
 					ptr = nullptr;
 				else
@@ -119,12 +119,12 @@ public:
 
 	LinkedList<X>() : data(nullptr)
 	{
-		Print("LinkedList<X>()\n");
+		//Print("LinkedList<X>()\n");
 	}
 
 	LinkedList<X>(const LinkedList<X>& arg) : data(nullptr)
 	{
-		Print("LinkedList<X>(&arg)\n");
+		//Print("LinkedList<X>(&arg)\n");
 		auto ptr = arg.data;
 		while(ptr)
 		{
@@ -135,9 +135,9 @@ public:
 
 	~LinkedList<X>()
 	{
-		Print("~LinkedList<X>()\n");
-		//Clear();
-		Print("...~LinkedList<X>()\n");
+		//Print("~LinkedList<X>()\n");
+		Clear(); // FIXME
+		//Print("...~LinkedList<X>()\n");
 	}
 
 	Iterator<X> begin()
@@ -154,7 +154,7 @@ public:
 	{
 		while(data)
 		{
-			//Remove(data);
+			Remove(data);
 		}
 	}
 
@@ -287,7 +287,7 @@ public:
 		auto ptr = data;
 		while(ptr)
 		{
-			Print("Ptr: %p, Count: %d\n", ptr, count);
+			//Print("Ptr: %p, Count: %d\n", ptr, count);
 			ptr = ptr->next;
 			count++;
 		}

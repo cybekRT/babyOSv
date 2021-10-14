@@ -44,7 +44,7 @@ endif
 # If there's no "*.cpp", 'shell find' executes windows version of find...
 AUTOGEN_OUT	:= out/gen
 AUTOGEN		:= $(AUTOGEN_OUT)/Keyboard_map.cpp $(AUTOGEN_OUT)/Keyboard_map.hpp
-SOURCES		:= $(shell sh -c "find kernel -name *.cpp") 
+SOURCES		:= $(shell sh -c "find kernel -name *.cpp")
 OUT_DIRS	:= $(shell sh -c "find kernel -type d")
 OUT_DIRS	:= $(OUT_DIRS:kernel%=out%) $(AUTOGEN_OUT)
 
@@ -57,7 +57,7 @@ OUT_DIRS	:= $(OUT_DIRS:kernel%=out%) $(AUTOGEN_OUT)
 GCC			:= $(GCC_PREFIX)gcc
 LD			:= $(GCC_PREFIX)ld
 GCC_FLAGS	:= -include kernel/global.h -Ikernel/ -Ikernel/Core -I$(AUTOGEN_OUT)/
-GCC_FLAGS	+= -Wall -Wextra -Wno-unused-parameter -g3 -O0 -m32 -march=i486 -std=gnu++1z 
+GCC_FLAGS	+= -Wall -Wextra -Wno-unused-parameter -g3 -O0 -m32 -march=i486 -std=gnu++1z
 GCC_FLAGS	+= -mgeneral-regs-only -fno-isolate-erroneous-paths-attribute -fno-asynchronous-unwind-tables
 GCC_FLAGS	+= -fno-exceptions -fno-rtti -fno-omit-frame-pointer -fno-use-cxa-atexit -fno-stack-protector
 NASM_FLAGS	:= -Iboot/
@@ -88,10 +88,10 @@ out:
 	mkdir $(OUT_DIRS) 2>/dev/null || true
 
 out/boot1.bin: boot/boot1.asm boot/FAT12.inc boot/FAT12_lite.asm
-	$(NASM) $(NASM_FLAGS) $< -o $@ -l out/boot1.lst -fbin 
+	$(NASM) $(NASM_FLAGS) $< -o $@ -l out/boot1.lst -fbin
 
 out/boot2.bin: boot/boot2.asm boot/FAT12.inc boot/FAT12_lite.asm
-	$(NASM) $(NASM_FLAGS) $< -fbin -o $@ -l out/boot2.lst 
+	$(NASM) $(NASM_FLAGS) $< -fbin -o $@ -l out/boot2.lst
 
 out/kernel.elf: out/kmain_startup.o $(OBJS)
 	$(LD) -nostdlib -nolibc -nostartfiles -nodefaultlibs -m elf_i386 -T kernel/linker.ld $^ -o $@
