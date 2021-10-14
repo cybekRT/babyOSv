@@ -181,8 +181,8 @@ namespace VFS
 		unsigned a = 0;
 		//for(const auto& itr : Block::GetDevices())
 		Print("Checking...\n");
-		for(const auto& itr : Block::GetPartitions())
-		//for(auto mp : mountPoints)
+		//for(const auto& itr : Block::GetPartitions())
+		for(auto mp : mountPoints)
 		{
 			//Print("Itr name: %s\n", itr->name);
 			//Print("Entry name: %s\n", entry->name);
@@ -196,8 +196,8 @@ namespace VFS
 
 				//Print("Itr name: %s\n", itr->name);
 				//Print("Entry name: %s\n", entry->name);
-				strcpy((char*)itr->name, (char*)entry->name);
-				//strcpy(mp.name, (char*)entry->name);
+				//strcpy((char*)itr->name, (char*)entry->name);
+				strcpy(mp.name, (char*)entry->name);
 
 				return Status::Success;
 			}
@@ -261,8 +261,25 @@ namespace VFS
 		}
 		else
 		{
+			MountPoint* mp = nullptr;
+			for(auto itr : mountPoints)
+			{
+				if(!strcmp((char*)name, itr.name))
+				{
+					mp = &itr;
+					break;
+				}
+			}
+
+			dir->fsInfo = mp->fsInfo;
+			dir->fsPriv = mp->fsPriv;
+			dir->fsInfo->OpenRoot(dir->fsPriv, &dir->fsDir);
+			Print("FSInfo: %x\n", dir->fsInfo);
+
+			dir->path.Add((char*)mp->name);
+
 			//Block::BlockDevice* bd = nullptr;
-			Block::BlockPartition* part = nullptr;
+			/*Block::BlockPartition* part = nullptr;
 
 			unsigned a = 0;
 			for(auto& itr : Block::GetPartitions())
@@ -301,7 +318,7 @@ namespace VFS
 			dir->fsInfo->OpenRoot(dir->fsPriv, &dir->fsDir);
 			Print("FSInfo: %x\n", dir->fsInfo);
 
-			dir->path.Add((char*)part->name);
+			dir->path.Add((char*)part->name);*/
 		}
 
 		return Status::Success;
@@ -365,7 +382,7 @@ namespace VFS
 		ASSERT(file, "No file");
 
 		auto fsResult = file->fsInfo->ReadFile(file->fsPriv, file->fsFile, buffer, bufferSize, readCount);
-		
+
 		return (fsResult == FS::Status::Success ? Status::Success : Status::Fail);
 	}
 }
