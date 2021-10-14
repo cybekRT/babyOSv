@@ -12,7 +12,7 @@ namespace Thread
 	Thread* currentThread = nullptr;
 	Array<Thread*> threads;
 
-	__attribute((interrupt)) void _NextThread(void*);
+	__attribute((naked, noreturn)) void _NextThread(void*);
 
 	struct SignalInfo
 	{
@@ -179,20 +179,21 @@ namespace Thread
 
 	void NextThread()
 	{
-		Print("Switch task...\n");
+		//Print("Switch task...\n");
 		__asm("int $250");
-		Print("Return~!\n");
+		//Print("Return~!\n");
 	}
 
-	//__attribute((naked)) void NextThread()
-	__attribute((interrupt)) void _NextThread(void*)
+	__attribute((naked, noreturn)) void _NextThread(void*)
 	{
-		if(currentThread == nullptr || currentThread->state == State::Unstoppable)
+		if(currentThread == nullptr || currentThread->state == State::Unstoppable)// || threads.Size() == 0)
 		{
-			Print("No...\n");
-			return;
+			//Print("No...\n");
+			__asm("iret");
+			//return;
 			//__asm("ret");
 		}
+		//Print("Prev thread: %s (%d)\n", currentThread->name, threads.Size());
 
 		__asm("cli");
 
@@ -219,7 +220,7 @@ namespace Thread
 		currentThread = threads.PopFront();
 		currentThread->state = State::Running;
 
-		Print("Next thread: %s\n", currentThread->name);
+		//Print("Next thread: %s (%d)\n", currentThread->name, threads.Size());
 
 		//Terminal::Print("Switching to: %s\n", currentThread->name);
 
@@ -241,7 +242,7 @@ namespace Thread
 
 		//__asm("sti"); // FIXME why...
 		BREAK;
-		//__asm("iret");
+		__asm("iret");
 	}
 
 	/*__attribute((naked)) void ThreadStart()

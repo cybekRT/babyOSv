@@ -51,7 +51,7 @@ namespace Thread
 		u32 virtualIntPending	: 1;
 		u32 id					: 1;
 		u32 unused5				: 10;
-	} __attribute__((packer));
+	} __attribute__((packed));
 
 	struct Signal
 	{

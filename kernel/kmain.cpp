@@ -134,6 +134,8 @@ extern "C" void kmain()
 		for(;;);
 	}
 
+	VFS::Mount("hdd0p3", "hdd");
+
 	FS::Directory* dir;
 	VFS::OpenRoot(&dir);
 
