@@ -221,7 +221,7 @@ extern "C" void kmain()
 
 	Block::Init();
 	Block::Dummy::Init();
-	//Floppy::Init();
+	Floppy::Init();
 	ATA::Init();
 
 	FS::Init();
@@ -230,29 +230,40 @@ extern "C" void kmain()
 
 	VFS::Init();
 
-	/*if(VFS::Mount("fdd0r1", "fdd") != Status::Success)
+	if(VFS::Mount("fdd0r1", "fdd") != Status::Success)
 	{
 		Print("No floppy :<\n");
 		for(;;);
-	}*/
+	}
 
 	//Print("Mounting floppy...\n");
 
 	FS::Directory* dir;
-	/*VFS::OpenRoot(&dir);*/
+	VFS::OpenRoot(&dir);
 
-	auto t1 = new Test();
+	/*auto t1 = new Test();
 	auto t2 = new Test();
 	Test t3(*t2);
 	delete t2;
-	for(;;);
+	//for(;;);*/
 
 	//t3.~Test();
 
-	for(;;)
+	/*Print("====================\n");
 	{
+		Path p;
+		Print(">===================\n");
+		p.Add("YoLo");
+		Print("<===================\n");
+	}*/
+
+	//for(;;);
+
+	/*for(;;)
+	{
+		break;
 		Timer::Delay(-1);
-	}
+	}*/
 
 	Print("==========\n");
 	Path* p = new Path();
@@ -402,6 +413,7 @@ extern "C" void kmain()
 						//bd->drv->Lock(bd->dev);
 
 						FS::DirEntry entry;
+						Print("Dir: %p\n", dir);
 						VFS::RewindDirectory(dir);
 
 						Print("Directory content:\n");

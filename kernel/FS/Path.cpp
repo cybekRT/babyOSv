@@ -38,7 +38,9 @@ void Path::ToString(char* buf)
 	buf[0] = 0;
 	for(auto itr : paths)
 	{
+		//Print("- %p (%x) - %p\n", itr, (*itr), buf);
 		strcat("/", buf);
-		strcat((const char*)*itr, buf);
+		//strcat((const char*)*itr, buf);
+		strcat(itr, buf);
 	}
 }

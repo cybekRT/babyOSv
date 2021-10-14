@@ -2,7 +2,7 @@
 #include"Container/LinkedList.h"
 #include"Path.hpp"
 
-#include<new>
+//#include<new>
 
 int strlen(const char* str);
 int strcpy(const char* src, char* dst);
@@ -101,14 +101,17 @@ namespace VFS
 		ASSERT(dir, "Invalid pointer to dir");
 
 		//for(;;);
-		(*dir) = (FS::Directory*)Memory::Alloc(sizeof(FS::Directory));
+		//(*dir) = (FS::Directory*)Memory::Alloc(sizeof(FS::Directory));
+		Print("Opening root...\n");
+		(*dir) = new FS::Directory();
+		Print("Opened root: %p\n", (*dir));
 		//new( (*dir)) FS::Directory();
 		(*dir)->index = -1;
 
 		(*dir)->fsInfo = nullptr;
 		(*dir)->fsPriv = nullptr;
 		(*dir)->fsDir = nullptr;
-		new( &(*dir)->path ) Path();
+		//new( &(*dir)->path ) Path();
 		//new Path((*dir)->path);
 		//new(*dir) FS::Directory();
 		// TODO: use new everywhere and call constructors~!!!
@@ -145,6 +148,12 @@ namespace VFS
 	Status RewindDirectory(FS::Directory* dir)
 	{
 		ASSERT(dir, "No dir");
+		//ASSERT(dir->fsInfo, "No fsInfo");
+
+		Print("Dir: %p\n", dir);
+		Print("FS info: %p\n", dir->fsInfo);
+		//Print("Name dir: %p\n", dir->fsInfo->Name);
+		//Print("Rewind dir: %p\n", dir->fsInfo->RewindDirectory);
 
 		if(dir->fsInfo != nullptr)
 		{
@@ -173,6 +182,7 @@ namespace VFS
 		//for(const auto& itr : Block::GetDevices())
 		Print("Checking...\n");
 		for(const auto& itr : Block::GetPartitions())
+		//for(auto mp : mountPoints)
 		{
 			//Print("Itr name: %s\n", itr->name);
 			//Print("Entry name: %s\n", entry->name);
@@ -187,6 +197,7 @@ namespace VFS
 				//Print("Itr name: %s\n", itr->name);
 				//Print("Entry name: %s\n", entry->name);
 				strcpy((char*)itr->name, (char*)entry->name);
+				//strcpy(mp.name, (char*)entry->name);
 
 				return Status::Success;
 			}
