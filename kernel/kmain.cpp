@@ -52,6 +52,20 @@ int YoLo(void*)
 	return 0;
 }
 
+int YoLo2(void*)
+{
+	for(;;)
+	{
+		Interrupt::Disable();
+
+		((u8*)0x800b8000)[79*2+0]++;// = 0x00;
+
+		Interrupt::Enable();
+		//Print(".");
+		Timer::Delay(100);
+	}
+}
+
 extern "C" void __cxa_pure_virtual()
 {
 	ASSERT(false, "Pure virtual function calles :(");
@@ -142,6 +156,10 @@ extern "C" void kmain()
 	VFS::OpenRoot(&dir);
 
 	Thread::Start(testThread);
+
+	Thread::Thread* testThread2;
+	Thread::Create(&testThread2, (u8*)"YoLo2", YoLo2);
+	Thread::Start(testThread2);
 
 #if 0
 	{

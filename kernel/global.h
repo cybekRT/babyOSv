@@ -20,7 +20,6 @@ typedef sint8 s8;
 
 typedef u32 size_t;
 
-//#define ASSERT(x) ASSERT(x, "")
 #define ASSERT(cond, msg) \
 { \
 	if(!(cond)) \
@@ -33,7 +32,7 @@ typedef u32 size_t;
 	} \
 }
 
-#define BREAK {__asm("xchg %%bx, %%bx" : : : "bx");}
+#define BREAKPOINT {__asm("xchg %%bx, %%bx" : : : "bx");}
 #define HALT { __asm("hlt"); }
 #define FAIL(msg) { Print("\n\nAssert failed: %s:%d (%s) - %s\n\n", __FILE__, __LINE__, __FUNCTION__, msg); __asm("int $0"); }
 

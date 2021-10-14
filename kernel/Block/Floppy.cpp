@@ -30,13 +30,6 @@ namespace Floppy
 		FDD_DOR_DSELD		= (0b11 << 0),
 	};
 
-	/*FDD_DOR_RESET		equ (1 << 2)
-	FDD_DOR_IRQ			equ (1 << 3)
-	FDD_DOR_MOTA		equ (1 << 4)
-	FDD_DOR_MOTB		equ (1 << 5)
-	FDD_DOR_MOTC		equ (1 << 6)
-	FDD_DOR_MOTD		equ (1 << 7)*/
-
 	struct DigitalOutputRegister
 	{
 		DOR_DSel driveSelect : 2;
@@ -51,22 +44,13 @@ namespace Floppy
 
 	struct MainStatusRegister
 	{
-		u8 active : 1;
-		u8 unused : 3;
-		u8 commandBusy : 1;
-		u8 ndma : 1;
-		u8 dio : 1;
-		u8 rqm : 1;
+		u8 active : 1; // Drive 0 is seeking
+		u8 unused : 3; // Drive 1-3 is seeking
+		u8 commandBusy : 1; // Command Busy: set when command byte received, cleared at end of Result phase
+		u8 ndma : 1; // Set in Execution phase of PIO mode read/write commands only
+		u8 dio : 1; // Set if FIFO IO port expects an IN opcode
+		u8 rqm : 1; // Set if it's OK (or mandatory) to exchange bytes with the FIFO IO port
 	} __attribute__((packed));
-
-	/*FDD_MSR_ACTA		equ (1 << 0) // Drive 0 is seeking
-	FDD_MSR_ACTB		equ (1 << 1) // Drive 1 is seeking
-	FDD_MSR_ACTC		equ (1 << 2) // Drive 2 is seeking
-	FDD_MSR_ACTD		equ (1 << 3) // Drive 3 is seeking
-	FDD_MSR_CB		equ (1 << 4) // Command Busy: set when command byte received, cleared at end of Result phase
-	FDD_MSR_NDMA		equ (1 << 5) // Set in Execution phase of PIO mode read/write commands only
-	FDD_MSR_DIO		equ (1 << 6) // Set if FIFO IO port expects an IN opcode
-	FDD_MSR_RQM		equ (1 << 7) // Set if it's OK (or mandatory) to exchange bytes with the FIFO IO port*/
 
 	enum class DataRateSelectType
 	{
@@ -79,8 +63,6 @@ namespace Floppy
 		u8 unused : 7;
 		u8 mediaChanged : 1;
 	} __attribute__((packed));
-
-	//FDD_DIR_MEDIA_CHANGED	equ (1 << 7) // media changed
 
 	enum Command
 	{
@@ -139,8 +121,6 @@ namespace Floppy
 	MainStatusRegister ReadMainStatusRegister()
 	{
 		MainStatusRegister reg = HAL::RegisterRO<MainStatusRegister>((u16)IOPort::FDD_REG_MAIN_STATUS).Read();
-		//u8 *regPtr = (u8*)&reg;
-		//*regPtr = PortIn(IOPort::FDD_REG_MAIN_STATUS);
 
 		return reg;
 	}
