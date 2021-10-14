@@ -23,6 +23,11 @@ public:
 	{
 		//Print("> %s\n", __FUNCTION__);
 	}
+
+	~LinkedListItem<X>()
+	{
+		//Print("> %s\n", __FUNCTION__);
+	}
 };
 
 template<class X>
@@ -38,13 +43,14 @@ protected:
 		public:
 			Iterator(T* ptr) : ptr(ptr)
 			{
-				
+				Print("LinkedIterator: %p\n", ptr);
 			}
 
 			virtual T& operator*() override
 			{
 				//LinkedListItem<T> *item = container_of(ptr, LinkedListItem<T>, value);
 				//return item->value;
+				Print("*itr - %p (%x)\n", ptr, *ptr);
 				return *ptr;
 			}
 
@@ -130,7 +136,8 @@ public:
 	~LinkedList<X>()
 	{
 		Print("~LinkedList<X>()\n");
-		Clear();
+		//Clear();
+		Print("...~LinkedList<X>()\n");
 	}
 
 	Iterator<X> begin()
@@ -147,14 +154,14 @@ public:
 	{
 		while(data)
 		{
-			Remove(data);
+			//Remove(data);
 		}
 	}
 
 	void PushBack(X value)
 	{
 		//LinkedListItem<X>* item = (LinkedListItem<X>*)Memory::Alloc(sizeof(*item));
-		auto item = Memory::Alloc<LinkedListItem<X>>();
+		auto item = new LinkedListItem<X>();// Memory::Alloc<LinkedListItem<X>>();
 
 		item->value = value;
 		item->next = nullptr;
@@ -187,12 +194,13 @@ public:
 		if(data == item)
 		{
 			data = item->next;
-			Memory::Free(item);
+			//Memory::Free(item);
+			delete item;
 			return;
 		}
 
-		Print("Data: %p != Item: %p\n", data, item);
-		return;
+		//Print("Data: %p != Item: %p\n", data, item);
+		//return;
 
 		LinkedListItem<X>* ptrPrev = nullptr;
 		LinkedListItem<X>* ptr = data;
@@ -201,7 +209,8 @@ public:
 			if(ptr == item)
 			{
 				ptrPrev->next = item->next;
-				Memory::Free(item);
+				//Memory::Free(item);
+				delete item;
 				return;
 			}
 
@@ -219,7 +228,8 @@ public:
 		auto item = data;
 		data = item->next;
 		auto itemData = item->value;
-		Memory::Free(item);
+		//Memory::Free(item);
+		delete item;
 
 		ASSERT((u32)data != (u32)-1, "Data pointer corrupted~!");
 		return itemData;
@@ -239,7 +249,8 @@ public:
 
 		prevItem->next = nullptr;
 		auto itemData = item->value;
-		Memory::Free(item);
+		//Memory::Free(item);
+		delete item;
 
 		ASSERT((u32)data != (u32)-1, "Data pointer corrupted~!");
 		return itemData;

@@ -1,10 +1,10 @@
 typedef unsigned long long uint64;
-typedef unsigned int uint32;
+typedef unsigned long int uint32;
 typedef unsigned short uint16;
 typedef unsigned char uint8;
 
 typedef signed long long sint64;
-typedef signed int sint32;
+typedef signed long int sint32;
 typedef signed char sint16;
 typedef signed char sint8;
 
@@ -17,6 +17,8 @@ typedef sint64 s64;
 typedef sint32 s32;
 typedef sint16 s16;
 typedef sint8 s8;
+
+typedef u32 size_t;
 
 //#define ASSERT(x) ASSERT(x, "")
 #define ASSERT(cond, msg) \

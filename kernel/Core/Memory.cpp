@@ -289,26 +289,41 @@ namespace Memory
 	}
 }
 
-void* operator new(unsigned long size)
-{
-	Print("New: %d bytes\n", size);
-	return Memory::Alloc(size);
-}
+//#include<cstddef>
 
-void* operator new[](unsigned long size)
-{
-	Print("New[]: %d bytes\n", size);
-	return Memory::Alloc(size);
-}
+//extern "C" 
+//{
+	void* operator new(size_t size)
+	{
+		//Print("New: %d bytes\n", size);
+		return Memory::Alloc(size);
+	}
 
-void operator delete(void* ptr, unsigned int size)
-{
-	Print("Delete: %p - %d\n", ptr, size);
-	Memory::Free(ptr);
-}
+	void* operator new[](size_t size)
+	{
+		//Print("New[]: %d bytes\n", size);
+		return Memory::Alloc(size);
+	}
 
-void operator delete[](void* ptr, unsigned long size)
-{
-	Print("Delete[]: %p - %d\n", ptr, size);
-	Memory::Free(ptr);
-}
+	void operator delete(void* ptr, size_t size)
+	{
+		//Print("Delete: %p - %d\n", ptr, size);
+		Memory::Free(ptr);
+	}
+
+	void operator delete(void* ptr)
+	{
+		//Print("Delete: %p - ...\n", ptr);
+	}
+
+	void operator delete[](void* ptr, size_t size)
+	{
+		//Print("Delete[]: %p - %d\n", ptr, size);
+		Memory::Free(ptr);
+	}
+
+	void operator delete[](void* ptr)
+	{
+		//Print("Delete[]: %p - ...\n", ptr);
+	}
+//}
