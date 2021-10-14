@@ -12,4 +12,6 @@ public:
 
 	void Add(char* dir);
 	void GoUp();
-}
+
+	void ToString(char* buf);
+};
