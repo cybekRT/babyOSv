@@ -43,10 +43,11 @@ db helloMsgLen
 %include"FAT12_lite.asm"
 fileName db "BOOT    BIN"
 FILE_SEG equ (BOOT2_ADDR >> 4)
-filePtr dw 0
-;filePtr dw BOOT2_ADDR
+filePtr dw FILE_SEG
 
 Init:
+	cli
+
 	; CS set to 0x0 with jump, but DS also needs to be set to 0x0...
 	mov	bx, 0
 	mov	ds, bx
@@ -79,16 +80,14 @@ ExecuteBoot2:
 	jmp	0x0:BOOT2_ADDR
 
 Fail:
-	;mov	bx, 0xb800
-	;mov	es, bx
-	;mov	bx, 0
-	;mov	byte [es:bx + 0], 'F'
-	;mov	byte [es:bx + 2], 'B'
+	mov	bx, 0xb800
+	mov	es, bx
+	mov	bx, 0
+	mov	byte [es:bx + 0], 'F'
 
 	; Boot other device...
-	cli
-	hlt
 	int	0x18
+	;jmp $
 
 ;;;;; Padding
 	times 510 - ($ - $$) db 0x90

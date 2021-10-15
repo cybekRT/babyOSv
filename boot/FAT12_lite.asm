@@ -97,14 +97,16 @@ ReadFile:
 	add	ax, [cs:fileCluster]
 	sub	ax, 2
 
-	mov	bx, FILE_SEG
-	mov	es, bx
 	mov	bx, [cs:filePtr]
+	mov	es, bx
+	mov	bx, 0
 	call	ReadSector
 
-	mov bx, [cs:filePtr]
-	add	word [cs:filePtr], 512
-	cmp [cs:filePtr], bx
+	mov	bx, 0
+	mov	es, bx
+
+	add	word [cs:filePtr], 0x20;0
+	cmp word [cs:filePtr], FILE_SEG
 	jb	FailX
 
 	; Calculate next cluster

@@ -7,6 +7,7 @@
 main16:
 	mov	bx, 0
 	mov	ds, bx
+	mov	es, bx
 
 	mov	esp, stackBegin
 
@@ -34,6 +35,8 @@ main16:
 	call	ReadFile
 
 	; Display hello message
+	mov	bx, 0
+	mov	es, bx
 	mov	ax, 0x1301
 	mov	bx, 0x000F
 	mov	cx, helloMsg3Len
@@ -76,8 +79,7 @@ helloMsg3Len equ ($ - helloMsg3)
 
 fileName db "KERNEL  BIN"
 FILE_SEG equ (KERNEL_ADDR >> 4)
-;filePtr dw KERNEL_ADDR
-filePtr dw 0
+filePtr dw FILE_SEG
 xBPB equ BPB_LOC
 
 Fail:
