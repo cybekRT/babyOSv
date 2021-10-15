@@ -124,13 +124,10 @@ namespace Terminal
 		return len;
 	}
 
-	u32 Print(const char *fmt, ...)
+	static u32 PrintInternal(const char *fmt, va_list args)
 	{
 		__asm("pushf\ncli");
 		u32 len = 0;
-
-		va_list args;
-		va_start(args, fmt);
 
 		bool isFormat = false;
 		while(*fmt)
@@ -234,8 +231,30 @@ namespace Terminal
 			fmt++;
 		}
 
-		va_end(args);
 		__asm("popf");
+		return len;
+	}
+
+	u32 Print(const char *fmt, ...)
+	{
+		va_list args;
+		va_start(args, fmt);
+		u32 len = PrintInternal(fmt, args);
+		va_end(args);
+
+		return len;
+	}
+
+	u32 PrintWithPadding(u32 pad, const char *fmt, ...)
+	{
+		va_list args;
+		va_start(args, fmt);
+		u32 len = PrintInternal(fmt, args);
+		va_end(args);
+
+		for(unsigned a = len; a < pad; a++)
+			PutChar(' ');
+
 		return len;
 	}
 
