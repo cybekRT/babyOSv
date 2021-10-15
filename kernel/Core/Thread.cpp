@@ -38,16 +38,64 @@ namespace Thread
 
 	LinkedList<Thread2Signal> waitingThreads;
 
+	void UpdateThreadsList()
+	{
+		__asm("pushf\ncli");
+
+		u32 ox, oy;
+		u8 cb, cf;
+		Terminal::GetXY(&ox, &oy);
+		Terminal::GetColor(&cf, &cb);
+
+		int y = 1;
+		const int x = 55;
+		const int padLen = 25;
+		Terminal::SetXY(x, y++);
+		Terminal::PrintWithPadding(padLen, "====================");
+		Terminal::SetXY(x, y++);
+		Terminal::PrintWithPadding(padLen, " Running:");
+		for(auto t : threads)
+		{
+			Terminal::SetXY(x, y++);
+			Terminal::PrintWithPadding(padLen, "   %s  ", t->name);
+		}
+
+		Terminal::SetXY(x, y++);
+		Terminal::PrintWithPadding(padLen, " Waiting:");
+
+		for(auto t2s : waitingThreads)
+		{
+			Terminal::SetXY(x, y++);
+			s32 remainingTime = (t2s.timeout != (Timer::Time)-1) ? t2s.sleepTime + t2s.timeout - Timer::GetTicks() : -1;
+			Terminal::PrintWithPadding(padLen, "   %s (%d, %d)  ", t2s.thread->name, t2s.signal->type, remainingTime);
+		}
+
+		Terminal::SetXY(x, y++);
+		Terminal::PrintWithPadding(padLen, "====================");
+
+		Terminal::SetXY(ox, oy);
+		Terminal::SetColor(cf, cb);
+		__asm("popf");
+	}
+
 	int Idle(void*)
 	{
+		int yolo = 0;
 		for(;;)
 		{
 			//Interrupt::Disable();
 			__asm("pushf\ncli");
 
-			// Print("========== Idle ==========\n");
+			UpdateThreadsList();
 
-			//Terminal::Print("idle,");
+			//Print("========== Idle ==========\n");
+
+			yolo++;
+			if(yolo >= 30)
+			{
+				yolo = 0;
+				//Terminal::Print("idle,");
+			}
 
 			while(!raisedSignals.IsEmpty())
 			{
@@ -69,7 +117,7 @@ namespace Thread
 
 						t2s->value.thread->state = State::Running;
 						threads.PushBack(t2s->value.thread);
-						// Print("Thread \"%s\" is waking up (signal): %s\n", currentThread->name, t2s->value.thread->name);
+						//Print("Thread \"%s\" is waking up (signal): %s\n", currentThread->name, t2s->value.thread->name);
 
 						auto item = t2s;
 						t2s = t2s->next;
@@ -114,7 +162,7 @@ namespace Thread
 					/*if(strcmp((char*)t2s->value.thread->name, "kmain"))
 						Print("Timeout: %s - %d\n", t2s->value.thread->name, timeout);*/
 
-					// Print("Thread \"%s\" is wakeing up: %s\n", t2s->value.thread->name, "timeout");
+					//Print("Thread \"%s\" is waking up: %s\n", t2s->value.thread->name, "timeout");
 
 					(*t2s->value.signal) = Signal { .type = Signal::Type::Timeout, .addr = 0 };
 
@@ -333,6 +381,7 @@ namespace Thread
 
 	Status Create(Thread** thread, u8* name, int (*entry)(void*), void* threadData)
 	{
+		__asm("pushf\ncli");
 		(*thread) = (Thread*)Memory::Alloc(sizeof(Thread));
 
 		(*thread)->process = nullptr;
@@ -397,6 +446,7 @@ namespace Thread
 
 		Terminal::Print("Created thread: %s\n", (*thread)->name);
 
+		__asm("popf");
 		return Status::Success;
 	}
 
@@ -450,24 +500,6 @@ namespace Thread
 
 		//Terminal::Print("Thread %s waiting for signal %d:%d...\n", currentThread->name, signal.type, signal.addr);
 		currentThread->state = State::Waiting;
-
-		for(auto t : waitingThreads)
-		{
-			if(t.thread == currentThread)
-			{
-				Print("Thread: %s, double waiting~! (%d:%d)\n", currentThread->name, signal.type, signal.addr);
-
-				Print("Waiting threads (x):\n");
-				for(auto tt : waitingThreads)
-				{
-					Print("- %s, %d:%d\n", tt.thread->name, tt.signal->type, tt.signal->addr);
-				}
-
-				__asm("int $250");
-				for(;;);
-			}
-		}
-
 		waitingThreads.PushBack(Thread2Signal { .thread = currentThread, .signal = &signal, .sleepTime = Timer::GetTicks(), .timeout = timeout } );
 		// Print("Waiting size: %d\n", waitingThreads.Size());
 		// Print("Thread \"%s\" waiting for signal: %d, timeout: %d\n", currentThread->name, signal.type, timeout);
