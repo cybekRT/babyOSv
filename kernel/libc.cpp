@@ -58,8 +58,7 @@ char* strcat(char* dst, const char* src)
 }
 
 // Required if -O3 is used
-void* memmove(void* dst, const void* src, size_t len);
-//void* memmove(void* destination, const void* source, unsigned num)
+void* memmove(void* dst, const void* src, size_t len)
 {
 	// FIXME for overlapping buffers
 	u8* _src = (u8*)src;
