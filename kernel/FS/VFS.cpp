@@ -2,11 +2,6 @@
 #include"Container/LinkedList.h"
 #include"Path.hpp"
 
-//#include<new>
-
-int strlen(const char* str);
-int strcpy(const char* src, char* dst);
-
 namespace FS
 {
 	struct File
@@ -90,7 +85,7 @@ namespace VFS
 			.fsPriv = fsPriv,
 		};
 
-		strcpy(mountPoint, mp.name);
+		strcpy(mp.name, mountPoint);
 		mountPoints.PushBack(mp);
 
 		return Status::Success;
@@ -182,7 +177,7 @@ namespace VFS
 				entry->isHidden = 0;
 				entry->isSymlink = 0;
 
-				strcpy(mp.name, (char*)entry->name);
+				strcpy((char*)entry->name, mp.name);
 
 				return Status::Success;
 			}
@@ -267,6 +262,7 @@ namespace VFS
 			dir->fsPriv = mp->fsPriv;
 			dir->fsInfo->OpenRoot(dir->fsPriv, &dir->fsDir);
 
+			Print("Adding path: %s\n", mp->name);
 			dir->path.Add((char*)mp->name);
 		}
 

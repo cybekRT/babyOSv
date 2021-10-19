@@ -38,7 +38,7 @@ namespace FS::BlkFS
 {
 	u32 Name(u8* buffer)
 	{
-		return strcpy("BlkFS", (char*)buffer);
+		return (u32)(strcpy((char*)buffer, "BlkFS") - (char*)buffer);
 	}
 
 	FS::Status Probe(Block::BlockPartition* part)
@@ -106,7 +106,7 @@ namespace FS::BlkFS
 			return Status::EOF;
 
 		entry->isDirectory = true;
-		strcpy(dirs[dir->index], (char*)entry->name);
+		strcpy((char*)entry->name, dirs[dir->index]);
 
 		return Status::Success;
 	}
@@ -122,7 +122,7 @@ namespace FS::BlkFS
 			return Status::EOF;
 
 		auto dev = devices[dir->index];
-		strcpy((char*)dev->name, (char*)entry->name);
+		strcpy((char*)entry->name, (char*)dev->name);
 
 		return Status::Success;
 	}
@@ -138,7 +138,7 @@ namespace FS::BlkFS
 			return Status::EOF;
 
 		auto part = partitions[dir->index];
-		strcpy((char*)part->name, (char*)entry->name);
+		strcpy((char*)entry->name, (char*)part->name);
 
 		return Status::Success;
 	}

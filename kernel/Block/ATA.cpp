@@ -236,7 +236,7 @@ namespace ATA
 
 	u8 _Name(void* dev, u8* buffer)
 	{
-		strcpy("ata", (char*)buffer);
+		strcpy((char*)buffer, "ata");
 
 		return 0;
 	}

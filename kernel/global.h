@@ -18,7 +18,11 @@ typedef sint32 s32;
 typedef sint16 s16;
 typedef sint8 s8;
 
+#ifdef TESTS
+#include<cstddef>
+#else
 typedef u32 size_t;
+#endif
 
 #define ASSERT(cond, msg) \
 { \
@@ -56,7 +60,4 @@ extern u32 _kernel_data_end;
 extern u32 _org_stack_beg;
 extern u32 _org_stack_end;
 
-int strlen(const char* str);
-int strcmp(char* a, char* b);
-int strcpy(const char* src, char* dst);
-int strcat(const char* src, char* dst);
+#include"libc.hpp"

@@ -1,7 +1,7 @@
 #include"Block.hpp"
 #include"Container/LinkedList.h"
 
-int strcpy(const char* src, char* dst);
+//int strcpy(const char* src, char* dst);
 
 #include"ATA.hpp"
 
@@ -70,9 +70,10 @@ namespace Block
 
 		Print("Type: %d, %p\n", type, &deviceTypeName[(unsigned)type]);
 		Print("Type name: %s\n", deviceTypeName[(unsigned)type]);
-		auto nameLen = strcpy(deviceTypeName[(unsigned)type], (char*)bd->name);
-		bd->name[nameLen] = '0' + devicesTypesCount[(unsigned)type]++;
-		bd->name[nameLen+1] = 0;
+		strcpy((char*)bd->name, deviceTypeName[(unsigned)type]);
+		char tmp[2];
+		tmp[0] = '0' + devicesTypesCount[(unsigned)type]++; tmp[1] = 0;
+		strcat((char*)bd->name, tmp);
 
 		Print("Registering device: %s\n", bd->name);
 		devices.PushBack(bd);
@@ -90,12 +91,17 @@ namespace Block
 		part->lbaCount = lbaCount;
 
 		static int x = 0;
-		auto nameLen = strcpy((char*)dev->name, (char*)part->name);
+		auto nameLen = strcpy((char*)part->name, (char*)dev->name);
 		Print("Dev: %s, Part: %s\n", dev->name, part->name);
-		Print("Type: %d\n", type);
-		nameLen += strcat(partTypeName[(u8)type], (char*)part->name);
-		part->name[nameLen] = '0' + x++;
-		part->name[nameLen+1] = 0;
+		Print("Type: %d, len: %d\n", type, nameLen);
+		strcat((char*)part->name, partTypeName[(u8)type]);
+		Print("Name: %s, NameLen: %d\n", part->name, nameLen);
+
+		char tmp[2];
+		tmp[0] = '0' + x++; tmp[1] = 0;
+		strcat((char*)part->name, tmp);
+		//part->name[nameLen] = '0' + x++;
+		//part->name[nameLen+1] = 0;
 
 		Print("Registering partition: %s (%d %d)\n", part->name, part->lbaOffset, part->lbaCount);
 		partitions.PushBack(part);

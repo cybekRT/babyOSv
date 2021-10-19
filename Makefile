@@ -1,4 +1,3 @@
-
 ####################
 #
 #	Windows configuration
@@ -61,9 +60,13 @@ OUT_DIRS	:= $(OUT_DIRS:kernel%=out%) $(AUTOGEN_OUT)
 GCC			:= $(GCC_PREFIX)gcc
 LD			:= $(GCC_PREFIX)ld
 GCC_FLAGS	:= -include kernel/global.h -Ikernel/ -Ikernel/Core -I$(AUTOGEN_OUT)/
-GCC_FLAGS	+= -Wall -Wextra -Wno-unused-parameter -g3 -O0 -m32 -march=i486 -std=gnu++1z
+GCC_FLAGS	+= -Wall -Wextra -Wno-unused-parameter -g3 -O0 -std=gnu++1z
+GCC_FLAGS	+= -fno-exceptions
+ifneq ($(MAKECMDGOALS), test)
+GCC_FLAGS	+= -m32 -march=i486
 GCC_FLAGS	+= -mgeneral-regs-only -fno-isolate-erroneous-paths-attribute -fno-asynchronous-unwind-tables
-GCC_FLAGS	+= -fno-exceptions -fno-rtti -fno-omit-frame-pointer -fno-use-cxa-atexit -fno-stack-protector
+GCC_FLAGS	+= -fno-rtti -fno-omit-frame-pointer -fno-use-cxa-atexit -fno-stack-protector
+endif
 NASM_FLAGS	:= -Iboot/
 QEMU_FLAGS	:= $(QEMU_DOS_IMG) $(QEMU_DOSEXT_IMG) -vga std -boot ac -m 8 -d int -monitor stdio -d int -d cpu_reset -d guest_errors
 
@@ -114,6 +117,27 @@ out/%.d: kernel/%.cpp
 
 ####################
 #
+#	Tests
+#
+####################
+TESTS_SRCS	:= $(shell sh -c "find tests -name *.cpp")
+TESTS_OBJS	:= $(TESTS_SRCS:tests/%.cpp=out_tests/%.o)
+
+test: test-run
+tests: test-run
+
+test-objs: $(TESTS_OBJS)
+test-exe: test-objs #deps/libgtest.a
+	g++ $(GCC_FLAGS) $(TESTS_OBJS) -Ldeps/googletest/googletest/build/lib -Ideps/googletest/googletest/include -o out_tests/run_tests -lgtest_main -lgtest -lpthread
+test-run: test-exe
+	out_tests/run_tests
+
+out_tests/%.o: tests/%.cpp
+	mkdir -p $(dir $@)
+	g++ $(GCC_FLAGS) -DTESTS=1 -c $< -o $@ -Ideps/googletest/googletest/include -Ikernel -Ikernel/Core
+
+####################
+#
 #	Autogen
 #
 ####################
@@ -131,7 +155,9 @@ $(AUTOGEN_OUT)/Keyboard_map.hpp: kernel/Input/Keyboard_map.inc kernel/Input/Keyb
 ####################
 
 ifneq ($(MAKECMDGOALS), clean)
+ifneq ($(MAKECMDGOALS), test)
 -include $(DEPS)
+endif
 endif
 
 ####################
@@ -141,7 +167,7 @@ endif
 ####################
 
 clean:
-	rm out/*/* out/* $(AUTOGEN) 2>/dev/null || true
+	rm out/*/* out/* $(AUTOGEN) $(TESTS_OBJS) 2>/dev/null || true
 
 qemu: out/floppy.img
 	$(QEMU) -fda $< $(QEMU_FLAGS) 2> /dev/null

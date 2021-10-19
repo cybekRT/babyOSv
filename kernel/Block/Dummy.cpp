@@ -5,7 +5,7 @@ namespace Block::Dummy
 {
 	u8 Name(void* dev, u8* buffer)
 	{
-		strcpy("dummy", (char*)buffer);
+		strcpy((char*)buffer, "dummy");
 
 		return 0;
 	}

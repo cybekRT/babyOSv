@@ -14,7 +14,7 @@ void Path::Add(char* dir)
 {
 	u32 len = strlen(dir);
 	char* tmp = (char*)Memory::Alloc(len + 1);
-	strcpy(dir, tmp);
+	strcpy(tmp, dir);
 	paths.PushBack(tmp);
 }
 
@@ -30,14 +30,14 @@ void Path::ToString(char* buf)
 {
 	if(paths.IsEmpty())
 	{
-		strcpy("/", buf);
+		strcpy(buf, "/");
 		return;
 	}
 
 	buf[0] = 0;
 	for(auto itr : paths)
 	{
-		strcat("/", buf);
-		strcat(itr, buf);
+		strcat(buf, "/");
+		strcat(buf, itr);
 	}
 }

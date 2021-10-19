@@ -1,6 +1,6 @@
 #pragma once
 
-#include"Memory.h"
+//#include"Memory.h"
 #include"Iterator.hpp"
 
 template<class T>
@@ -93,7 +93,7 @@ public:
 
 	Array(u32 capacity) : capacity(capacity), size(0)
 	{
-		objs = (T*)Memory::Alloc(capacity * sizeof(T));
+		objs = (T*)new u8[capacity * sizeof(T)];// (T*)Memory::Alloc(capacity * sizeof(T));
 		//objs = nullptr;
 		//capacity = 0;
 	}
@@ -101,6 +101,8 @@ public:
 	~Array()
 	{
 		//Memory::Free(objs);
+		//free(objs);
+		delete[] objs;
 	}
 
 	u32 Size()
@@ -196,13 +198,14 @@ private:
 		else
 			capacity *= 2;
 
-		T* newObjs = (T*)Memory::Alloc(capacity * sizeof(T));
+		T* newObjs = (T*)new u8[capacity * sizeof(T)];// (T*)Memory::Alloc(capacity * sizeof(T));
 		ASSERT(newObjs != nullptr, "Can't alloc array");
 
 		if(objs)
 		{
 			memcpy(newObjs, objs, size * sizeof(T));
-			Memory::Free(objs);
+			//Memory::Free(objs);
+			delete[] objs;
 		}
 
 		objs = newObjs;

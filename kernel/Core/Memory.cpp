@@ -1,25 +1,7 @@
 #include "Memory.h"
 #include "bootloader_info.h"
 
-// TODO: stop using bubble sort everywhere! Optimmize sorting algorithms in allocator~!
-
-void memset(void* ptr, unsigned char c, unsigned len)
-{
-	unsigned char* p = (unsigned char*)ptr;
-	for(unsigned a = 0; a < len; a++)
-	{
-		p[a] = c;
-	}
-}
-
-void memcpy(void* dst, void* src, u32 len)
-{
-	u8* _src = (u8*)src;
-	u8* _dst = (u8*)dst;
-
-	for(unsigned a = 0; a < len; a++)
-		_dst[a] = _src[a];
-}
+// TODO: stop using bubble sort everywhere! Optimize sorting algorithms in allocator~!
 
 namespace Memory
 {

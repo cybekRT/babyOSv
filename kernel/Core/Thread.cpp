@@ -6,7 +6,7 @@
 #include"Timer.h"
 
 extern bool shellReady;
-int strlen(const char* str);
+//int strlen(const char* str);
 
 namespace Thread
 {
