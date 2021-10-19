@@ -3,3 +3,5 @@
 *.o
 .DS_Store
 /out
+/out_tests
+/.history
