@@ -1,10 +1,10 @@
 #pragma once
 
-//#include"Memory.h"
 #include"Iterator.hpp"
+#include"IContainer.hpp"
 
 template<class T>
-class Array
+class Array : public Container::IContainer<T>
 {
 	T* objs;
 	u32 capacity;
@@ -93,15 +93,12 @@ public:
 
 	Array(u32 capacity) : capacity(capacity), size(0)
 	{
-		objs = (T*)new u8[capacity * sizeof(T)];// (T*)Memory::Alloc(capacity * sizeof(T));
-		//objs = nullptr;
-		//capacity = 0;
+		objs = (T*)new u8[capacity * sizeof(T)];
 	}
 
 	~Array()
 	{
-		//Memory::Free(objs);
-		//free(objs);
+		// Check if destructors are called
 		delete[] objs;
 	}
 
@@ -113,6 +110,19 @@ public:
 	u32 Capacity()
 	{
 		return capacity;
+	}
+
+	bool IsEmpty()
+	{
+		return Size() == 0;
+	}
+
+	void Clear()
+	{
+		while(!IsEmpty())
+		{
+			PopBack();
+		}
 	}
 
 	T& operator[](u32 index)
