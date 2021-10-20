@@ -1,8 +1,8 @@
 #include"Floppy.hpp"
-#include"Memory.h"
+#include"Memory.hpp"
 #include"ISA_DMA.hpp"
-#include"Interrupt.h"
-#include"Timer.h"
+#include"Interrupt.hpp"
+#include"Timer.hpp"
 #include"Block.hpp"
 #include"Thread.hpp"
 #include<stdarg.h>

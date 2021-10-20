@@ -1,5 +1,5 @@
-#include"Memory.h"
-#include"LinkedList.h"
+#include"Memory.hpp"
+#include"LinkedList.hpp"
 
 template<class T>
 class TreeNode

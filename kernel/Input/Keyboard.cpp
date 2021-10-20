@@ -1,7 +1,7 @@
-#include"Container/LinkedList.h"
-#include"Interrupt.h"
-#include"HAL.h"
-#include"Keyboard.h"
+#include"Container/LinkedList.hpp"
+#include"Interrupt.hpp"
+#include"HAL.hpp"
+#include"Keyboard.hpp"
 #include"Thread.hpp"
 
 #include"Keyboard_map.cpp"

@@ -1,8 +1,8 @@
-#include"Terminal.h"
-#include"Memory.h"
-#include"Interrupt.h"
-#include"Timer.h"
-#include"Input/Keyboard.h"
+#include"Terminal.hpp"
+#include"Memory.hpp"
+#include"Interrupt.hpp"
+#include"Timer.hpp"
+#include"Input/Keyboard.hpp"
 #include"Thread.hpp"
 
 #include"ISA_DMA.hpp"

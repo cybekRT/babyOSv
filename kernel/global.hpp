@@ -40,7 +40,7 @@ typedef u32 size_t;
 #define HALT { __asm("hlt"); }
 #define FAIL(msg) { Print("\n\nAssert failed: %s:%d (%s) - %s\n\n", __FILE__, __LINE__, __FUNCTION__, msg); __asm("int $0"); }
 
-#include"Terminal.h"
+#include"Terminal.hpp"
 
 enum class Status
 {

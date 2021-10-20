@@ -1,5 +1,5 @@
 #include<gtest/gtest.h>
-#include"Container/Array.h"
+#include"Container/Array.hpp"
 
 namespace Terminal
 {

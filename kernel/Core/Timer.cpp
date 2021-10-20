@@ -1,6 +1,6 @@
-#include"Timer.h"
-#include"Interrupt.h"
-#include"HAL.h"
+#include"Timer.hpp"
+#include"Interrupt.hpp"
+#include"HAL.hpp"
 
 const u8 PIT_PORT_CHANNEL_0	= 0x40;
 const u8 PIT_PORT_CHANNEL_1	= 0x41;

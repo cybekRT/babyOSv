@@ -1,8 +1,8 @@
 #include"ATA.hpp"
 #include"Block.hpp"
-#include"HAL.h"
-#include"Timer.h"
-#include"Interrupt.h"
+#include"HAL.hpp"
+#include"Timer.hpp"
+#include"Interrupt.hpp"
 
 namespace ATA
 {

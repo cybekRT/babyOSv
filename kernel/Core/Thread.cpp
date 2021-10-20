@@ -1,9 +1,9 @@
 #include"Thread.hpp"
-#include"Memory.h"
-#include"Container/Array.h"
-#include"Container/LinkedList.h"
-#include"Interrupt.h"
-#include"Timer.h"
+#include"Memory.hpp"
+#include"Container/Array.hpp"
+#include"Container/LinkedList.hpp"
+#include"Interrupt.hpp"
+#include"Timer.hpp"
 
 extern bool shellReady;
 //int strlen(const char* str);

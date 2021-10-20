@@ -1,6 +1,6 @@
-#include"Interrupt.h"
-#include"Memory.h"
-#include"HAL.h"
+#include"Interrupt.hpp"
+#include"Memory.hpp"
+#include"HAL.hpp"
 #include"Thread.hpp"
 
 struct IDT_Entry

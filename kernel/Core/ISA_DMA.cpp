@@ -1,5 +1,5 @@
 #include"ISA_DMA.hpp"
-#include"HAL.h"
+#include"HAL.hpp"
 
 namespace ISA_DMA
 {

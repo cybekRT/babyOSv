@@ -59,7 +59,7 @@ OUT_DIRS	:= $(OUT_DIRS:kernel%=out%) $(AUTOGEN_OUT)
 
 GCC			:= $(GCC_PREFIX)gcc
 LD			:= $(GCC_PREFIX)ld
-GCC_FLAGS	:= -include kernel/global.h -Ikernel/ -Ikernel/Core -I$(AUTOGEN_OUT)/
+GCC_FLAGS	:= -include kernel/global.hpp -Ikernel/ -Ikernel/Core -I$(AUTOGEN_OUT)/
 GCC_FLAGS	+= -Wall -Wextra -Wno-unused-parameter -g3 -O0 -std=gnu++1z
 GCC_FLAGS	+= -fno-exceptions
 ifneq ($(MAKECMDGOALS), test)

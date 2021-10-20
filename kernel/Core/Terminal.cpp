@@ -1,4 +1,4 @@
-#include"Terminal.h"
+#include"Terminal.hpp"
 #include<stdarg.h>
 
 namespace Terminal

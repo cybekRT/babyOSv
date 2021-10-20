@@ -1,5 +1,5 @@
-#include "Memory.h"
-#include "bootloader_info.h"
+#include "Memory.hpp"
+#include "bootloader_info.hpp"
 
 // TODO: stop using bubble sort everywhere! Optimize sorting algorithms in allocator~!
 
