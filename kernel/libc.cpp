@@ -53,8 +53,7 @@ char* strcat(char* dst, const char* src)
 	}
 
 	*dst = 0;
-	//return len;
-	return dst+1;
+	return dst;
 }
 
 // Required if -O3 is used
@@ -72,7 +71,6 @@ void* memmove(void* dst, const void* src, size_t len)
 }
 
 void* memset(void* ptr, int c, size_t len)
-//void memset(void* ptr, unsigned char c, unsigned len)
 {
 	unsigned char* p = (unsigned char*)ptr;
 	for(unsigned a = 0; a < len; a++)

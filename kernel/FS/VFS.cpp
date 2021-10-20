@@ -32,7 +32,7 @@ namespace VFS
 		void*		fsPriv;
 	};
 
-	Array<MountPoint> mountPoints;
+	Container::Array<MountPoint> mountPoints;
 
 	Status Init()
 	{
@@ -135,7 +135,8 @@ namespace VFS
 		}*/
 
 		//Memory::Free((void*)*dir);
-		Memory::Free(*dir);
+		//Memory::Free(*dir);
+		delete *dir;
 		(*dir) = nullptr;
 		return Status::Success;
 	}
@@ -300,7 +301,8 @@ namespace VFS
 					break;
 			}
 
-			(*file) = (FS::File*)Memory::Alloc(sizeof(FS::File));
+			//(*file) = (FS::File*)Memory::Alloc(sizeof(FS::File));
+			(*file) = new FS::File();
 			(*file)->fsInfo = dir->fsInfo;
 			(*file)->fsPriv = dir->fsPriv;
 
@@ -317,7 +319,8 @@ namespace VFS
 		ASSERT(file, "Pointer to file is invalid");
 
 		(*file)->fsInfo->CloseFile((*file)->fsPriv, &(*file)->fsFile);
-		Memory::Free(*file);
+		//Memory::Free(*file);
+		delete *file;
 		(*file) = nullptr;
 
 		return Status::Success;

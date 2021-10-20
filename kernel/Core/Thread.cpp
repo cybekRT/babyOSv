@@ -13,7 +13,7 @@ namespace Thread
 	Thread* currentThread = nullptr;
 
 	Thread* idleThread = nullptr;
-	Array<Thread*> threads;
+	Container::Array<Thread*> threads;
 
 	__attribute((naked, noreturn)) void _NextThread(void*);
 
@@ -24,7 +24,7 @@ namespace Thread
 		Timer::Time timeout;
 	};
 
-	LinkedList<SignalInfo> raisedSignals;
+	Container::LinkedList<SignalInfo> raisedSignals;
 	u32 lastThreadId = 0;
 
 	struct Thread2Signal
@@ -36,7 +36,7 @@ namespace Thread
 		Timer::Time timeout;
 	};
 
-	LinkedList<Thread2Signal> waitingThreads;
+	Container::LinkedList<Thread2Signal> waitingThreads;
 
 	void UpdateThreadsList()
 	{

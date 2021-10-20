@@ -51,7 +51,7 @@ namespace FS
 		Status (*ReadFile)(void* fs, File* file, u8* buffer, u32 bufferSize, u32* readCount);
 	};
 
-	extern LinkedList<FSInfo*> filesystems;
+	extern Container::LinkedList<FSInfo*> filesystems;
 
 	bool Init();
 

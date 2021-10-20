@@ -5,7 +5,7 @@
 class Path
 {
 protected:
-	LinkedList<char*> paths;
+	Container::LinkedList<char*> paths;
 public:
 	static const u32 MaxLength = 255;
 

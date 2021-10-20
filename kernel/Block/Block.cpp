@@ -7,8 +7,8 @@
 
 namespace Block
 {
-	Array<BlockDevice*> devices;
-	Array<BlockPartition*> partitions;
+	Container::Array<BlockDevice*> devices;
+	Container::Array<BlockPartition*> partitions;
 
 	uint8 devicesTypesCount[(unsigned)DeviceType::Count] = { 0 };
 	const char* deviceTypeName[] = { "unk", "fdd", "hdd", "cd" };
@@ -63,7 +63,7 @@ namespace Block
 
 	void RegisterDevice(DeviceType type, BlockDeviceDriver* drv, void* drvPriv)
 	{
-		BlockDevice* bd = (BlockDevice*)Memory::Alloc(sizeof(BlockDevice));
+		BlockDevice* bd = new BlockDevice();// (BlockDevice*)Memory::Alloc(sizeof(BlockDevice));
 		bd->type = type;
 		bd->drv = drv;
 		bd->drvPriv = drvPriv;
@@ -84,7 +84,7 @@ namespace Block
 
 	void RegisterPartition(PartitionType type, BlockDevice* dev, void* drvPriv, u32 lbaOffset, u32 lbaCount)
 	{
-		BlockPartition* part = (BlockPartition*)Memory::Alloc(sizeof(BlockPartition));
+		BlockPartition* part = new BlockPartition();// (BlockPartition*)Memory::Alloc(sizeof(BlockPartition));
 		part->type = type;
 		part->device = dev;
 		part->lbaOffset = lbaOffset;
@@ -107,12 +107,12 @@ namespace Block
 		partitions.PushBack(part);
 	}
 
-	Array<BlockDevice*> GetDevices()
+	Container::Array<BlockDevice*> GetDevices()
 	{
 		return devices;
 	}
 
-	Array<BlockPartition*> GetPartitions()
+	Container::Array<BlockPartition*> GetPartitions()
 	{
 		return partitions;
 	}
