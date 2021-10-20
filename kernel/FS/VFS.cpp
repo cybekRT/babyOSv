@@ -39,7 +39,7 @@ namespace VFS
 		return Status::Success;
 	}
 
-	Status Mount(char* partName, char* mountPoint)
+	Status Mount(char* partName, char* mountPoint, char* fsType)
 	{
 		auto parts = Block::GetPartitions();
 		Block::BlockPartition* part = nullptr;
@@ -63,6 +63,11 @@ namespace VFS
 		FS::FSInfo* fsInfo = nullptr;
 		for(auto itr : fss)
 		{
+			u8 tmp[256];
+
+			if(fsType && itr->Name(tmp) && strcmp(fsType, (char*)tmp))
+				continue;
+
 			if(itr->Probe(part) == FS::Status::Success)
 			{
 				fsInfo = itr;
