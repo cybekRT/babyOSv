@@ -1,6 +1,8 @@
 #include<gtest/gtest.h>
 #include"Container/Array.hpp"
 
+using Container::Array;
+
 namespace Terminal
 {
   u32 Print(const char*, ...)
