@@ -101,7 +101,9 @@ namespace Container
 		~Array()
 		{
 			// Check if destructors are called
-			delete[] objs;
+			// TODO: fix
+			// delete[] objs;
+			//Clear();
 		}
 
 		u32 Size()
@@ -153,7 +155,7 @@ namespace Container
 
 			if(size > 0)
 			{
-				for(unsigned a = size - 1; a > pos; a--)
+				for(unsigned a = size; a > pos; a--)
 				{
 					objs[a] = objs[a - 1];
 					if(a == 0)
@@ -162,6 +164,7 @@ namespace Container
 			}
 
 			objs[pos] = v;
+			//new(objs + pos) T(v);
 			size++;
 		}
 
@@ -189,8 +192,10 @@ namespace Container
 		{
 			ASSERT(size > 0, "Pop from empty array");
 
+			T v = objs[size - 1];
+			objs[size - 1].~T();
 			size--;
-			return objs[size];
+			return v;
 		}
 
 		void RemoteAt(u32 index)

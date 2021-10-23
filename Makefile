@@ -122,6 +122,7 @@ out/%.d: kernel/%.cpp
 ####################
 TESTS_SRCS	:= $(shell sh -c "find tests -name *.cpp")
 TESTS_OBJS	:= $(TESTS_SRCS:tests/%.cpp=out_tests/%.o)
+TESTS_DEPS	:= $(TESTS_OBJS:%.o=%.d)
 
 test: test-run
 tests: test-run
@@ -135,6 +136,9 @@ test-run: test-exe
 out_tests/%.o: tests/%.cpp
 	mkdir -p $(dir $@)
 	g++ $(GCC_FLAGS) -DTESTS=1 -c $< -o $@ -Ideps/googletest/googletest/include -Ikernel -Ikernel/Core
+
+out_tests/%.d: tests/%.cpp
+	$(GCC) $(GCC_FLAGS) -DTESTS=1 -MM -MT $(@:%.d=%.o) -MF $@ $<
 
 ####################
 #
@@ -158,6 +162,10 @@ ifneq ($(MAKECMDGOALS), clean)
 ifneq ($(MAKECMDGOALS), test)
 -include $(DEPS)
 endif
+endif
+
+ifeq ($(MAKECMDGOALS), test)
+-include $(TESTS_DEPS)
 endif
 
 ####################
@@ -195,4 +203,4 @@ vbox: out/floppy.img
 #
 ####################
 
-.PHONY: all clean qemu qemu-dbg bochs pcem vbox
+.PHONY: all clean qemu qemu-dbg bochs pcem vbox test
