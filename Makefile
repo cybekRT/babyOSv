@@ -128,7 +128,7 @@ tests: test-run
 
 test-objs: $(TESTS_OBJS)
 test-exe: test-objs #deps/libgtest.a
-	g++ $(GCC_FLAGS) $(TESTS_OBJS) -Ldeps/googletest/googletest/build/lib -Ideps/googletest/googletest/include -o out_tests/run_tests -lgtest_main -lgtest
+	g++ $(GCC_FLAGS) $(TESTS_OBJS) -Ldeps/googletest/googletest/build/lib -Ldeps/googletest/build/lib -Ideps/googletest/googletest/include -Ideps/googletest/include -o out_tests/run_tests -lgtest_main -lgtest
 test-run: test-exe
 	out_tests/run_tests
 

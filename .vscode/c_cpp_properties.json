@@ -5,13 +5,16 @@
             "includePath": [
                 "${workspaceFolder}/kernel",
                 "${workspaceFolder}/kernel/Core",
-                "${workspaceFolder}/out/gen"
+                "${workspaceFolder}/out/gen",
+                "${workspaceFolder}/deps/googletest/googletest/include"
             ],
             "defines": [],
             "macFrameworkPath": [],
             "intelliSenseMode": "gcc-x86",
             //"compilerPath": ["/usr/local/osdev/bin/i386-elf-gcc", "D:/Programs/gcc/bin/i386-elf-g++.exe"],
-            "compilerPath": "D:/Programs/gcc/bin/i386-elf-g++.exe",
+            //"compilerPath": "D:/Programs/gcc/bin/i386-elf-g++.exe",
+            //"compilerPath": "/usr/local/osdev/bin/i386-elf-g++",
+            "compilerPath": "g++",
             "cStandard": "c11",
             "cppStandard": "gnu++14",
             "compilerArgs": [
