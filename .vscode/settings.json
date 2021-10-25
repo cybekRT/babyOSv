@@ -34,5 +34,8 @@
 		"ratio": "cpp",
 		"utility": "cpp",
 		"variant": "cpp"
-	}
+	},
+	"C_Cpp.default.forcedInclude": [
+		"kernel/global.hpp"
+	]
 }
