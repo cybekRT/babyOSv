@@ -104,7 +104,7 @@ namespace Floppy
 	ISR(Floppy)
 	{
 		irqReceived = 1;
-		Thread::RaiseSignal(Thread::Signal { .type = Thread::Signal::Type::IRQ, .addr = Interrupt::IRQ_FLOPPY }, 0);
+		Thread::RaiseSignal(Thread::Signal { .type = Thread::Signal::Type::IRQ, .value = Interrupt::IRQ_FLOPPY }, 0);
 		Interrupt::AckIRQ();
 	}
 
@@ -159,7 +159,7 @@ namespace Floppy
 
 	void WaitIRQ()
 	{
-		Thread::WaitForSignal(Thread::Signal { .type = Thread::Signal::Type::IRQ, .addr = Interrupt::IRQ_FLOPPY }, -1);
+		Thread::WaitForSignal(Thread::Signal { .type = Thread::Signal::Type::IRQ, .value = Interrupt::IRQ_FLOPPY }, -1);
 	}
 
 	void MotorOn()

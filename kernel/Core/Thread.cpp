@@ -108,6 +108,9 @@ namespace Thread
 					bool sigMatch = t2s->value.signal->type == sig.type && t2s->value.signal->addr == sig.addr;
 					bool timeout = (t2s->value.timeout != (Timer::Time)-1) && (Timer::GetTicks() >= t2s->value.sleepTime + t2s->value.timeout);
 
+					/*if(t2s->value.signal->type == Signal::LockObject)
+						Print("Sig: %d, Time: %d, %s\n", sigMatch, timeout, t2s->value.thread->name);*/
+
 					if(sigMatch || timeout)
 					{
 						if(sigMatch)
@@ -116,7 +119,15 @@ namespace Thread
 							(*t2s->value.signal) = Signal { .type = Signal::Type::Timeout, .addr = 0 };
 
 						t2s->value.thread->state = State::Running;
+						//Print("Waking thread: %s\n", t2s->value.thread->name);
 						threads.PushBack(t2s->value.thread);
+
+						/*Print("Running threads:\n");
+						for(auto t : threads)
+						{
+							Print("-- %s\n", t->name);
+						}*/
+
 						//Print("Thread \"%s\" is waking up (signal): %s\n", currentThread->name, t2s->value.thread->name);
 
 						auto item = t2s;

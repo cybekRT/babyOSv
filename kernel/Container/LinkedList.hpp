@@ -151,18 +151,18 @@ namespace Container
 
 		void Clear()
 		{
-			// __asm("pushf\ncli");
+			__asm("pushf\ncli");
 			while(data)
 			{
 				Remove(data);
 			}
 
-			// __asm("popf");
+			__asm("popf");
 		}
 
 		void PushBack(const X& value)
 		{
-			// __asm("pushf\ncli");
+			__asm("pushf\ncli");
 			auto item = new LinkedListItem<X>();
 
 			item->value = value;
@@ -186,12 +186,12 @@ namespace Container
 			}
 
 			ASSERT((u32)data != (u32)-1, "Data pointer corrupted~!");
-			// __asm("popf");
+			__asm("popf");
 		}
 
 		void PushFront(const X& value)
 		{
-			// __asm("pushf\ncli");
+			__asm("pushf\ncli");
 			auto item = new LinkedListItem<X>();
 
 			item->value = value;
@@ -199,7 +199,7 @@ namespace Container
 			data = item;
 
 			ASSERT((u32)data != (u32)-1, "Data pointer corrupted~!");
-			// __asm("popf");
+			__asm("popf");
 		}
 
 		void Remove(LinkedListItem<X>* item)
@@ -209,7 +209,7 @@ namespace Container
 				Print("Not removed~!\n");
 				return;
 			}
-			// __asm("pushf\ncli");
+			__asm("pushf\ncli");
 
 			if(data == item)
 			{
@@ -217,7 +217,7 @@ namespace Container
 				data = item->next;
 				delete item;
 				// Print("Removed 1?\n");
-				// __asm("popf");
+				__asm("popf");
 				return;
 			}
 
@@ -230,7 +230,7 @@ namespace Container
 					// Print("Removed 2? %p, %p, %p\n", ptrPrev, data, item->next);
 					ptrPrev->next = item->next;
 					delete item;
-					//__asm("popf");
+					__asm("popf");
 					return;
 				}
 
@@ -240,12 +240,12 @@ namespace Container
 
 			// Print("Removed 3?\n");
 			ASSERT((u32)data != (u32)-1, "Data pointer corrupted~!");
-			// __asm("popf");
+			__asm("popf");
 		}
 
 		X PopFront()
 		{
-			// __asm("pushf\ncli");
+			__asm("pushf\ncli");
 			ASSERT(!IsEmpty(), "Pop from empty linked list");
 
 			auto item = data;
@@ -254,13 +254,13 @@ namespace Container
 			delete item;
 
 			ASSERT((u32)data != (u32)-1, "Data pointer corrupted~!");
-			// __asm("popf");
+			__asm("popf");
 			return itemData;
 		}
 
 		X PopBack()
 		{
-			// __asm("pushf\ncli");
+			__asm("pushf\ncli");
 			ASSERT(!IsEmpty(), "Pop from empty linked list");
 
 			auto item = data;
@@ -279,7 +279,7 @@ namespace Container
 			delete item;
 
 			ASSERT((u32)data != (u32)-1, "Data pointer corrupted~!");
-			// __asm("popf");
+			__asm("popf");
 			return itemData;
 		}
 

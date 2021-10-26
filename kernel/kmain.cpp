@@ -18,13 +18,17 @@
 
 #include"FS/VFS.hpp"
 
+#include"Mutex.hpp"
+
 bool shellReady = false;
 u8 tolower(u8 c);
 
+Mutex m;
 int YoLo(void*)
 {
 	for(;;)
 	{
+		m.Lock();
 		Thread::SetState(nullptr, Thread::State::Unstoppable);
 
 		u32 cx, cy;
@@ -46,7 +50,9 @@ int YoLo(void*)
 		Terminal::SetColor(cc[0], cc[1]);
 		Terminal::SetXY(cx, cy);
 
-		Timer::Delay(500);
+		//Timer::Delay(500);
+		m.Unlock();
+		Thread::NextThread();
 	}
 
 	return 0;
@@ -56,13 +62,18 @@ int YoLo2(void*)
 {
 	for(;;)
 	{
+		m.Lock();
 		Interrupt::Disable();
 
-		((u8*)0x800b8000)[79*2+0]++;// = 0x00;
+		((u8*)0x800b8000)[79*2+0 + 4]++;// = 0x00;
 
 		Interrupt::Enable();
 		//Print(".");
-		Timer::Delay(100);
+
+		m.Unlock();
+		//Timer::Delay(100);
+
+		Print(".");
 	}
 }
 
@@ -80,22 +91,22 @@ extern "C" void kmain()
 	ASSERT(sizeof(u32) == 4, "u32");
 	ASSERT(sizeof(u16) == 2, "u16");
 	ASSERT(sizeof(u8) == 1, "u8");
-	ASSERT(sizeof(size_t) == 4, "u32");
+	ASSERT(sizeof(size_t) == 4, "size_t");
 
 	Terminal::Init();
 	Memory::Init();
 	Interrupt::Init();
 
 	/* Call global constructors */
-	//Print("Constructors: (%p - %p)\n", _ctors_beg, _ctors_end);
-	/*for(u32* ptr = _ctors_beg; ptr != _ctors_end; ptr++)
+	Print("Constructors: (%p - %p)\n", _ctors_beg, _ctors_end);
+	for(u32* ptr = _ctors_beg; ptr != _ctors_end; ptr++)
 	{
 		void (*func)() = (void (*)())(*ptr);
 		Print("- %p\n", func);
 		ASSERT(func, "Invalid constructor function~!");
 		if(func)
 			func();
-	}*/
+	}
 
 	//Memory::Physical::PrintMemoryMap();
 

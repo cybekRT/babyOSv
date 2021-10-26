@@ -83,7 +83,7 @@ namespace Keyboard
 		Interrupt::AckIRQ();
 
 		events.PushBack(event);
-		Thread::RaiseSignal( { .type = Thread::Signal::IRQ, .addr = Interrupt::IRQ_KEYBOARD } );
+		Thread::RaiseSignal( { .type = Thread::Signal::IRQ, .value = Interrupt::IRQ_KEYBOARD } );
 	}
 
 	bool Init()
@@ -107,7 +107,7 @@ namespace Keyboard
 	{
 		while(events.IsEmpty())
 		{
-			Thread::WaitForSignal( { .type = Thread::Signal::IRQ, .addr = Interrupt::IRQ_KEYBOARD } );
+			Thread::WaitForSignal( { .type = Thread::Signal::IRQ, .value = Interrupt::IRQ_KEYBOARD } );
 		}
 
 		*event = events.PopFront();

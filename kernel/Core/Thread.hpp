@@ -61,12 +61,18 @@ namespace Thread
 			IRQ,
 			Timer,
 
+			LockObject, // Mutex, Semaphore
+
 			Custom = 250,
 			Timeout = 255,
 		};
 
 		Type type;
-		u32 addr;
+		union
+		{
+			u32 value;
+			void* addr;
+		};
 	};
 
 	enum State
