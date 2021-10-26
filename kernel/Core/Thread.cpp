@@ -292,9 +292,14 @@ namespace Thread
 
 	void NextThread()
 	{
+		auto prevState = currentThread->state;
+		currentThread->state = State::Running;
+
 		//Print("Switch task...\n");
 		__asm("int $255");
 		//Print("Return~!\n");
+
+		currentThread->state = prevState;
 	}
 
 	__attribute((naked, noreturn)) void _NextThread(void*)
@@ -308,7 +313,6 @@ namespace Thread
 			//return;
 			//__asm("ret");
 		}
-		//Print("Prev thread: %s (%d)\n", currentThread->name, threads.Size());
 
 		__asm("pushl %eax");
 		__asm("pushl %ebx");
@@ -352,8 +356,6 @@ namespace Thread
 			currentThread = threads.PopFront();
 
 		currentThread->state = State::Running;
-
-		//Print("Next thread: %s (%d)\n", currentThread->name, threads.Size());
 
 		//Terminal::Print("Switching to: %s\n", currentThread->name);
 
@@ -509,6 +511,8 @@ namespace Thread
 		// 	//for(;;);
 		// }
 
+		auto prevState = currentThread->state;
+
 		//Terminal::Print("Thread %s waiting for signal %d:%d...\n", currentThread->name, signal.type, signal.addr);
 		currentThread->state = State::Waiting;
 		waitingThreads.PushBack(Thread2Signal { .thread = currentThread, .signal = &signal, .sleepTime = Timer::GetTicks(), .timeout = timeout } );
@@ -516,6 +520,10 @@ namespace Thread
 		// Print("Thread \"%s\" waiting for signal: %d, timeout: %d\n", currentThread->name, signal.type, timeout);
 
 		NextThread();
+
+		//auto prevState = currentThread->state;
+		//SetState(currentThread, prevState);
+		currentThread->state = prevState;
 		Interrupt::Enable();
 
 		// Print("Thread \"%s\" finished waiting: %d\n", currentThread->name, signal.type);

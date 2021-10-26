@@ -50,9 +50,9 @@ int YoLo(void*)
 		Terminal::SetColor(cc[0], cc[1]);
 		Terminal::SetXY(cx, cy);
 
-		//Timer::Delay(500);
+		Timer::Delay(500);
 		m.Unlock();
-		Thread::NextThread();
+		// Thread::NextThread();
 	}
 
 	return 0;
@@ -65,15 +65,15 @@ int YoLo2(void*)
 		m.Lock();
 		Interrupt::Disable();
 
-		((u8*)0x800b8000)[79*2+0 + 4]++;// = 0x00;
+		((u8*)0x800b8000)[79*2+0]++;// = 0x00;
 
 		Interrupt::Enable();
 		//Print(".");
 
+		Timer::Delay(100);
 		m.Unlock();
-		//Timer::Delay(100);
 
-		Print(".");
+		// Print(".");
 	}
 }
 
@@ -96,6 +96,8 @@ extern "C" void kmain()
 	Terminal::Init();
 	Memory::Init();
 	Interrupt::Init();
+
+	__asm("xchg %bx, %bx");
 
 	/* Call global constructors */
 	Print("Constructors: (%p - %p)\n", _ctors_beg, _ctors_end);

@@ -3,6 +3,7 @@
 //#include"Memory.hpp"
 #include"Iterator.hpp"
 #include"IContainer.hpp"
+#include"Mutex.hpp"
 
 #ifndef offsetof
 #define offsetof(type, member) \
@@ -118,6 +119,7 @@ namespace Container
 
 	public:
 		LinkedListItem<X>* data;
+		Mutex mutex;
 
 		LinkedList<X>() : data(nullptr)
 		{
@@ -151,18 +153,21 @@ namespace Container
 
 		void Clear()
 		{
-			__asm("pushf\ncli");
+			// mutex.Lock();
+			// __asm("pushf\ncli");
 			while(data)
 			{
 				Remove(data);
 			}
 
-			__asm("popf");
+			// __asm("popf");
+			// mutex.Unlock();
 		}
 
 		void PushBack(const X& value)
 		{
-			__asm("pushf\ncli");
+			// __asm("pushf\ncli");
+			mutex.Lock();
 			auto item = new LinkedListItem<X>();
 
 			item->value = value;
@@ -186,12 +191,14 @@ namespace Container
 			}
 
 			ASSERT((u32)data != (u32)-1, "Data pointer corrupted~!");
-			__asm("popf");
+			// __asm("popf");
+			mutex.Unlock();
 		}
 
 		void PushFront(const X& value)
 		{
-			__asm("pushf\ncli");
+			// __asm("pushf\ncli");
+			mutex.Lock();
 			auto item = new LinkedListItem<X>();
 
 			item->value = value;
@@ -199,7 +206,8 @@ namespace Container
 			data = item;
 
 			ASSERT((u32)data != (u32)-1, "Data pointer corrupted~!");
-			__asm("popf");
+			// __asm("popf");
+			mutex.Unlock();
 		}
 
 		void Remove(LinkedListItem<X>* item)
@@ -209,7 +217,8 @@ namespace Container
 				Print("Not removed~!\n");
 				return;
 			}
-			__asm("pushf\ncli");
+			// __asm("pushf\ncli");
+			mutex.Lock();
 
 			if(data == item)
 			{
@@ -217,7 +226,8 @@ namespace Container
 				data = item->next;
 				delete item;
 				// Print("Removed 1?\n");
-				__asm("popf");
+				// __asm("popf");
+				mutex.Unlock();
 				return;
 			}
 
@@ -230,7 +240,8 @@ namespace Container
 					// Print("Removed 2? %p, %p, %p\n", ptrPrev, data, item->next);
 					ptrPrev->next = item->next;
 					delete item;
-					__asm("popf");
+					// __asm("popf");
+					mutex.Unlock();
 					return;
 				}
 
@@ -240,12 +251,14 @@ namespace Container
 
 			// Print("Removed 3?\n");
 			ASSERT((u32)data != (u32)-1, "Data pointer corrupted~!");
-			__asm("popf");
+			// __asm("popf");
+			mutex.Unlock();
 		}
 
 		X PopFront()
 		{
-			__asm("pushf\ncli");
+			// __asm("pushf\ncli");
+			mutex.Lock();
 			ASSERT(!IsEmpty(), "Pop from empty linked list");
 
 			auto item = data;
@@ -254,13 +267,15 @@ namespace Container
 			delete item;
 
 			ASSERT((u32)data != (u32)-1, "Data pointer corrupted~!");
-			__asm("popf");
+			// __asm("popf");
+			mutex.Unlock();
 			return itemData;
 		}
 
 		X PopBack()
 		{
-			__asm("pushf\ncli");
+			// __asm("pushf\ncli");
+			mutex.Lock();
 			ASSERT(!IsEmpty(), "Pop from empty linked list");
 
 			auto item = data;
@@ -279,7 +294,8 @@ namespace Container
 			delete item;
 
 			ASSERT((u32)data != (u32)-1, "Data pointer corrupted~!");
-			__asm("popf");
+			// __asm("popf");
+			mutex.Unlock();
 			return itemData;
 		}
 
@@ -293,10 +309,12 @@ namespace Container
 		{
 			ASSERT(!IsEmpty(), "Pop from empty linked list");
 
+			mutex.Lock();
 			auto item = data;
 			while(item->next)
 				item = item->next;
 
+			mutex.Unlock();
 			return item->value;
 		}
 
@@ -308,6 +326,7 @@ namespace Container
 		u32 Size()
 		{
 			ASSERT((u32)data != (u32)-1, "Data pointer corrupted~!");
+			mutex.Lock();
 
 			u32 count = 0;
 			auto ptr = data;
@@ -317,6 +336,7 @@ namespace Container
 				count++;
 			}
 
+			mutex.Unlock();
 			return count;
 		}
 	};

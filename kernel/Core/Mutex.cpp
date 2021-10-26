@@ -14,42 +14,53 @@ Mutex::~Mutex()
 
 void Mutex::Lock()
 {
-	//Print("Locking...\n");
+	return;
+	Print("Locking...\n");
 	for(;;)
 	{
-		Interrupt::Disable();
-		if(!IsReady())
-			Thread::WaitForSignal( Thread::Signal { .type = Thread::Signal::Type::LockObject, .addr = this } );
-
 		bool locked = false;
-		__asm(
-			"mov		$1, %%eax \n"
-			"mov		$0, %%ebx \n"
-			"cmpxchgl	%%ebx, %0 \n"
-			"jnz		.not_locked \n"
-			"movb		$1, %1 \n"
-			".not_locked: \n"
-		: "=m"(count), "=m"(locked) : : "eax", "ebx");
+		Interrupt::Disable();
+		//if(!IsReady())
+		//	Thread::WaitForSignal( Thread::Signal { .type = Thread::Signal::Type::LockObject, .addr = this } );
+
+		if (count > 0)
+		{
+			count--;
+			locked = true;
+		}
+
+		// bool locked = false;
+		// __asm(
+		// 	"mov		$1, %%eax \n"
+		// 	"mov		$0, %%ebx \n"
+		// 	"cmpxchgl	%%ebx, %0 \n"
+		// 	"jnz		.not_locked \n"
+		// 	"movb		$1, %1 \n"
+		// 	".not_locked: \n"
+		// : "=m"(count), "=m"(locked) : : "eax", "ebx");
 
 		Interrupt::Enable();
-		//Print("Locked: %d (%s)\n", locked, Thread::currentThread->name);
+		Print("Locked: %d (%s)\n", locked, Thread::currentThread->name);
 		if(locked)
 			break;
 	}
 
-	//Print("Locked...\n");
+	Print("Locked...\n");
 }
 
 void Mutex::Unlock()
 {
-	//Print("Unlocking...\n");
+	count++;
+	Thread::RaiseSignal( Thread::Signal { .type = Thread::Signal::Type::LockObject, .addr = this } );
+	return;
+	Print("Unlocking...\n");
 	__asm(
 		"incl	%0"
 		: "=m"(count));
-	//Print("Unlocked...\n");
+	Print("Unlocked...\n");
 
 	Thread::RaiseSignal( Thread::Signal { .type = Thread::Signal::Type::LockObject, .addr = this } );
-	Thread::NextThread();
+	// Thread::NextThread();
 }
 
 bool Mutex::IsReady()

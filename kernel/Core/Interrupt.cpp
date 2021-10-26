@@ -110,8 +110,24 @@ namespace Interrupt
 		u16 ss;
 	};
 
+	__attribute__((naked))
+	void ISR_PageFault(void*)
+	{
+		//Terminal::Print("WTF");
+		__asm("cli");
+		for(;;);
+	}
+
 	__attribute__ ((interrupt))
 	void ISR_GPF(ISR_Registers* _registers, u32 errorCode)
+	{
+		//Terminal::Print("WTF");
+		__asm("cli");
+		for(;;);
+	}
+
+	__attribute__ ((interrupt))
+	void ISR_GPF2(ISR_Registers* _registers, u32 errorCode)
 	{
 		static bool crashed = false;
 		static ISR_Registers regs;
@@ -243,9 +259,9 @@ namespace Interrupt
 		}
 
 		//Register(0, Dummy);
-		//Register(INT_GENERAL_PROTECTION_FAULT, ISR_GPF);
+		Register(INT_GENERAL_PROTECTION_FAULT, (ISR)ISR_GPF);
 		Register(INT_DOUBLE_FAULT, (ISR)ISR_GPF);
-		Register(INT_PAGE_FAULT, (ISR)ISR_GPF);
+		Register(INT_PAGE_FAULT, (ISR)ISR_PageFault);
 		Register(INT_INVALID_SEGMENT, (ISR)ISR_GPF);
 		//Register(INT_DIVISION_BY_ZERO, ISR_GPF);
 
