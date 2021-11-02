@@ -105,6 +105,8 @@ namespace Thread
 
 	extern Thread* currentThread;
 
+	void UpdateThreadsList();
+
 	bool Init();
 	void NextThread();
 

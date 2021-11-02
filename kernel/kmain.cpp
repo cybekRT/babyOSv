@@ -258,6 +258,10 @@ extern "C" void kmain()
 						u8* x = (u8*)0x1234;
 						*x = 5;
 					}
+					else if(!strcmp(tmp, "task"))
+					{
+						Thread::UpdateThreadsList();
+					}
 					else if(!strcmp(tmp, "dir"))
 					{
 						//bd->drv->Lock(bd->dev);
