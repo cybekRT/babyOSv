@@ -3,6 +3,8 @@
 #include"HAL.hpp"
 #include"Thread.hpp"
 
+using Thread::currentThread;
+
 struct IDT_Entry
 {
 	enum Flag : u8
@@ -133,10 +135,21 @@ namespace Interrupt
 		}
 	}
 
+	static bool insidePageFault = false;
 	__attribute__((naked))
 	void ISR_PageFault(void* ptr)
 	{
+		__asm("xchg %bx, %bx");
 		__asm("cli");
+
+		if(insidePageFault)
+		{
+			Print("WTF~!\n");
+			for(;;)
+				HALT;
+		}
+
+		insidePageFault = true;
 
 		void* faultAddr;
 		__asm(
@@ -146,6 +159,21 @@ namespace Interrupt
 		Terminal::Print("Page fault: %p\n", faultAddr);
 
 		PrintCallstack();
+
+		u32 ebp, esp;
+		__asm("mov %%esp, %0" : "=r"(esp));
+		__asm("mov %%ebp, %0" : "=r"(ebp));
+
+		Print("EBP: %x, ESP: %x\n", ebp, esp);
+
+		u32* x = ((u32*)&ptr)-6;
+		Print("(%p)\n", x);
+		for(int a = 0; a < 8; a++)
+		{
+			// if(*x != 0)
+				Print("_ [%p] = %p\n", x, *x);
+			x++;
+		}
 
 		for(;;)
 			HALT;
@@ -287,10 +315,12 @@ namespace Interrupt
 
 	void Register(u8 index, Interrupt::ISR isr)
 	{
-		PutString("Registering "); PutHex((u32)index); PutString(" with handler: "); PutHex((u32)isr); PutString("\n");
+		PutString("Registering "); PutHex((u32)index); PutString(" with handler: "); PutHex((u32)isr); PutString("... "); //PutString("\n");
 
 		idt->entries[index].SetAddress(isr);
 		idt->entries[index].flags |= IDT_Entry::Flag::IDT_FLAG_ENTRY_PRESENT;
+
+		PutString("Ok~!\n");
 	}
 
 	void Unregister(u8 index)
@@ -312,27 +342,43 @@ namespace Interrupt
 		}
 	}
 
-	u32 disableCount = 1;
+	// u32 disableCount = 1;
 
 	void Enable()
 	{
-		ASSERT(disableCount > 0, "Interrupts disableCount == 0");
-
-		disableCount--;
-		if(disableCount == 0)
+		if(!currentThread)
 		{
+			// __asm("sti");
+			return;
+		}
+
+		ASSERT(currentThread->interruptDisabled > 0, "Interrupts disableCount == 0");
+
+		__asm("pushf\ncli");
+		currentThread->interruptDisabled--;
+		if(currentThread->interruptDisabled == 0)
+		{
+			__asm("popf");
 			__asm("sti");
 		}
+		else
+			__asm("popf");
 	}
 
 	void Disable()
 	{
-		if(disableCount == 0)
+		if(!currentThread)
 		{
-			__asm("cli");
+			// __asm("cli");
+			return;
 		}
 
-		disableCount++;
+		// if(currentThread->interruptDisabled == 0)
+		// {
+			__asm("cli");
+		// }
+
+		currentThread->interruptDisabled++;
 	}
 
 	bool IsEnabled()

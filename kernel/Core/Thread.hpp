@@ -100,6 +100,7 @@ namespace Thread
 		int (*entry)(void*);
 		void* entryArgs;
 
+		u32 interruptDisabled;
 		u32 returnValue;
 	};
 

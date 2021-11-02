@@ -29,6 +29,7 @@ int YoLo(void*)
 	for(;;)
 	{
 		m.Lock();
+		Interrupt::Disable();
 		Thread::SetState(nullptr, Thread::State::Unstoppable);
 
 		u32 cx, cy;
@@ -50,6 +51,7 @@ int YoLo(void*)
 		Terminal::SetColor(cc[0], cc[1]);
 		Terminal::SetXY(cx, cy);
 
+		Interrupt::Enable();
 		Timer::Delay(500);
 		m.Unlock();
 		// Thread::NextThread();
@@ -97,8 +99,6 @@ extern "C" void kmain()
 	Memory::Init();
 	Interrupt::Init();
 
-	__asm("xchg %bx, %bx");
-
 	/* Call global constructors */
 	Print("Constructors: (%p - %p)\n", _ctors_beg, _ctors_end);
 	for(u32* ptr = _ctors_beg; ptr != _ctors_end; ptr++)
@@ -119,7 +119,7 @@ extern "C" void kmain()
 	Thread::Thread* testThread;
 	Thread::Create(&testThread, (u8*)"YoLo", YoLo);
 
-	Interrupt::Enable();
+	// Interrupt::Enable();
 
 	ISA_DMA::Init();
 

@@ -83,18 +83,18 @@ namespace Thread
 		int yolo = 0;
 		for(;;)
 		{
-			//Interrupt::Disable();
-			__asm("pushf\ncli");
+			Interrupt::Disable();
+			// __asm("pushf\ncli");
 
-			UpdateThreadsList();
+			// UpdateThreadsList();
 
-			//Print("========== Idle ==========\n");
+			// Print("========== Idle ==========\n");
 
 			yolo++;
 			if(yolo >= 30)
 			{
 				yolo = 0;
-				//Terminal::Print("idle,");
+				Terminal::Print("idle,");
 			}
 
 			while(!raisedSignals.IsEmpty())
@@ -209,8 +209,8 @@ namespace Thread
 			// //if(haltForever)
 			// //	for(;;);
 
-			//Interrupt::Enable();
-			__asm("popf");
+			Interrupt::Enable();
+			// __asm("popf");
 			if(threads.Size() > 0)
 				NextThread();
 			else
@@ -256,6 +256,7 @@ namespace Thread
 	bool Init()
 	{
 		Interrupt::Disable();
+		__asm("xchg %bx, %bx");
 
 		Interrupt::Register(255, _NextThread);
 
@@ -272,11 +273,14 @@ namespace Thread
 
 		//threads.PushBack(thread);
 		currentThread = thread;
+		currentThread->interruptDisabled = 1;
 
 		//Create(&awakerThread, (u8*)"Awaker", Awaker);
 		Create(&idleThread, (u8*)"Idle", Idle);
 
-		//Start(awakerThread);
+		Start(idleThread);
+
+		__asm("xchg %bx, %bx");
 
 		Interrupt::Enable();
 		return true;
@@ -292,6 +296,7 @@ namespace Thread
 
 	void NextThread()
 	{
+		Interrupt::Disable();
 		auto prevState = currentThread->state;
 		currentThread->state = State::Running;
 
@@ -300,6 +305,7 @@ namespace Thread
 		//Print("Return~!\n");
 
 		currentThread->state = prevState;
+		Interrupt::Enable();
 	}
 
 	__attribute((naked, noreturn)) void _NextThread(void*)
@@ -394,7 +400,8 @@ namespace Thread
 
 	Status Create(Thread** thread, u8* name, int (*entry)(void*), void* threadData)
 	{
-		__asm("pushf\ncli");
+		// __asm("pushf\ncli");
+		Interrupt::Disable();
 		(*thread) = (Thread*)Memory::Alloc(sizeof(Thread));
 
 		(*thread)->process = nullptr;
@@ -405,6 +412,7 @@ namespace Thread
 		(*thread)->stackSize = 8192;
 		(*thread)->stackBottom = Memory::Alloc((*thread)->stackSize);
 		(*thread)->stack = (void*)((u8*)(*thread)->stackBottom + (*thread)->stackSize);
+		(*thread)->interruptDisabled = 0;
 
 		for(unsigned a = 0; a < (u32)Register::Count; a++)
 		{
@@ -459,7 +467,8 @@ namespace Thread
 
 		Terminal::Print("Created thread: %s\n", (*thread)->name);
 
-		__asm("popf");
+		// __asm("popf");
+		Interrupt::Enable();
 		return Status::Success;
 	}
 
