@@ -3,16 +3,30 @@
 #define TestSuite TestSuiteName(ContainerType)
 #define TestedContainer Container::ContainerType
 
+#define ARRAY_SIZE(t) ( sizeof(t) / sizeof(*t) )
+
+static int testData[] = { 1, 3, 6 };
+
 TEST(TestSuite, PushBack) {
   TestedContainer<int> test;
 
   EXPECT_EQ(test.Size(), 0u);
 
-  test.PushBack(1);
-  test.PushBack(3);
-  test.PushBack(6);
+  for(unsigned a = 0; a < ARRAY_SIZE(testData); a++)
+  {
+    test.PushBack(testData[a]);
+  }
 
-  EXPECT_EQ(test.Size(), 3u);
+  EXPECT_EQ(test.Size(), ARRAY_SIZE(testData));
+
+  unsigned iterId = 0;
+  for(auto v : test)
+  {
+    EXPECT_EQ(v, testData[iterId]);
+    iterId++;
+  }
+
+  EXPECT_EQ(iterId, ARRAY_SIZE(testData));
 }
 
 TEST(TestSuite, PopBack) {
@@ -41,11 +55,21 @@ TEST(TestSuite, PushFront) {
 
   EXPECT_EQ(test.Size(), 0u);
 
-  test.PushFront(1);
-  test.PushFront(3);
-  test.PushFront(6);
+  for(unsigned a = 0; a < ARRAY_SIZE(testData); a++)
+  {
+    test.PushFront(testData[a]);
+  }
 
-  EXPECT_EQ(test.Size(), 3u);
+  EXPECT_EQ(test.Size(), ARRAY_SIZE(testData));
+
+  unsigned iterId = 0;
+  for(auto v : test)
+  {
+    EXPECT_EQ(v, testData[sizeof(testData)/sizeof(*testData) - 1 - iterId]);
+    iterId++;
+  }
+
+  EXPECT_EQ(iterId, ARRAY_SIZE(testData));
 }
 
 TEST(TestSuite, PopFront) {
