@@ -110,24 +110,49 @@ namespace Interrupt
 		u16 ss;
 	};
 
-	__attribute__((naked))
-	void ISR_PageFault(void*)
+	void PrintCallstack()
 	{
-		//Terminal::Print("WTF");
+		u32* ebp;
+		__asm("mov %%ebp, %0" : "=m"(ebp));
+		Print("Callstack:\n");
+		while(ebp)
+		{
+			u32 addr = 0;
+			for(u32 a = 0; a < 8; a++)
+			{
+				if(ebp[a] >= _kernel_code_beg && ebp[a] <= _kernel_code_end)
+				{
+					addr = ebp[a];
+					break;
+				}
+			}
+
+			Print(" - %p\n", addr);
+
+			ebp = (u32*)(*ebp);
+		}
+	}
+
+	__attribute__((naked))
+	void ISR_PageFault(void* ptr)
+	{
 		__asm("cli");
-		for(;;);
+
+		void* faultAddr;
+		__asm(
+			"mov %%cr2, %%eax \n"
+			"mov %%eax, %0" 
+			: "=r"(faultAddr));
+		Terminal::Print("Page fault: %p\n", faultAddr);
+
+		PrintCallstack();
+
+		for(;;)
+			HALT;
 	}
 
 	__attribute__ ((interrupt))
 	void ISR_GPF(ISR_Registers* _registers, u32 errorCode)
-	{
-		//Terminal::Print("WTF");
-		__asm("cli");
-		for(;;);
-	}
-
-	__attribute__ ((interrupt))
-	void ISR_GPF2(ISR_Registers* _registers, u32 errorCode)
 	{
 		static bool crashed = false;
 		static ISR_Registers regs;
@@ -135,6 +160,7 @@ namespace Interrupt
 		if(crashed)
 		{
 			__asm("xchg %bx, %bx");
+			__asm("cli");
 			PutString("Crash inside GPF handler...");
 			for(;;)
 				HALT;
@@ -176,25 +202,7 @@ namespace Interrupt
 		Print("ESI: %x, EDI: %x\n", regs.esi, regs.edi);
 		Print(" DS: %x,  ES: %x,  FS: %x,  GS: %x\n", regs.ds, regs.es, regs.fs, regs.gs);
 
-		u32* ebp;
-		__asm("mov %%ebp, %0" : "=m"(ebp));
-		Print("Callstack:\n");
-		while(ebp)
-		{
-			u32 addr = 0;
-			for(u32 a = 0; a < 4; a++)
-			{
-				if(ebp[a] >= _kernel_code_beg && ebp[a] <= _kernel_code_end)
-				{
-					addr = ebp[a];
-					break;
-				}
-			}
-
-			Print(" - %p\n", addr);
-
-			ebp = (u32*)(*ebp);
-		}
+		PrintCallstack();
 
 		__asm("cli");
 		for(;;)
