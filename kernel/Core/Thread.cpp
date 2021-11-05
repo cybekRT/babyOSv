@@ -86,7 +86,7 @@ namespace Thread
 			Interrupt::Disable();
 			// __asm("pushf\ncli");
 
-			// UpdateThreadsList();
+			UpdateThreadsList();
 
 			// Print("========== Idle ==========\n");
 
@@ -94,7 +94,7 @@ namespace Thread
 			if(yolo >= 30)
 			{
 				yolo = 0;
-				Terminal::Print("idle,");
+				// Terminal::Print("idle,");
 			}
 
 			while(!raisedSignals.IsEmpty())
@@ -297,14 +297,14 @@ namespace Thread
 	void NextThread()
 	{
 		Interrupt::Disable();
-		auto prevState = currentThread->state;
-		currentThread->state = State::Running;
+		// auto prevState = currentThread->state;
+		// currentThread->state = State::Running;
 
 		//Print("Switch task...\n");
 		__asm("int $255");
 		//Print("Return~!\n");
 
-		currentThread->state = prevState;
+		// currentThread->state = prevState;
 		Interrupt::Enable();
 	}
 
