@@ -5,28 +5,8 @@
 #include"Interrupt.hpp"
 #include"Timer.hpp"
 
-extern bool shellReady;
-//int strlen(const char* str);
-
 namespace Thread
 {
-	Thread* currentThread = nullptr;
-
-	Thread* idleThread = nullptr;
-	Container::Array<Thread*> threads;
-
-	__attribute((naked, noreturn)) void _NextThread(void*);
-
-	struct SignalInfo
-	{
-		Signal signal;
-		Timer::Time raisedTime;
-		Timer::Time timeout;
-	};
-
-	Container::LinkedList<SignalInfo> raisedSignals;
-	u32 lastThreadId = 0;
-
 	struct Thread2Signal
 	{
 		Thread* thread;
@@ -36,11 +16,26 @@ namespace Thread
 		Timer::Time timeout;
 	};
 
+	struct SignalInfo
+	{
+		Signal signal;
+		Timer::Time raisedTime;
+		Timer::Time timeout;
+	};
+
+	Thread* currentThread = nullptr;
+
+	Thread* idleThread = nullptr;
+	Container::Array<Thread*> threads;
 	Container::LinkedList<Thread2Signal> waitingThreads;
+	Container::LinkedList<SignalInfo> raisedSignals;
+	u32 lastThreadId = 0;
+
+	__attribute((naked, noreturn)) void _NextThread(void*);
 
 	void UpdateThreadsList()
 	{
-		__asm("pushf\ncli");
+		Interrupt::Disable();
 
 		u32 ox, oy;
 		u8 cb, cf;
@@ -75,27 +70,17 @@ namespace Thread
 
 		Terminal::SetXY(ox, oy);
 		Terminal::SetColor(cf, cb);
-		__asm("popf");
+
+		Interrupt::Enable();
 	}
 
 	int Idle(void*)
 	{
-		int yolo = 0;
 		for(;;)
 		{
 			Interrupt::Disable();
-			// __asm("pushf\ncli");
 
 			UpdateThreadsList();
-
-			// Print("========== Idle ==========\n");
-
-			yolo++;
-			if(yolo >= 30)
-			{
-				yolo = 0;
-				// Terminal::Print("idle,");
-			}
 
 			while(!raisedSignals.IsEmpty())
 			{
@@ -108,9 +93,6 @@ namespace Thread
 					bool sigMatch = t2s->value.signal->type == sig.type && t2s->value.signal->addr == sig.addr;
 					bool timeout = (t2s->value.timeout != (Timer::Time)-1) && (Timer::GetTicks() >= t2s->value.sleepTime + t2s->value.timeout);
 
-					/*if(t2s->value.signal->type == Signal::LockObject)
-						Print("Sig: %d, Time: %d, %s\n", sigMatch, timeout, t2s->value.thread->name);*/
-
 					if(sigMatch || timeout)
 					{
 						if(sigMatch)
@@ -119,98 +101,37 @@ namespace Thread
 							(*t2s->value.signal) = Signal { .type = Signal::Type::Timeout, .addr = 0 };
 
 						t2s->value.thread->state = State::Running;
-						//Print("Waking thread: %s\n", t2s->value.thread->name);
 						threads.PushBack(t2s->value.thread);
-
-						/*Print("Running threads:\n");
-						for(auto t : threads)
-						{
-							Print("-- %s\n", t->name);
-						}*/
-
-						//Print("Thread \"%s\" is waking up (signal): %s\n", currentThread->name, t2s->value.thread->name);
 
 						auto item = t2s;
 						t2s = t2s->next;
 						waitingThreads.Remove(item);
-						// Print("Ok?\n");
 					}
 					else
 						t2s = t2s->next;
 				}
 			}
 
-			//if(waitingThreads.Size() > 1)
-			//	Print("Waiting size: %d\n", waitingThreads.Size());
 			auto t2s = waitingThreads.data;
-			// Print("Threads (bef) waiting:\n");
-			static bool wasKmain = false;
-
-			// bool haltForever = false;
 			while(t2s)
 			{
-				// if(t2s->value.thread == idleThread)
-				// {
-				// 	Print("WTFx~!?\n");
-				// 	//for(;;);
-				// }
-
-				// Print("- %s\n", t2s->value.thread->name);
 				bool timeout = (t2s->value.timeout != (Timer::Time)-1) && (Timer::GetTicks() >= t2s->value.sleepTime + t2s->value.timeout);
-				// if(!strcmp((char*)t2s->value.thread->name, "kmain"))
-				// 	wasKmain = true;
-
-				// if(wasKmain && shellReady && waitingThreads.Size() == 1 && strcmp((char*)t2s->value.thread->name, "kmain"))
-				// {
-				// 	//for(;;);
-				// 	haltForever = true;
-				// }
-
-				//	Print("Waiting: %s - %d\n", t2s->value.thread->name, timeout);
-
 				if(timeout)
 				{
-					/*if(strcmp((char*)t2s->value.thread->name, "kmain"))
-						Print("Timeout: %s - %d\n", t2s->value.thread->name, timeout);*/
-
-					//Print("Thread \"%s\" is waking up: %s\n", t2s->value.thread->name, "timeout");
-
 					(*t2s->value.signal) = Signal { .type = Signal::Type::Timeout, .addr = 0 };
 
-					// Print("Thread \"%s\" is waking up (timeout): %s\n", currentThread->name, t2s->value.thread->name);
 					t2s->value.thread->state = State::Running;
 					threads.PushBack(t2s->value.thread);
 
 					auto item = t2s;
 					t2s = t2s->next;
-					// Print("Removing item: %s\n", item->value.thread->name);
 					waitingThreads.Remove(item);
-					// Print("Ok?\n");
 				}
 				else
 					t2s = t2s->next;
 			}
 
-			// auto t2sx = waitingThreads.data;
-			// Print("Threads (aft) waiting:\n");
-			// while(t2sx)
-			// {
-			// 	Print("- %s\n", t2sx->value.thread->name);
-			// 	t2sx = t2sx->next;
-			// }
-
-			// Print("Threads running:\n");
-
-			// for(auto t : threads)
-			// {
-			// 	Print("- %s\n", t->name);
-			// }
-
-			// //if(haltForever)
-			// //	for(;;);
-
 			Interrupt::Enable();
-			// __asm("popf");
 			if(threads.Size() > 0)
 				NextThread();
 			else
@@ -275,7 +196,6 @@ namespace Thread
 		currentThread = thread;
 		currentThread->interruptDisabled = 1;
 
-		//Create(&awakerThread, (u8*)"Awaker", Awaker);
 		Create(&idleThread, (u8*)"Idle", Idle);
 
 		Start(idleThread);
@@ -297,14 +217,7 @@ namespace Thread
 	void NextThread()
 	{
 		Interrupt::Disable();
-		// auto prevState = currentThread->state;
-		// currentThread->state = State::Running;
-
-		//Print("Switch task...\n");
 		__asm("int $255");
-		//Print("Return~!\n");
-
-		// currentThread->state = prevState;
 		Interrupt::Enable();
 	}
 
@@ -312,12 +225,9 @@ namespace Thread
 	{
 		__asm("cli");
 
-		if(currentThread == nullptr || currentThread->state == State::Unstoppable)// || threads.Size() == 0)
+		if(currentThread == nullptr || currentThread->state == State::Unstoppable || threads.Size() == 0)
 		{
-			//Print("No... %s\n", currentThread->name);
 			__asm("iret");
-			//return;
-			//__asm("ret");
 		}
 
 		__asm("pushl %eax");
@@ -337,24 +247,10 @@ namespace Thread
 		__asm("mov %%esp, %0" : "=a"(currentThread->stack));
 
 		// Change thread
-		if(currentThread->state == State::Running)// && currentThread != idleThread)
+		if(currentThread->state == State::Running)
 		{
-			//for(unsigned a = 0; a < threads.Size(); a++)
-			/*for(auto t : threads)
-			{
-//				Thread* t = threads[a];
-				if(t->name == currentThread->name)
-				{
-					Print("Thread: %s, exists: %s\n", t->name, currentThread->name);
-					__asm("int $250");
-					for(;;);
-				}
-			}*/
-
 			threads.PushBack(currentThread);
 		}
-		// else
-		// 	Print("Not running: %s, %d\n", currentThread->name, currentThread->state);
 
 		if(threads.Size() == 0)
 			currentThread = idleThread;
@@ -362,8 +258,6 @@ namespace Thread
 			currentThread = threads.PopFront();
 
 		currentThread->state = State::Running;
-
-		//Terminal::Print("Switching to: %s\n", currentThread->name);
 
 		__asm("mov %0, %%esp" : : "a"(currentThread->stack));
 

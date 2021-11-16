@@ -154,7 +154,7 @@ namespace Interrupt
 		void* faultAddr;
 		__asm(
 			"mov %%cr2, %%eax \n"
-			"mov %%eax, %0" 
+			"mov %%eax, %0"
 			: "=r"(faultAddr));
 		Terminal::Print("Page fault: %p\n", faultAddr);
 
@@ -315,12 +315,12 @@ namespace Interrupt
 
 	void Register(u8 index, Interrupt::ISR isr)
 	{
-		PutString("Registering "); PutHex((u32)index); PutString(" with handler: "); PutHex((u32)isr); PutString("... "); //PutString("\n");
+		Print("Registering %x  with handler: %p... ", (u32)isr);
 
 		idt->entries[index].SetAddress(isr);
 		idt->entries[index].flags |= IDT_Entry::Flag::IDT_FLAG_ENTRY_PRESENT;
 
-		PutString("Ok~!\n");
+		Print("Ok~!\n");
 	}
 
 	void Unregister(u8 index)
