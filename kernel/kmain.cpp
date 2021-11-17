@@ -87,6 +87,8 @@ extern "C" void __cxa_pure_virtual()
 extern u32* _ctors_beg;
 extern u32* _ctors_end;
 
+#include"Video/VGA.hpp"
+
 extern "C" void kmain()
 {
 	ASSERT(sizeof(u64) == 8, "u64");
@@ -115,6 +117,96 @@ extern "C" void kmain()
 	Thread::Init();
 	Timer::Init();
 	Keyboard::Init();
+
+	Print("=== VGA ===\n");
+	VGA::Init();
+
+	Print("3C2: %x\n", VGA::Read_3C2());
+	//VGA::Write_3C2(0x68);
+	//Print("3C2: %x\n", VGA::Read_3C2());
+
+	VGA::Write_3C8(0, 32, 0, 32);
+	VGA::Write_3C8(7, 255,255,255);
+
+	union Test
+	{
+		u8 test;
+		struct
+		{
+			u8 a : 1;
+			u8 b : 2;
+			u8 c : 5;
+		};
+	};
+
+	Test t;
+	t.a = 1;
+	t.b = 1;
+	t.c = 0;
+	Print("Test: %x\n", t.test);
+
+	VGA::HorizontalTiming ht;
+	ht.Read();
+	VGA::VerticalTiming vt;
+	vt.Read();
+
+	Print("=== Horizontal ===\n");
+	Print("Total: %d\n", ht.total);
+	Print("DisplayEnd: %d\n", ht.displayEnd);
+	Print("BlankingStart: %d\n", ht.blankingStart);
+	Print("DisplaySkew: %d\n", ht.displaySkew);
+	Print("BlankingEnd: %d\n", ht.blankingEnd);
+	Print("RetraceStart: %d\n", ht.retraceStart);
+	Print("RetraceEnd: %d\n", ht.retraceEnd);
+	Print("=== Vertical ===\n");
+	Print("Total: %d\n", vt.total);
+	Print("DisplayEnd: %d\n", vt.displayEnd);
+	Print("BlankingStart: %d\n", vt.blankingStart);
+	Print("BlankingEnd: %d\n", vt.blankingEnd);
+	Print("RetraceStart: %d\n", vt.retraceStart);
+	Print("RetraceEnd: %d\n", vt.retraceEnd);
+
+	ht.displayEnd = 100;
+	//ht.Write();
+	vt.displayEnd = 600;
+	//vt.Write();
+
+	VGA::RWLogic rwLogic;
+	rwLogic.Read();
+
+	rwLogic.readMode = VGA::RWLogic::RM_0;
+	rwLogic.writeMode = VGA::RWLogic::WM_0;
+	rwLogic.memoryPlaneWriteEnable[0] = false;
+	rwLogic.memoryPlaneWriteEnable[1] = false;
+	rwLogic.memoryPlaneWriteEnable[2] = false;
+	rwLogic.memoryPlaneWriteEnable[3] = false;
+
+	rwLogic.logicalOperation = VGA::RWLogic::LO_XOR;
+	rwLogic.rotateCount = 3;
+	rwLogic.bitMask = 0x7f;
+
+	//rwLogic.Write();
+
+	VGA::GraphicsMode gm;
+	gm.Read();
+	gm.shiftColor256 = true;
+	gm.shiftInterleaved = false;
+	gm.Write();
+
+	//VGA::Write_3C0(0x10, 0x41);
+	//VGA::Write_3D4(0x17, 0xA3);
+
+	u8* vPtr = (u8*)(0x800a0000);
+	for(unsigned a = 0; a < 320*200; a++)
+	{
+		vPtr[a] = a & 0xff;
+	}
+
+	if(!false)
+	for(;;)
+	{
+		__asm("cli\nhlt");
+	}
 
 	Thread::Thread* testThread;
 	Thread::Create(&testThread, (u8*)"YoLo", YoLo);
