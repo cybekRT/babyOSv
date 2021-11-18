@@ -193,9 +193,17 @@ extern "C" void kmain()
 	gm.shiftInterleaved = false;
 	gm.Write();
 
+	// Disable cursor
+	VGA::Write_3D4(0xA, 0b00100000);
+	// http://www.osdever.net/FreeVGA/vga/vga.htm#register
+	// https://files.osdev.org/mirrors/geezer/osd/graphics/modes.c
+	// http://xkr47.outerspace.dyndns.org/progs/mode%2013h%20without%20using%20bios.htm
+	// https://01.org/sites/default/files/documentation/ilk_ihd_os_vol3_part1r2_0.pdf
+	// https://www.amazon.com/dp/0201624907
 	//VGA::Write_3C0(0x10, 0x41);
 	//VGA::Write_3D4(0x17, 0xA3);
 
+	__asm("cli");
 	u8* vPtr = (u8*)(0x800a0000);
 	for(unsigned a = 0; a < 320*200; a++)
 	{
