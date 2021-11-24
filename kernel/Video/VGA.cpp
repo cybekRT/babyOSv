@@ -1,6 +1,230 @@
 #include"VGA.hpp"
 #include"HAL.hpp"
 
+#define	VGA_AC_INDEX		0x3C0
+#define	VGA_AC_WRITE		0x3C0
+#define	VGA_AC_READ		0x3C1
+#define	VGA_MISC_WRITE		0x3C2
+#define VGA_SEQ_INDEX		0x3C4
+#define VGA_SEQ_DATA		0x3C5
+#define	VGA_DAC_READ_INDEX	0x3C7
+#define	VGA_DAC_WRITE_INDEX	0x3C8
+#define	VGA_DAC_DATA		0x3C9
+#define	VGA_MISC_READ		0x3CC
+#define VGA_GC_INDEX 		0x3CE
+#define VGA_GC_DATA 		0x3CF
+/*			COLOR emulation		MONO emulation */
+#define VGA_CRTC_INDEX		0x3D4		/* 0x3B4 */
+#define VGA_CRTC_DATA		0x3D5		/* 0x3B5 */
+#define	VGA_INSTAT_READ		0x3DA
+
+#define	VGA_NUM_SEQ_REGS	5
+#define	VGA_NUM_CRTC_REGS	25
+#define	VGA_NUM_GC_REGS		9
+#define	VGA_NUM_AC_REGS		21
+#define	VGA_NUM_REGS		(1 + VGA_NUM_SEQ_REGS + VGA_NUM_CRTC_REGS + \
+				VGA_NUM_GC_REGS + VGA_NUM_AC_REGS)
+
+// MISC
+
+// SEQ0
+// SEQ1
+// SEQ2
+// SEQ3
+// SEQ4
+
+// CRTC0
+// CRTC1
+// CRTC2
+// CRTC3
+// CRTC4
+// CRTC5
+// CRTC6
+// CRTC7
+// CRTC8
+// CRTC9
+// CRTC10
+// CRTC11
+// CRTC12
+// CRTC13
+// CRTC14
+// CRTC15
+// CRTC16
+// CRTC17
+// CRTC18
+// CRTC19
+// CRTC20
+// CRTC21
+// CRTC22
+// CRTC23
+// CRTC24
+
+// GC0
+// GC1
+// GC2
+// GC3
+// GC4
+// GC5
+// GC6
+// GC7
+// GC8
+
+// AC0
+// AC1
+// AC2
+// AC3
+// AC4
+// AC5
+// AC6
+// AC7
+// AC8
+// AC9
+// AC10
+// AC11
+// AC12
+// AC13
+// AC14
+// AC15
+// AC16
+// AC17
+// AC18
+// AC19
+// AC20
+// AC21
+// AC22
+// AC23
+// AC24
+// AC25
+
+unsigned char g_40x25_text[] =
+{
+/* MISC */
+	0x67,
+/* SEQ */
+	0x03, 0x08, 0x03, 0x00, 0x02,
+/* CRTC */
+	0x2D, 0x27, 0x28, 0x90, 0x2B, 0xA0, 0xBF, 0x1F,
+	0x00, 0x4F, 0x0D, 0x0E, 0x00, 0x00, 0x00, 0xA0,
+	0x9C, 0x8E, 0x8F, 0x14, 0x1F, 0x96, 0xB9, 0xA3,
+	0xFF,
+/* GC */
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x0E, 0x00,
+	0xFF,
+/* AC */
+	0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x14, 0x07,
+	0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F,
+	0x0C, 0x00, 0x0F, 0x08, 0x00,
+};
+
+unsigned char g_80x25_text[] =
+{
+/* MISC */
+	0x67,
+/* SEQ */
+	0x03, 0x00, 0x03, 0x00, 0x02,
+/* CRTC */
+	0x5F, 0x4F, 0x50, 0x82, 0x55, 0x81, 0xBF, 0x1F,
+	0x00, 0x4F, 0x0D, 0x0E, 0x00, 0x00, 0x00, 0x50,
+	0x9C, 0x0E, 0x8F, 0x28, 0x1F, 0x96, 0xB9, 0xA3,
+	0xFF,
+/* GC */
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x0E, 0x00,
+	0xFF,
+/* AC */
+	0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x14, 0x07,
+	0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F,
+	0x0C, 0x00, 0x0F, 0x08, 0x00
+};
+
+unsigned char g_320x200x256[] =
+{
+/* MISC */
+	0x63,
+/* SEQ */
+	0x03, 0x01, 0x0F, 0x00, 0x0E,
+/* CRTC */
+	0x5F, 0x4F, 0x50, 0x82, 0x54, 0x80, 0xBF, 0x1F,
+	0x00, 0x41, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x9C, 0x0E, 0x8F, 0x28,	0x40, 0x96, 0xB9, 0xA3,
+	0xFF,
+/* GC */
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x05, 0x0F,
+	0xFF,
+/* AC */
+	0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+	0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
+	0x41, 0x00, 0x0F, 0x00,	0x00
+};
+
+void write_regs(unsigned char *regs)
+{
+	unsigned i;
+
+/* write MISCELLANEOUS reg */
+	//HAL::Out8(VGA_MISC_WRITE, *regs);
+	VGA::Write_3C2(*regs);
+	regs++;
+/* write SEQUENCER regs */
+	for(i = 0; i < VGA_NUM_SEQ_REGS; i++)
+	{
+		//HAL::Out8(VGA_SEQ_INDEX, i);
+		//HAL::Out8(VGA_SEQ_DATA, *regs);
+		VGA::Write_3C4(i, *regs);
+		regs++;
+	}
+/* unlock CRTC registers */
+	HAL::Out8(VGA_CRTC_INDEX, 0x03);
+	HAL::Out8(VGA_CRTC_DATA, HAL::In8(VGA_CRTC_DATA) | 0x80);
+	HAL::Out8(VGA_CRTC_INDEX, 0x11);
+	HAL::Out8(VGA_CRTC_DATA, HAL::In8(VGA_CRTC_DATA) & ~0x80);
+/* make sure they remain unlocked */
+	regs[0x03] |= 0x80;
+	regs[0x11] &= ~0x80;
+/* write CRTC regs */
+	for(i = 0; i < VGA_NUM_CRTC_REGS; i++)
+	{
+		//HAL::Out8(VGA_CRTC_INDEX, i);
+		//HAL::Out8(VGA_CRTC_DATA, *regs);
+		VGA::Write_3D4(i, *regs);
+		regs++;
+	}
+/* write GRAPHICS CONTROLLER regs */
+	for(i = 0; i < VGA_NUM_GC_REGS; i++)
+	{
+		VGA::Write_3CE(i, *regs);
+		//HAL::Out8(VGA_GC_INDEX, i);
+		//HAL::Out8(VGA_GC_DATA, *regs);
+		regs++;
+	}
+/* write ATTRIBUTE CONTROLLER regs */
+	for(i = 0; i < VGA_NUM_AC_REGS; i++)
+	{
+		//r(void)HAL::In8(VGA_INSTAT_READ);
+		//HAL::Out8(VGA_AC_INDEX, i);
+		//HAL::Out8(VGA_AC_WRITE, *regs);
+
+		VGA::Write_3C0(i, *regs);
+		regs++;
+	}
+/* lock 16-color palette and unblank display */
+	(void)HAL::In8(VGA_INSTAT_READ);
+	HAL::Out8(VGA_AC_INDEX, 0x20);
+}
+
+static void set_plane(unsigned p)
+{
+	unsigned char pmask;
+
+	p &= 3;
+	pmask = 1 << p;
+/* set read plane */
+	HAL::Out8(VGA_GC_INDEX, 4);
+	HAL::Out8(VGA_GC_DATA, p);
+/* set write plane */
+	HAL::Out8(VGA_SEQ_INDEX, 2);
+	HAL::Out8(VGA_SEQ_DATA, pmask);
+}
+
 namespace VGA
 {
 	u8 Read_3C0(u8 index)
@@ -252,106 +476,6 @@ namespace VGA
 	}
 
 	/*
-	 * Sequencer
-	 */
-
-	void GraphicsMode::Read()
-	{
-		u8 reg = Read_3CE(0x05);
-
-		shiftColor256 = !!(reg & (1 << 6));
-		shiftInterleaved = !!(reg & (1 << 5));
-	}
-
-	void GraphicsMode::Write()
-	{
-		u8 reg = Read_3CE(0x05);
-		reg &= ~( (1 << 5) | (1 << 6) );
-		if(shiftColor256)
-			reg |= (1 << 6);
-		if(shiftInterleaved)
-			reg |= (1 << 5);
-
-		Write_3CE(0x05, reg);
-	}
-
-	/*
-	 * RW logic
-	 */
-
-	void RWLogic::Read()
-	{
-		u8 graphicsModeReg = Read_3CE(0x05);
-		readMode = (ReadMode)((graphicsModeReg >> 3) & 0b1);
-		writeMode = (WriteMode)((graphicsModeReg >> 0) & 0b11);
-
-		u8 mapMaskRegister = Read_3C4(0x02);
-		memoryPlaneWriteEnable[0] = !!(mapMaskRegister & 0b0001);
-		memoryPlaneWriteEnable[1] = !!(mapMaskRegister & 0b0010);
-		memoryPlaneWriteEnable[2] = !!(mapMaskRegister & 0b0100);
-		memoryPlaneWriteEnable[3] = !!(mapMaskRegister & 0b1000);
-
-		u8 enableSetResetReg = Read_3CE(0x01);
-		setResetEnable[0] = !!(enableSetResetReg & 0b0001);
-		setResetEnable[1] = !!(enableSetResetReg & 0b0010);
-		setResetEnable[2] = !!(enableSetResetReg & 0b0100);
-		setResetEnable[3] = !!(enableSetResetReg & 0b1000);
-
-		u8 setResetReg = Read_3CE(0x00);
-		setResetValue[0] = !!(setResetReg & 0b0001);
-		setResetValue[1] = !!(setResetReg & 0b0010);
-		setResetValue[2] = !!(setResetReg & 0b0100);
-		setResetValue[3] = !!(setResetReg & 0b1000);
-
-		u8 dataRotateReg = Read_3CE(0x03);
-		logicalOperation = (LogicalOperation)((dataRotateReg >> 3) & 0b11);
-		rotateCount = (dataRotateReg >> 0) & 0b111;
-
-		bitMask = Read_3CE(0x08);
-	}
-
-	void RWLogic::Write()
-	{
-		u8 graphicsModeReg = Read_3CE(0x05);
-		graphicsModeReg &= ~(0b1011);
-		graphicsModeReg |= ((int)writeMode) << 0;
-		graphicsModeReg |= ((int)readMode) << 3;
-		Write_3CE(0x05, graphicsModeReg);
-
-		u8 mapMaskReg = Read_3C4(0x02);
-		mapMaskReg &= ~(0b1111);
-		mapMaskReg |= ((int)memoryPlaneWriteEnable[0]) << 0;
-		mapMaskReg |= ((int)memoryPlaneWriteEnable[1]) << 1;
-		mapMaskReg |= ((int)memoryPlaneWriteEnable[2]) << 2;
-		mapMaskReg |= ((int)memoryPlaneWriteEnable[3]) << 3;
-		Write_3C4(0x02, mapMaskReg);
-
-		u8 enSetResetReg = Read_3CE(0x01);
-		enSetResetReg &= ~(0b1111);
-		enSetResetReg |= ((int)setResetEnable[0]) << 0;
-		enSetResetReg |= ((int)setResetEnable[1]) << 1;
-		enSetResetReg |= ((int)setResetEnable[2]) << 2;
-		enSetResetReg |= ((int)setResetEnable[3]) << 3;
-		Write_3CE(0x01, enSetResetReg);
-
-		u8 setResetReg = Read_3CE(0x00);
-		setResetReg &= ~(0b1111);
-		setResetReg |= ((int)setResetValue[0]) << 0;
-		setResetReg |= ((int)setResetValue[1]) << 1;
-		setResetReg |= ((int)setResetValue[2]) << 2;
-		setResetReg |= ((int)setResetValue[3]) << 3;
-		Write_3CE(0x00, setResetReg);
-
-		u8 dataRotateReg = Read_3CE(0x03);
-		dataRotateReg &= ~(0b11111);
-		dataRotateReg |= (logicalOperation << 3) & 0b11000;
-		dataRotateReg |= (rotateCount << 0) & 0b111;
-		Write_3CE(0x03, dataRotateReg);
-
-		Write_3CE(0x08, bitMask);
-	}
-
-	/*
 	 * Init
 	 */
 
@@ -367,42 +491,7 @@ namespace VGA
 		v &= ~0x80;
 		Write_3D4(0x11, v);
 
-
-
-
-
-Write_3C0(0x10, 0x41);
-Write_3C0(0x11, 0x00);
-Write_3C0(0x12, 0x0F);
-Write_3C0(0x13, 0x00);
-Write_3C0(0x14, 0x00);
-Write_3C2(0x63);
-Write_3C4(0x01, 0x01);
-Write_3C4(0x03, 0x00);
-Write_3C4(0x04, 0x0E);
-Write_3CE(0x05, 0x40);
-Write_3CE(0x06, 0x05);
-Write_3D4(0x00, 0x5F);
-Write_3D4(0x01, 0x4F);
-Write_3D4(0x02, 0x50);
-Write_3D4(0x03, 0x82);
-Write_3D4(0x04, 0x54);
-Write_3D4(0x05, 0x80);
-Write_3D4(0x06, 0xBF);
-Write_3D4(0x07, 0x1F);
-Write_3D4(0x08, 0x00);
-Write_3D4(0x09, 0x41);
-Write_3D4(0x10, 0x9C);
-Write_3D4(0x11, 0x8E);
-Write_3D4(0x12, 0x8F);
-Write_3D4(0x13, 0x28);
-Write_3D4(0x14, 0x40);
-Write_3D4(0x15, 0x96);
-Write_3D4(0x16, 0xB9);
-Write_3D4(0x17, 0xA3);
-
-
-
+		write_regs(g_320x200x256);
 
 
 
