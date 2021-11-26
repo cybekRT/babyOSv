@@ -156,13 +156,92 @@ unsigned char g_320x200x256[] =
 	0x41, 0x00, 0x0F, 0x00,	0x00
 };
 
+// MISC
+VGA::MiscOutput mo
+{
+	.vSyncPolarity = 0,
+	.hSyncPolarity = 1,
+	.oddEvenPageSelect = 1,
+	.clockSelect = VGA::MiscOutput::Clock_25MHz,
+	.ramEnabled = 1,
+	.inputOutputAddressSelect = 1,
+};
+
+VGA::GC_00 gc00
+{
+	.setResetValue =
+	{
+		0, 0, 0, 0
+	}
+};
+
+VGA::GC_01 gc01
+{
+	.setResetEnable =
+	{
+		0, 0, 0, 0
+	}
+};
+
+VGA::GC_02 gc02
+{
+	.memoryPlaneWriteEnable =
+	{
+		0, 0, 0, 0
+	}
+};
+
+VGA::GC_03 gc03
+{
+	.logicalOperation = VGA::GC_03::LO_Normal,
+	.rotateCount = 0
+};
+
+VGA::GC_04 gc04
+{
+	.mapSelect = 0
+};
+
+VGA::GC_05 gc05
+{
+	.readMode = VGA::GC_05::RM_0,
+	.writeMode = VGA::GC_05::WM_0,
+	.shiftColor256 = 1,
+	.shiftInterleaved = 0,
+	.hostOddEven = 0,
+};
+
+VGA::GC_06 gc06
+{
+	.alphanumericModeDisabled = 1,
+	.chainOE = 0,
+	.memoryMapSelect = 0b01,
+};
+
+VGA::GC_07 gc07
+{
+	.colorDontCare =
+	{
+		1, 1, 1, 1
+	},
+};
+
+//0xFF
+VGA::GC_08 gc08
+{
+	.bitMask = 0xff,
+};
+
 void write_regs(unsigned char *regs)
 {
 	unsigned i;
 
 /* write MISCELLANEOUS reg */
 	//HAL::Out8(VGA_MISC_WRITE, *regs);
-	VGA::Write_3C2(*regs);
+	//VGA::Write_3C2(*regs);
+
+	mo.Write();
+
 	regs++;
 /* write SEQUENCER regs */
 	for(i = 0; i < VGA_NUM_SEQ_REGS; i++)
@@ -189,9 +268,18 @@ void write_regs(unsigned char *regs)
 		regs++;
 	}
 /* write GRAPHICS CONTROLLER regs */
+		gc00.Write();
+		gc01.Write();
+		gc02.Write();
+		gc03.Write();
+		gc04.Write();
+		gc05.Write();
+		gc06.Write();
+		gc07.Write();
+		gc08.Write();
 	for(i = 0; i < VGA_NUM_GC_REGS; i++)
 	{
-		VGA::Write_3CE(i, *regs);
+		//VGA::Write_3CE(i, *regs);
 		//HAL::Out8(VGA_GC_INDEX, i);
 		//HAL::Out8(VGA_GC_DATA, *regs);
 		regs++;
@@ -288,6 +376,9 @@ namespace VGA
 
 	void Write_3CE(u8 index, u8 value)
 	{
+		// Print("Reg: %d, Val: %x\n", index, value);
+		// return;
+
 		HAL::Out8(0x3CE, index);
 		HAL::Out8(0x3CF, value);
 	}
