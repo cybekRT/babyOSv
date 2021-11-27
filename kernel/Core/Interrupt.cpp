@@ -135,6 +135,13 @@ namespace Interrupt
 		}
 	}
 
+	__attribute__((naked))
+	void ISR_DoubleFault(void* ptr)
+	{
+		__asm("xchg %bx, %bx");
+		for(;;);
+	}
+
 	static bool insidePageFault = false;
 	__attribute__((naked))
 	void ISR_PageFault(void* ptr)
@@ -296,7 +303,7 @@ namespace Interrupt
 
 		//Register(0, Dummy);
 		Register(INT_GENERAL_PROTECTION_FAULT, (ISR)ISR_GPF);
-		Register(INT_DOUBLE_FAULT, (ISR)ISR_GPF);
+		Register(INT_DOUBLE_FAULT, (ISR)ISR_DoubleFault);
 		Register(INT_PAGE_FAULT, (ISR)ISR_PageFault);
 		Register(INT_INVALID_SEGMENT, (ISR)ISR_GPF);
 		//Register(INT_DIVISION_BY_ZERO, ISR_GPF);
