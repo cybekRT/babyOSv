@@ -79,6 +79,21 @@ int YoLo2(void*)
 	}
 }
 
+int FakeKbdThread(void*)
+{
+	Timer::Delay(1000);
+
+	Keyboard::AddEvent(Keyboard::KeyEvent { .type = Keyboard::KeyType::Pressed, .ascii = 's' } ); Timer::Delay(200);
+	Keyboard::AddEvent(Keyboard::KeyEvent { .type = Keyboard::KeyType::Pressed, .ascii = 'p' } ); Timer::Delay(200);
+	Keyboard::AddEvent(Keyboard::KeyEvent { .type = Keyboard::KeyType::Pressed, .ascii = 'l' } ); Timer::Delay(200);
+	Keyboard::AddEvent(Keyboard::KeyEvent { .type = Keyboard::KeyType::Pressed, .ascii = 'a' } ); Timer::Delay(200);
+	Keyboard::AddEvent(Keyboard::KeyEvent { .type = Keyboard::KeyType::Pressed, .ascii = 's' } ); Timer::Delay(200);
+	Keyboard::AddEvent(Keyboard::KeyEvent { .type = Keyboard::KeyType::Pressed, .ascii = 'h' } ); Timer::Delay(200);
+	Keyboard::AddEvent(Keyboard::KeyEvent { .type = Keyboard::KeyType::Pressed, .key = Keyboard::KeyCode::Enter } );
+
+	return 0;
+}
+
 extern "C" void __cxa_pure_virtual()
 {
 	ASSERT(false, "Pure virtual function calles :(");
@@ -183,6 +198,10 @@ extern "C" void kmain()
 #endif
 
 #if 1
+	Thread::Thread* fakeKbdThread;
+	Thread::Create(&fakeKbdThread, (u8*)"FakeKbd", FakeKbdThread);
+	Thread::Start(fakeKbdThread);
+
 	char tmp[64];
 	u8 tmpX = 0;
 	Keyboard::KeyEvent keyEvent;
@@ -341,6 +360,22 @@ extern "C" void kmain()
 
 						//bd->drv->Unlock(bd->dev);
 						VFS::CloseFile(&file);
+					}
+					else if(strcmp(tmp, "splash") == 0)
+					{
+							FS::Directory* splashDir;
+							FS::File* splashFile;
+							u32 splashRead;
+							u8* splashBuffer = new u8[320*200];
+							VFS::OpenRoot(&splashDir);
+							VFS::ChangeDirectory(splashDir, (u8*)"fdd");
+							VFS::OpenFile(splashDir, (u8*)"splash", &splashFile);
+							VFS::ReadFile(splashFile, splashBuffer, 320*200, &splashRead);
+							Print("Splash size: %d\n", splashRead);
+
+							Print("=== VGA ===\n");
+							VGA::Init();
+							memcpy((void*)0x800a0000, splashBuffer, splashRead);
 					}
 					else
 					{

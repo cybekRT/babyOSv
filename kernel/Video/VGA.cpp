@@ -572,6 +572,12 @@ namespace VGA
 
 	bool Init()
 	{
+		// http://www.osdever.net/FreeVGA/vga/vga.htm#register
+		// https://files.osdev.org/mirrors/geezer/osd/graphics/modes.c
+		// http://xkr47.outerspace.dyndns.org/progs/mode%2013h%20without%20using%20bios.htm
+		// https://01.org/sites/default/files/documentation/ilk_ihd_os_vol3_part1r2_0.pdf
+		// https://www.amazon.com/dp/0201624907
+
 		// Enable reg 3D4
 		u8 v = Read_3C2();
 		v |= 1;
@@ -583,9 +589,29 @@ namespace VGA
 		Write_3D4(0x11, v);
 
 		write_regs(g_320x200x256);
+		
+
+		for(unsigned a = 0; a < 256; a++)
+		{
+			// RGB323
+			u8 r = ((a >> 5) & 0b111) << 3;
+			u8 g = ((a >> 3) & 0b011) << 4;
+			u8 b = ((a >> 0) & 0b111) << 3;
+
+			//Write_3C8(a, r, g, b);
+
+			u32 v = a << 2;
+			Write_3C8(a, v, v, v);
+		}
 
 
 
 		return true;
+	}
+
+	void SetCursor(bool enabled)
+	{
+		// TODO: lol
+		Write_3D4(0xA, 0b00100000);
 	}
 }

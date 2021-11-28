@@ -1,5 +1,7 @@
 #include"HAL.hpp"
 
+#define RGB(r, g, b) (( r & 0b11100000 ) | (( g & 0b11000000 ) >> 3) | (( b & 0b11100000 ) >> 5))
+
 namespace VGA
 {
 	u8 Read_3C0(u8 index);
@@ -396,10 +398,10 @@ namespace VGA
 		{
 			u8 reg = Read_3C4(0x04);
 			reg &= ~(0b00111111);
-			reg |= (characterSetASelect & 0b100) << 3;
-			reg |= (characterSetASelect & 0b011) << 2;
-			reg |= (characterSetBSelect & 0b100) << 2;
-			reg |= (characterSetBSelect & 0b011) << 0;
+			// reg |= (characterSetASelect & 0b100) << 3;
+			// reg |= (characterSetASelect & 0b011) << 2;
+			// reg |= (characterSetBSelect & 0b100) << 2;
+			// reg |= (characterSetBSelect & 0b011) << 0;
 			Write_3C4(0x04, reg);
 		}
 	};
@@ -772,4 +774,6 @@ namespace VGA
 	};
 
 	bool Init();
+
+	void SetCursor(bool enabled);
 }
