@@ -135,19 +135,23 @@ namespace Interrupt
 		}
 	}
 
-	__attribute__((naked))
+	__attribute__((naked, noreturn))
 	void ISR_DoubleFault(void* ptr)
 	{
+		__asm("cli");
 		__asm("xchg %bx, %bx");
-		for(;;);
+		for(;;)
+		{
+			__asm("hlt");
+		}
 	}
 
 	static bool insidePageFault = false;
 	__attribute__((naked))
 	void ISR_PageFault(void* ptr)
 	{
-		__asm("xchg %bx, %bx");
 		__asm("cli");
+		__asm("xchg %bx, %bx");
 
 		if(insidePageFault)
 		{
@@ -186,23 +190,10 @@ namespace Interrupt
 			HALT;
 	}
 
-	__attribute__ ((interrupt))
+	__attribute__ ((interrupt, noreturn))
 	void ISR_GPF(ISR_Registers* _registers, u32 errorCode)
 	{
-		static bool crashed = false;
 		static ISR_Registers regs;
-
-		if(crashed)
-		{
-			__asm("xchg %bx, %bx");
-			__asm("cli");
-			PutString("Crash inside GPF handler...");
-			for(;;)
-				HALT;
-		}
-
-		crashed = true;
-
 		__asm("cli");
 
 		__asm("mov %%eax, %0" : "=m"(regs.eax));
@@ -231,6 +222,10 @@ namespace Interrupt
 
 		Print("Address: %x:%x\n", regs.cs, regs.eip);
 		Print("Flags:   %x\n", regs.eflags);
+		Print("Error code: %s%s - %x\n", 
+			(errorCode & 1 ? "(EXT) " : ""), 
+			((errorCode >> 1) & 0b11) == 0 ? "GDT" : ((errorCode >> 1) & 0b11) == 0b10 ? "LDT" : "IDT",
+			((errorCode >> 3) & 0b1111111111111) );
 		Print("Stack:   %x:%x, %x\n", regs.ss, regs.esp, regs.ebp);
 
 		Print("EAX: %x, EBX: %x, ECX: %x, EDX: %x\n", regs.eax, regs.ebx, regs.ecx, regs.edx);
@@ -290,18 +285,6 @@ namespace Interrupt
 		HAL::Out8(PIC1_PORT_DATA, ICW1_SINGLE);
 		HAL::Out8(PIC1_PORT_DATA, ICW4_8086);
 
-		/*idt->entries[0].SetAddress(Dummy);
-		int v = int(IDT_Entry::Flag::IDT_FLAG_32BIT_INT_GATE) | int(IDT_Entry::Flag::IDT_FLAG_ENTRY_PRESENT);
-		idt->entries[0].flags = (IDT_Entry::Flag)v;
-		idt->entries[0].selector = 0x8;*/
-
-		for(unsigned a = 0; a < 256; a++)
-		{
-			//isr->entries[a].SetAddress();
-			//Register(a, (ISR)a);
-		}
-
-		//Register(0, Dummy);
 		Register(INT_GENERAL_PROTECTION_FAULT, (ISR)ISR_GPF);
 		Register(INT_DOUBLE_FAULT, (ISR)ISR_DoubleFault);
 		Register(INT_PAGE_FAULT, (ISR)ISR_PageFault);

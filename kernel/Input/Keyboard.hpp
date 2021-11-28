@@ -40,6 +40,7 @@ namespace Keyboard
 
 	bool Init();
 
+	void AddEvent(const KeyEvent& event);
 	bool ReadEvent(KeyEvent* event);
 	bool WaitAndReadEvent(KeyEvent* event);
 	bool IsKeyPressed(KeyCode key);

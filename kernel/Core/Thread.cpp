@@ -177,7 +177,6 @@ namespace Thread
 	bool Init()
 	{
 		Interrupt::Disable();
-		__asm("xchg %bx, %bx");
 
 		Interrupt::Register(255, _NextThread);
 
@@ -200,8 +199,7 @@ namespace Thread
 
 		Start(idleThread);
 
-		__asm("xchg %bx, %bx");
-
+		// XXX: Thread init enables global interrupts~!
 		Interrupt::Enable();
 		return true;
 	}

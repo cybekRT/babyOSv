@@ -93,6 +93,12 @@ namespace Keyboard
 		return true;
 	}
 
+	void AddEvent(const KeyEvent& event)
+	{
+		events.PushBack(event);
+		Thread::RaiseSignal( { .type = Thread::Signal::IRQ, .value = Interrupt::IRQ_KEYBOARD } );
+	}
+
 	bool ReadEvent(KeyEvent* event)
 	{
 		if(events.IsEmpty())
