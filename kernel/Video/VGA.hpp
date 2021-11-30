@@ -26,6 +26,193 @@ namespace VGA
 	 * CRTC
 	 */
 
+	typedef u8 (*RegReadFunc)(u8 index);
+	typedef void (*RegWriteFunc)(u8 index, u8 value);
+
+	template<RegReadFunc _Read, RegWriteFunc _Write, u8 _regIndex, u8 _regMask>
+	struct VGARegister
+	{
+		void Read()
+		{
+			u8 reg = _Read(_regIndex);
+			Read_Conv(reg);
+		}
+
+		void Write()
+		{
+			u8 regValue = _Read(_regIndex);
+			regValue &= ~_regMask;
+			u8 newBits = Write_Conv();
+			regValue |= (newBits & _regMask);
+			_Write(_regIndex, regValue);
+		}
+
+		virtual void Read_Conv(u8 regValue) = 0;
+		virtual u8 Write_Conv() = 0;
+	};
+
+	struct CRTC_HorizontalTotal : public VGARegister<Read_3D4, Write_3D4, 0x00, 0xff>
+	{
+		u8 horizontalTotal;
+
+		void Read_Conv(u8 regValue) override
+		{
+			horizontalTotal = regValue;
+		}
+
+		u8 Write_Conv() override
+		{
+			return horizontalTotal;
+		}
+	};
+
+	struct CRTC_EndHorizontalDisplay : public VGARegister<Read_3D4, Write_3D4, 0x01, 0xff>
+	{
+		u8 endHorizontalDisplay;
+
+		void Read_Conv(u8 regValue) override
+		{
+			endHorizontalDisplay = regValue;
+		}
+
+		u8 Write_Conv() override
+		{
+			return endHorizontalDisplay;
+		}
+	};
+
+	struct CRTC_StartHorizontalBlanking : public VGARegister<Read_3D4, Write_3D4, 0x02, 0xff>
+	{
+		u8 startHorizontalBlanking;
+
+		void Read_Conv(u8 regValue) override
+		{
+			startHorizontalBlanking = regValue;
+		}
+
+		u8 Write_Conv() override
+		{
+			return startHorizontalBlanking;
+		}
+	};
+
+	struct CRTC_EndHorizontalBlanking : public VGARegister<Read_3D4, Write_3D4, 0x03, 0xff>
+	{
+		bool enableVerticalRetraceAccess;
+
+		u8 displayEnableSkew;
+
+		u8 endHorizontalBlanking;
+
+		void Read_Conv(u8 regValue) override
+		{
+			enableVerticalRetraceAccess = !!(regValue & (1 << 7));
+			displayEnableSkew = (regValue & 0b1100000) >> 5;
+			endHorizontalBlanking = (regValue & 0b11111) >> 0;
+		}
+
+		u8 Write_Conv() override
+		{
+			u8 reg = 0;
+			reg |= ((int)enableVerticalRetraceAccess) << 7;
+			reg |= (displayEnableSkew << 5) & 0b1100000;
+			reg |= (endHorizontalBlanking << 0) & 0b11111;
+			return reg;
+		}
+	};
+
+	struct CRTC_StartHorizontalRetrace : public VGARegister<Read_3D4, Write_3D4, 0x04, 0xff>
+	{
+		u8 startHorizontalRetrace;
+
+		void Read_Conv(u8 regValue) override
+		{
+			startHorizontalRetrace = regValue;
+		}
+
+		u8 Write_Conv() override
+		{
+			return startHorizontalRetrace;
+		}
+	};
+
+	struct CRTC_EndHorizontalRetrace : public VGARegister<Read_3D4, Write_3D4, 0x05, 0xff>
+	{
+		u8 endHorizontalBlanking_5;
+
+		u8 horizontalRetraceSkew;
+
+		u8 endHorizontalRetrace;
+
+		void Read_Conv(u8 regValue) override
+		{
+			endHorizontalBlanking_5 = (!!(regValue & (1 << 7))) << 5;
+			horizontalRetraceSkew = (regValue & 0b1100000) >> 5;
+			endHorizontalRetrace = (regValue & 0b11111) >> 0;
+		}
+
+		u8 Write_Conv() override
+		{
+			u8 reg = 0;
+			reg |= (!!endHorizontalBlanking_5) << 7;
+			reg |= (horizontalRetraceSkew << 5) & 0b1100000;
+			reg |= (endHorizontalRetrace << 0) & 0b11111;
+			return reg;
+		}
+	};
+
+	struct CRTC_VerticalTotal : public VGARegister<Read_3D4, Write_3D4, 0x06, 0xff>
+	{
+		u16 verticalTotal;
+
+		void Read_Conv(u8 regValue) override
+		{
+			verticalTotal = regValue;
+		}
+
+		u8 Write_Conv() override
+		{
+			return verticalTotal;
+		}
+	};
+
+	struct CRTC_EndHorizontalRetrace : public VGARegister<Read_3D4, Write_3D4, 0x07, 0xff>
+	{
+		u16 verticalRetraceStart_8_9;
+		u16 verticalDisplayEnd_8_9;
+		u16 verticalTotal_8_9;
+		u16 lineCompare_8;
+		u16 startVerticalBlanking_8;
+
+		void Read_Conv(u8 regValue) override
+		{
+			verticalRetraceStart_8_9 = (!!(regValue & (1 << 2))) << 8
+									 | (!!(regValue & (1 << 7))) << 9;
+			verticalDisplayEnd_8_9 = (!!(regValue & (1 << 1))) << 8
+								   | (!!(regValue & (1 << 6))) << 9;
+			verticalTotal_8_9 = (!!(regValue & (1 << 0))) << 8
+							  | (!!(regValue & (1 << 5))) << 9;
+			lineCompare_8 = (!!(regValue & (1 << 4))) << 8;
+			startVerticalBlanking_8 = (!!(regValue & (1 << 3))) << 8;
+		}
+
+		u8 Write_Conv() override
+		{
+			u8 reg = 0;
+			reg |= (!!(verticalRetraceStart_8_9 & (1 << 9)))	<< 7;
+			reg |= (!!(verticalDisplayEnd_8_9 & (1 << 9)))		<< 6;
+			reg |= (!!(verticalTotal_8_9 & (1 << 9)))			<< 5;
+			reg |= (!!(lineCompare_8 & (1 << 8)))				<< 4;
+			reg |= (!!(startVerticalBlanking_8 & (1 << 8)))		<< 3;
+			reg |= (!!(verticalRetraceStart_8_9 & (1 << 8)))	<< 2;
+			reg |= (!!(verticalDisplayEnd_8_9 & (1 << 8)))		<< 1;
+			reg |= (!!(verticalTotal_8_9 & (1 << 8)))			<< 0;
+			return reg;
+		}
+	};
+
+	// http://www.osdever.net/FreeVGA/vga/crtcreg.htm
+
 	struct HorizontalTiming
 	{
 		u8 total;
@@ -397,14 +584,15 @@ namespace VGA
 		void Write()
 		{
 			u8 reg = Read_3C4(0x04);
-			reg &= ~(0b00111111);
-			// reg |= (characterSetASelect & 0b100) << 3;
-			// reg |= (characterSetASelect & 0b011) << 2;
-			// reg |= (characterSetBSelect & 0b100) << 2;
-			// reg |= (characterSetBSelect & 0b011) << 0;
+			reg &= ~(0b1110);
+			reg |= ((int)chain4Enabled) << 3;
+			reg |= ((int)oddEvenHostMemoryWriteAddressingDisabled) << 2;
+			reg |= ((int)extendedMemory) << 1;
 			Write_3C4(0x04, reg);
 		}
 	};
+
+
 
 	/**
 	 * Graphics Controller

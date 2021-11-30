@@ -132,6 +132,23 @@ extern "C" void kmain()
 	Thread::Init();
 	Keyboard::Init();
 
+#if 1
+
+	VGA::Init();
+
+	VGA::CRTC_HorizontalTotal vv;
+
+
+	u8* vgaPtr = (u8*)0x800a0000;
+	for(unsigned a = 0; a < 320*200; a++)
+		vgaPtr[a] = a % 320;
+
+	__asm("cli");
+	for(;;)
+		HALT;
+
+#endif
+
 	Thread::Thread* testThread;
 	Thread::Create(&testThread, (u8*)"YoLo", YoLo);
 
