@@ -211,6 +211,56 @@ namespace VGA
 		}
 	};
 
+	struct CRTC_EndHorizontalRetrace : public VGARegister<Read_3D4, Write_3D4, 0x08, 0x7f>
+	{
+		u8 bytePanning;
+
+		u8 presetRowScan;
+
+		void Read_Conv(u8 regValue) override
+		{
+			bytePanning = (regValue & 0b01100000) << 5;
+			presetRowScan = (regValue & 0b11111) >> 0;
+		}
+
+		u8 Write_Conv() override
+		{
+			u8 reg = 0;
+			reg |= (bytePanning << 5) & 0b01100000;
+			reg |= (presetRowScan << 0) & 0b11111;
+			return reg;
+		}
+	};
+
+	struct CRTC_EndHorizontalRetrace : public VGARegister<Read_3D4, Write_3D4, 0x09, 0xff>
+	{
+		bool scanDoubling;
+
+		u16 lineCompare_9;
+
+		u16 startVerticalBlanking_9;
+
+		u8 maximumScanLine;
+
+		void Read_Conv(u8 regValue) override
+		{
+			scanDoubling = (!!(regValue & (1 << 7)));
+			lineCompare_9 = (!!(regValue & (1 << 6))) << 9;
+			startVerticalBlanking_9 = (!!(regValue & (1 << 5))) << 9;
+			maximumScanLine = (regValue & 0b11111);
+		}
+
+		u8 Write_Conv() override
+		{
+			u8 reg = 0;
+			reg |= ((int)scanDoubling) << 7;
+			reg |= (!!(lineCompare_9 & (1 << 9)))		<< 6;
+			reg |= (!!(startVerticalBlanking_9 & (1 << 9)))			<< 5;
+			reg |= (!!(maximumScanLine & (1 << 8)))				<< 4;
+			return reg;
+		}
+	};
+
 	// http://www.osdever.net/FreeVGA/vga/crtcreg.htm
 
 	struct HorizontalTiming
