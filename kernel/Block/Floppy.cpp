@@ -159,7 +159,9 @@ namespace Floppy
 
 	void WaitIRQ()
 	{
-		Thread::WaitForSignal(Thread::Signal { .type = Thread::Signal::Type::IRQ, .value = Interrupt::IRQ_FLOPPY }, -1);
+		auto status = Thread::WaitForSignal(Thread::Signal { .type = Thread::Signal::Type::IRQ, .value = Interrupt::IRQ_FLOPPY }, 500);
+		if(status == Status::Timeout)
+			Print("Oopsie...\n");
 	}
 
 	void MotorOn()
@@ -356,7 +358,7 @@ namespace Floppy
 
 		u8 cylinder = lba / 18 / 2;
 		u8 head = (lba / 18) % 2;
-		u8 sector = lba % 18 + 1;
+		u8 sector = (lba % 18) + 1;
 
 		Seek(cylinder);
 
@@ -365,6 +367,8 @@ namespace Floppy
 		irqReceived = 0;
 		u8 cmd = (u8)FDD_CMD_OPTION_MULTITRACK | (u8)FDD_CMD_OPTION_MFM | (u8)FDD_CMD_OPTION_SKIP | (u8)FDD_CMD_READ_DATA;
 		u8 driveNo = 0;
+
+		Print("Fdd CHS: %x %d %d %d\n", cmd, cylinder, head, sector);
 
 		Thread::SetState(nullptr, Thread::State::Unstoppable);
 		Exec((Command)cmd, 8, (head << 2) | driveNo, cylinder, head, sector, 0x02, 0x12, 0x1B, 0xFF);
@@ -378,9 +382,9 @@ namespace Floppy
 		u8 str = ReadData();
 		u8 stn = ReadData();
 
+		static int retryCounter = 0;
 		if(st0 & 0b11000000 || stn != 0x02)
 		{
-			static int retryCounter = 0;
 			// PCem needs this, uh...
 			// TODO: decide if FAIL is appropriate or
 			// maybe always reset and return with failure...
@@ -395,6 +399,8 @@ namespace Floppy
 			//return Read(dev, lba, buffer);
 			return 1;
 		}
+
+		retryCounter = 0;
 
 		MotorOff();
 

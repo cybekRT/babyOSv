@@ -11,8 +11,13 @@ namespace Terminal
 	bool Init()
 	{
 		unsigned short* data = (unsigned short*)0x800b8000;
-		for(unsigned a = 0; a < 80 * 25 * 2; a++)
-			data[a] = 0x0700;
+		for(unsigned a = 0; a < 80 * 25; a++)
+			data[a] = 0x0000;
+
+		buffer = nullptr;
+		cursorX = 0;
+		cursorY = 0;
+		color = 0x07;
 
 		return true;
 	}

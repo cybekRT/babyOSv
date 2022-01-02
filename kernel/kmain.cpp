@@ -132,12 +132,8 @@ extern "C" void kmain()
 	Thread::Init();
 	Keyboard::Init();
 
-#if 1
-
+#if 0
 	VGA::Init();
-
-	VGA::CRTC_HorizontalTotal vv;
-
 
 	u8* vgaPtr = (u8*)0x800a0000;
 	for(unsigned a = 0; a < 320*200; a++)
@@ -146,7 +142,6 @@ extern "C" void kmain()
 	__asm("cli");
 	for(;;)
 		HALT;
-
 #endif
 
 	Thread::Thread* testThread;
@@ -215,9 +210,9 @@ extern "C" void kmain()
 #endif
 
 #if 1
-	Thread::Thread* fakeKbdThread;
-	Thread::Create(&fakeKbdThread, (u8*)"FakeKbd", FakeKbdThread);
-	Thread::Start(fakeKbdThread);
+	// Thread::Thread* fakeKbdThread;
+	// Thread::Create(&fakeKbdThread, (u8*)"FakeKbd", FakeKbdThread);
+	// Thread::Start(fakeKbdThread);
 
 	char tmp[64];
 	u8 tmpX = 0;
