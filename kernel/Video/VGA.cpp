@@ -25,76 +25,31 @@
 #define	VGA_NUM_REGS		(1 + VGA_NUM_SEQ_REGS + VGA_NUM_CRTC_REGS + \
 				VGA_NUM_GC_REGS + VGA_NUM_AC_REGS)
 
-// MISC
-
-// SEQ0
-// SEQ1
-// SEQ2
-// SEQ3
-// SEQ4
-
-// CRTC0
-// CRTC1
-// CRTC2
-// CRTC3
-// CRTC4
-// CRTC5
-// CRTC6
-// CRTC7
-// CRTC8
-// CRTC9
-// CRTC10
-// CRTC11
-// CRTC12
-// CRTC13
-// CRTC14
-// CRTC15
-// CRTC16
-// CRTC17
-// CRTC18
-// CRTC19
-// CRTC20
-// CRTC21
-// CRTC22
-// CRTC23
-// CRTC24
-
-// GC0
-// GC1
-// GC2
-// GC3
-// GC4
-// GC5
-// GC6
-// GC7
-// GC8
-
-// AC0
-// AC1
-// AC2
-// AC3
-// AC4
-// AC5
-// AC6
-// AC7
-// AC8
-// AC9
-// AC10
-// AC11
-// AC12
-// AC13
-// AC14
-// AC15
-// AC16
-// AC17
-// AC18
-// AC19
-// AC20
-// AC21
-// AC22
-// AC23
-// AC24
-// AC25
+VGA::CRTC_HorizontalTotal crtc0(0x5F);
+VGA::CRTC_EndHorizontalDisplay crtc1(0x4F);
+VGA::CRTC_StartHorizontalBlanking crtc2(0x50);
+VGA::CRTC_EndHorizontalBlanking crtc3(true, 0, 2);
+VGA::CRTC_StartHorizontalRetrace crtc4(0x54);
+VGA::CRTC_EndHorizontalRetrace crtc5(32, 0, 0);
+VGA::CRTC_VerticalTotal crtc6(0xBF);
+VGA::CRTC_OverflowRegister crtc7(256, 256, 256, 256, 256);
+VGA::CRTC_PresetRowScanRegister crtc8(0, 0);
+VGA::CRTC_MaximumScanLineRegister crtc9(false, 512, 0, 1);
+VGA::CRTC_CursorStartRegister crtc10(false, 0);
+VGA::CRTC_CursorEndRegister crtc11(0, 0);
+VGA::CRTC_StartAddressHighRegister crtc12(0x00);
+VGA::CRTC_StartAddressLowRegister crtc13(0x00);
+VGA::CRTC_CursorLocationHighRegister crtc14(0x00);
+VGA::CRTC_CursorLocationLowRegister crtc15(0x00);
+VGA::CRTC_VerticalRetraceStartRegister crtc16(0x9C);
+VGA::CRTC_VerticalRetraceEndRegister crtc17(0, 0, 14);
+VGA::CRTC_VerticalDisplayEndRegister crtc18(0x8F);
+VGA::CRTC_OffsetRegister crtc19(0x28);
+VGA::CRTC_UnderlineLocationRegister crtc20(true, false, 0);
+VGA::CRTC_VerticalBlankingStartRegister crtc21(0x96);
+VGA::CRTC_VerticalBlankingEndRegister crtc22(0xB9);
+VGA::CRTC_ModeControlRegister crtc23(true, false, true, false, false, true, true);
+VGA::CRTC_LineCompareRegister crtc24(0xFF);
 
 unsigned char g_40x25_text[] =
 {
@@ -260,13 +215,43 @@ void write_regs(unsigned char *regs)
 	regs[0x03] |= 0x80;
 	regs[0x11] &= ~0x80;
 /* write CRTC regs */
+	crtc0.Write();
+	crtc1.Write();
+	crtc2.Write();
+	crtc3.Write();
+	crtc4.Write();
+	crtc5.Write();
+	crtc6.Write();
+	crtc7.Write();
+	crtc8.Write();
+	crtc9.Write();
+	crtc10.Write();
+	crtc11.Write();
+	crtc12.Write();
+	crtc13.Write();
+	crtc14.Write();
+	crtc15.Write();
+	crtc16.Write();
+	crtc17.Write();
+	crtc18.Write();
+	crtc19.Write();
+	crtc20.Write();
+	crtc21.Write();
+	crtc22.Write();
+	crtc23.Write();
+	crtc24.Write();
+	Print("\n----------\n");
 	for(i = 0; i < VGA_NUM_CRTC_REGS; i++)
 	{
 		//HAL::Out8(VGA_CRTC_INDEX, i);
 		//HAL::Out8(VGA_CRTC_DATA, *regs);
-		VGA::Write_3D4(i, *regs);
+		// VGA::Write_3D4(i, *regs);
+		Print("3D4: [%d] <- %x\t", (int)i, (int)*regs);
+		if(i%3 == 2)
+			Print("\n");
 		regs++;
 	}
+
 /* write GRAPHICS CONTROLLER regs */
 		gc00.Write();
 		gc01.Write();
@@ -324,6 +309,8 @@ namespace VGA
 
 	void Write_3C0(u8 index, u8 value)
 	{
+		// return;
+
 		HAL::In8(0x3DA);
 		HAL::Out8(0x3C0, index);
 		HAL::Out8(0x3C0, value);
@@ -336,6 +323,8 @@ namespace VGA
 
 	void Write_3C2(u8 value)
 	{
+		// return;
+
 		HAL::Out8(0x3C2, value);
 	}
 
@@ -347,6 +336,8 @@ namespace VGA
 
 	void Write_3C4(u8 index, u8 value)
 	{
+		// return;
+
 		HAL::Out8(0x3C4, index);
 		return HAL::Out8(0x3C5, value);
 	}
@@ -362,6 +353,8 @@ namespace VGA
 
 	void Write_3C8(u8 index, u8 r, u8 g, u8 b)
 	{
+		// return;
+
 		HAL::Out8(0x3C8, index);
 		HAL::Out8(0x3C9, r);
 		HAL::Out8(0x3C9, g);
@@ -400,6 +393,13 @@ namespace VGA
 		// u8 v = Read_3C2();
 		// v |= 1;
 		// Write_3C2(v);
+		
+		// static int yolo = 0;
+		// Print("3D4: [%d] <- %x\t", (int)index, (int)value);
+		// if((++yolo) % 3 == 2)
+		// 	Print("\n");
+
+		// return;
 
 		HAL::Out8(0x3D4, index);
 		HAL::Out8(0x3D5, value);
@@ -598,10 +598,10 @@ namespace VGA
 			u8 g = ((a >> 3) & 0b011) << 4;
 			u8 b = ((a >> 0) & 0b111) << 3;
 
-			//Write_3C8(a, r, g, b);
+			Write_3C8(a, r, g, b);
 
-			u32 v = a << 2;
-			Write_3C8(a, v, v, v);
+			// u32 v = a << 2;
+			// Write_3C8(a, v, v, v);
 		}
 
 
