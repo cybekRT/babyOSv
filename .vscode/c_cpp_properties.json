@@ -18,7 +18,7 @@
             "cStandard": "c11",
             "cppStandard": "gnu++14",
             "compilerArgs": [
-				"-include kernel/global.h",
+				"-include kernel/global.hpp",
 				"-std=gnu++1z",
 				"-mgeneral-regs-only",
 				"-fno-isolate-erroneous-paths-attribute",
