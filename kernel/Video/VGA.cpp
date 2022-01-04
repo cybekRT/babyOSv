@@ -24,32 +24,32 @@
 #define	VGA_NUM_AC_REGS		21
 #define	VGA_NUM_REGS		(1 + VGA_NUM_SEQ_REGS + VGA_NUM_CRTC_REGS + \
 				VGA_NUM_GC_REGS + VGA_NUM_AC_REGS)
-
-VGA::CRTC_HorizontalTotal crtc0(0x5F);
-VGA::CRTC_EndHorizontalDisplay crtc1(0x4F);
-VGA::CRTC_StartHorizontalBlanking crtc2(0x50);
-VGA::CRTC_EndHorizontalBlanking crtc3(true, 0, 2);
-VGA::CRTC_StartHorizontalRetrace crtc4(0x54);
-VGA::CRTC_EndHorizontalRetrace crtc5(32, 0, 0);
-VGA::CRTC_VerticalTotal crtc6(0xBF);
-VGA::CRTC_OverflowRegister crtc7(256, 256, 256, 256, 256);
-VGA::CRTC_PresetRowScanRegister crtc8(0, 0);
-VGA::CRTC_MaximumScanLineRegister crtc9(false, 512, 0, 1);
-VGA::CRTC_CursorStartRegister crtc10(false, 0);
-VGA::CRTC_CursorEndRegister crtc11(0, 0);
-VGA::CRTC_StartAddressHighRegister crtc12(0x00);
-VGA::CRTC_StartAddressLowRegister crtc13(0x00);
-VGA::CRTC_CursorLocationHighRegister crtc14(0x00);
-VGA::CRTC_CursorLocationLowRegister crtc15(0x00);
-VGA::CRTC_VerticalRetraceStartRegister crtc16(0x9C);
-VGA::CRTC_VerticalRetraceEndRegister crtc17(0, 0, 14);
-VGA::CRTC_VerticalDisplayEndRegister crtc18(0x8F);
-VGA::CRTC_OffsetRegister crtc19(0x28);
-VGA::CRTC_UnderlineLocationRegister crtc20(true, false, 0);
-VGA::CRTC_VerticalBlankingStartRegister crtc21(0x96);
-VGA::CRTC_VerticalBlankingEndRegister crtc22(0xB9);
-VGA::CRTC_ModeControlRegister crtc23(true, false, true, false, false, true, true);
-VGA::CRTC_LineCompareRegister crtc24(0xFF);
+#include"VGA_regs.hpp"
+VGA::Registers::CRTC_HorizontalTotal crtc0(0x5F);
+VGA::Registers::CRTC_EndHorizontalDisplay crtc1(0x4F);
+VGA::Registers::CRTC_StartHorizontalBlanking crtc2(0x50);
+VGA::Registers::CRTC_EndHorizontalBlanking crtc3(true, 0, 2);
+VGA::Registers::CRTC_StartHorizontalRetrace crtc4(0x54);
+VGA::Registers::CRTC_EndHorizontalRetrace crtc5(32, 0, 0);
+VGA::Registers::CRTC_VerticalTotal crtc6(0xBF);
+VGA::Registers::CRTC_OverflowRegister crtc7(256, 256, 256, 256, 256);
+VGA::Registers::CRTC_PresetRowScanRegister crtc8(0, 0);
+VGA::Registers::CRTC_MaximumScanLineRegister crtc9(false, 512, 0, 1);
+VGA::Registers::CRTC_CursorStartRegister crtc10(false, 0);
+VGA::Registers::CRTC_CursorEndRegister crtc11(0, 0);
+VGA::Registers::CRTC_StartAddressHighRegister crtc12(0x00);
+VGA::Registers::CRTC_StartAddressLowRegister crtc13(0x00);
+VGA::Registers::CRTC_CursorLocationHighRegister crtc14(0x00);
+VGA::Registers::CRTC_CursorLocationLowRegister crtc15(0x00);
+VGA::Registers::CRTC_VerticalRetraceStartRegister crtc16(0x9C);
+VGA::Registers::CRTC_VerticalRetraceEndRegister crtc17(0, 0, 14);
+VGA::Registers::CRTC_VerticalDisplayEndRegister crtc18(0x8F);
+VGA::Registers::CRTC_OffsetRegister crtc19(0x28);
+VGA::Registers::CRTC_UnderlineLocationRegister crtc20(true, false, 0);
+VGA::Registers::CRTC_VerticalBlankingStartRegister crtc21(0x96);
+VGA::Registers::CRTC_VerticalBlankingEndRegister crtc22(0xB9);
+VGA::Registers::CRTC_ModeControlRegister crtc23(true, false, true, false, false, true, true);
+VGA::Registers::CRTC_LineCompareRegister crtc24(0xFF);
 
 unsigned char g_40x25_text[] =
 {
@@ -89,6 +89,34 @@ unsigned char g_80x25_text[] =
 	0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x14, 0x07,
 	0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F,
 	0x0C, 0x00, 0x0F, 0x08, 0x00
+};
+
+VGA::Seq_00 seq0 = {
+	.syncReset = true,
+	.asyncReset = true
+};
+
+VGA::Seq_01 seq1 = {
+	.screenDisabled = true,
+	.shift4Enabled = false,
+	.dotClockRate = false,
+	.shiftLoadRate = false,
+	.dot8Mode = false,
+};
+
+VGA::Seq_02 seq2 = {
+	.memoryPlaneWriteEnabled = { 1, 1, 1, 1 }
+};
+
+VGA::Seq_03 seq3 = {
+	.characterSetASelect = 0,
+	.characterSetBSelect = 0,
+};
+
+VGA::Seq_04 seq4 = {
+	.chain4Enabled = true,
+	.oddEvenHostMemoryWriteAddressingDisabled = true,
+	.extendedMemory = true
 };
 
 unsigned char g_320x200x256[] =
@@ -199,21 +227,39 @@ void write_regs(unsigned char *regs)
 
 	regs++;
 /* write SEQUENCER regs */
+
+	seq0.Write();
+	seq1.Write();
+	seq2.Write();
+	seq3.Write();
+	seq4.Write();
+
 	for(i = 0; i < VGA_NUM_SEQ_REGS; i++)
 	{
 		//HAL::Out8(VGA_SEQ_INDEX, i);
 		//HAL::Out8(VGA_SEQ_DATA, *regs);
-		VGA::Write_3C4(i, *regs);
+		//VGA::Write_3C4(i, *regs);
 		regs++;
 	}
 /* unlock CRTC registers */
-	HAL::Out8(VGA_CRTC_INDEX, 0x03);
+
+	VGA::Registers::CRTC_EndHorizontalBlanking accessRetraceRegs;
+	accessRetraceRegs.Read();
+	accessRetraceRegs.enableVerticalRetraceAccess = true;
+	accessRetraceRegs.Write();
+
+	VGA::Registers::CRTC_VerticalRetraceEndRegister accessTimingRegs;
+	accessTimingRegs.Read();
+	accessTimingRegs.protectEnabled = false;
+	accessTimingRegs.Write();
+
+	/*HAL::Out8(VGA_CRTC_INDEX, 0x03);
 	HAL::Out8(VGA_CRTC_DATA, HAL::In8(VGA_CRTC_DATA) | 0x80);
 	HAL::Out8(VGA_CRTC_INDEX, 0x11);
-	HAL::Out8(VGA_CRTC_DATA, HAL::In8(VGA_CRTC_DATA) & ~0x80);
+	HAL::Out8(VGA_CRTC_DATA, HAL::In8(VGA_CRTC_DATA) & ~0x80);*/
 /* make sure they remain unlocked */
-	regs[0x03] |= 0x80;
-	regs[0x11] &= ~0x80;
+//	regs[0x03] |= 0x80;
+//	regs[0x11] &= ~0x80;
 /* write CRTC regs */
 	crtc0.Write();
 	crtc1.Write();
@@ -393,7 +439,7 @@ namespace VGA
 		// u8 v = Read_3C2();
 		// v |= 1;
 		// Write_3C2(v);
-		
+
 		// static int yolo = 0;
 		// Print("3D4: [%d] <- %x\t", (int)index, (int)value);
 		// if((++yolo) % 3 == 2)
@@ -403,167 +449,6 @@ namespace VGA
 
 		HAL::Out8(0x3D4, index);
 		HAL::Out8(0x3D5, value);
-	}
-
-	/*
-	 * Horizontal timing
-	 */
-
-	union EndHorizontalBlankingRegister
-	{
-		u8 value;
-		struct
-		{
-			u8 blankingEnd0_4 : 5;
-			u8 displaySkew : 2;
-			u8 _unused1 : 1;
-		};
-	};
-
-	union EndHorizontalRetraceRegister
-	{
-		u8 value;
-		struct
-		{
-			u8 retraceEnd : 5;
-			u8 _unused2 : 2;
-			u8 blankingEnd5 : 1;
-		};
-	};
-
-	void HorizontalTiming::Read()
-	{
-		EndHorizontalBlankingRegister ehbr;
-		EndHorizontalRetraceRegister ehrr;
-
-		total = Read_3D4(0x00);
-		displayEnd = Read_3D4(0x01);
-		blankingStart = Read_3D4(0x02);
-		ehbr.value = Read_3D4(0x03);
-		retraceStart = Read_3D4(0x04);
-		ehrr.value = Read_3D4(0x05);
-
-		displaySkew = ehbr.displaySkew;
-		blankingEnd = (ehbr.blankingEnd0_4 | (ehrr.blankingEnd5 << 5));
-		retraceEnd = ehrr.retraceEnd;
-	}
-
-	void HorizontalTiming::Write()
-	{
-		EndHorizontalBlankingRegister ehbr;
-		ehbr.displaySkew = displaySkew;
-		ehbr.blankingEnd0_4 = (blankingEnd & 0b11111);
-
-		EndHorizontalRetraceRegister ehrr;
-		ehrr.blankingEnd5 = (blankingEnd >> 5);
-		ehrr.retraceEnd = retraceEnd;
-
-		Write_3D4(0x00, total);
-		Write_3D4(0x01, displayEnd);
-		Write_3D4(0x02, blankingStart);
-		Write_3D4(0x03, ehbr.value);
-		Write_3D4(0x04, retraceStart);
-		Write_3D4(0x05, ehrr.value);
-	}
-
-	/*
-	 * Vertical timing
-	 */
-
-	union OverflowRegister
-	{
-		u8 value;
-		struct
-		{
-			u8 total8 : 1;
-			u8 displayEnd8 : 1;
-			u8 retraceStart8 : 1;
-			u8 blankingStart8 : 1;
-			u8 _unused1 : 1;
-			u8 total9 : 1;
-			u8 displayEnd9 : 1;
-			u8 retraceStart9 : 1;
-		};
-	};
-
-	union MaximumScanLineRegister
-	{
-		u8 value;
-		struct
-		{
-			u8 _unused1 : 5;
-			u8 blankingStart9 : 1;
-			u8 _unused2 : 2;
-		};
-	};
-
-	union VerticalRetraceEndRegister
-	{
-		u8 value;
-		struct
-		{
-			u8 retraceEnd : 4;
-			u8 _unused1 : 4;
-		};
-	};
-
-	void VerticalTiming::Read()
-	{
-		OverflowRegister oreg;
-		MaximumScanLineRegister mslr;
-		VerticalRetraceEndRegister vrer;
-		u16 total0_7;
-		u16 retraceStart0_7;
-		u16 displayEnd0_7;
-		u16 blankingStart0_7;
-
-		total0_7 = Read_3D4(0x06);
-		oreg.value = Read_3D4(0x07);
-		mslr.value = Read_3D4(0x09);
-		retraceStart0_7 = Read_3D4(0x06);
-		vrer.value = Read_3D4(0x11);
-		displayEnd0_7 = Read_3D4(0x12);
-		blankingStart0_7 = Read_3D4(0x15);
-		blankingEnd = Read_3D4(0x16);
-
-		total = (total0_7) | (oreg.total8 << 8) | (oreg.total9 << 9);
-		displayEnd = (displayEnd0_7) | (oreg.displayEnd8 << 8) | (oreg.displayEnd9 << 9);
-		blankingStart = (blankingStart0_7) | (oreg.blankingStart8 << 8);
-		blankingEnd;
-		retraceStart = (retraceStart0_7) | (oreg.retraceStart8 << 8) | (oreg.retraceStart9 << 9);
-		retraceEnd;
-	}
-
-	void VerticalTiming::Write()
-	{
-		OverflowRegister oreg;
-		MaximumScanLineRegister mslr;
-		VerticalRetraceEndRegister vrer;
-
-		oreg.value = Read_3D4(0x07);
-		mslr.value = Read_3D4(0x09);
-		vrer.value = Read_3D4(0x16);
-
-		oreg.retraceStart8 = !!(retraceStart & 0x100);
-		oreg.retraceStart9 = !!(retraceStart & 0x200);
-		oreg.displayEnd8 = !!(displayEnd & 0x100);
-		oreg.displayEnd9 = !!(displayEnd & 0x200);
-		oreg.total8 = !!(total & 0x100);
-		oreg.total9 = !!(total & 0x200);
-		oreg.blankingStart8 = !!(blankingStart & 0x100);
-
-		mslr.blankingStart9 = !!(blankingStart & 0x200);
-
-		vrer.retraceEnd = retraceEnd;
-
-		Write_3D4(0x06, total & 0xff);
-		Write_3D4(0x07, oreg.value);
-		Write_3D4(0x09, mslr.value);
-		Write_3D4(0x10, retraceStart & 0xff);
-		Write_3D4(0x11, vrer.value);
-		Write_3D4(0x12, displayEnd & 0xff);
-		Write_3D4(0x15, blankingStart);
-		Write_3D4(0x16, blankingEnd & 0x7f);
 	}
 
 	/*
@@ -589,7 +474,6 @@ namespace VGA
 		Write_3D4(0x11, v);
 
 		write_regs(g_320x200x256);
-		
 
 		for(unsigned a = 0; a < 256; a++)
 		{
@@ -603,8 +487,6 @@ namespace VGA
 			// u32 v = a << 2;
 			// Write_3C8(a, v, v, v);
 		}
-
-
 
 		return true;
 	}
