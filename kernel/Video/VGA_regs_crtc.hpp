@@ -339,13 +339,6 @@ namespace VGA
 			bool divideScanLineClockBy2;
 
 			/**
-			 *  "This bit selects the source of bit 14 of the output multiplexer.
-			 * When this bit is set to 0, bit 1 of the row scan counter is the source.
-			 * When this bit is set to 1, the bit 14 of the address counter is the source."
-			 */
-			bool mapDisplayAddress14;
-
-			/**
 			 *  "This bit selects the source of bit 13 of the output multiplexer.
 			 * When this bit is set to 0, bit 0 of the row scan counter is the source, and
 			 * when this bit is set to 1, bit 13 of the address counter is the source.
@@ -357,6 +350,13 @@ namespace VGA
 			 * This bit allows compatibility with the graphics modes of earlier adapters."
 			 */
 			bool mapDisplayAddress13;
+
+			/**
+			 *  "This bit selects the source of bit 14 of the output multiplexer.
+			 * When this bit is set to 0, bit 1 of the row scan counter is the source.
+			 * When this bit is set to 1, the bit 14 of the address counter is the source."
+			 */
+			bool mapDisplayAddress14;
 
 			/**
 			 * This field specifies bits 7-0 of the Line Compare field.

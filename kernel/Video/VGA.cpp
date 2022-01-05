@@ -51,6 +51,49 @@ VGA::Registers::CRTC_VerticalBlankingEndRegister crtc22(0xB9);
 VGA::Registers::CRTC_ModeControlRegister crtc23(true, false, true, false, false, true, true);
 VGA::Registers::CRTC_LineCompareRegister crtc24(0xFF);
 
+#include"VGA_regs_crtc.hpp"
+VGA::Registers::CRTC crtc = {
+	.horizontalTotal = 0x5F,
+	.horizontalDisplayEnd = 0x4F,
+	.horizontalBlankingStart = 0x50,
+	.enableVerticalRetraceAccess = true,
+	.displayEnableSkew = false,
+	.horizontalBlankingEnd =  34,
+	.horizontalRetraceStart = 0x54,
+	.horizontalRetraceSkew = false,
+	.horizontalRetraceEnd = 0,
+	.verticalTotal = 256 + 0xBF,
+	.bytePanning = 0,
+	.presetRowScan = 0,
+	.scanDoubling = false,
+	.maximumScanLine = 1,
+	.cursorDisabled = false,
+	.cursorScanLineStart = 0,
+	.cursorSkew = false,
+	.cursorScanLineEnd = 0,
+	.startAddress = 0,
+	.cursorLocation = 0,
+	.verticalRetraceStart = 256 + 0x9C,
+	.protectEnabled = false,
+	.memoryRefreshBandwidth = 0,
+	.verticalRetraceEnd = 14,
+	.verticalDisplayEnd = 256 + 0x8F,
+	.offset = 0x28,
+	.doubleWordAddressing = true,
+	.divideMemoryAddressClockBy4 = false,
+	.underlineLocation = 0,
+	.verticalBlankingStart = 256 + 0x96,
+	.verticalBlankingEnd = 0xB9,
+	.syncEnabled = true,
+	.wordByteMode = false,
+	.addressWrapSelect = true,
+	.divideMemoryAddressClockBy2 = false,
+	.divideScanLineClockBy2 = false,
+	.mapDisplayAddress13 = true,
+	.mapDisplayAddress14 = true,
+	.lineCompare = 512 + 256 + 255,
+};
+
 unsigned char g_40x25_text[] =
 {
 /* MISC */
@@ -185,7 +228,7 @@ VGA::MiscOutput mo
 	.inputOutputAddressSelect = 1,
 };
 
-VGA::GC_00 gc00
+VGA::GC_SetResetRegister gc00
 {
 	.setResetValue =
 	{
@@ -193,7 +236,7 @@ VGA::GC_00 gc00
 	}
 };
 
-VGA::GC_01 gc01
+VGA::GC_EnableSetResetRegister gc01
 {
 	.setResetEnable =
 	{
@@ -201,7 +244,7 @@ VGA::GC_01 gc01
 	}
 };
 
-VGA::GC_02 gc02
+VGA::GC_ColorCompareRegister gc02
 {
 	.memoryPlaneWriteEnable =
 	{
@@ -209,34 +252,34 @@ VGA::GC_02 gc02
 	}
 };
 
-VGA::GC_03 gc03
+VGA::GC_DataRotateRegister gc03
 {
-	.logicalOperation = VGA::GC_03::LO_Normal,
+	.logicalOperation = VGA::GC_DataRotateRegister::LO_Normal,
 	.rotateCount = 0
 };
 
-VGA::GC_04 gc04
+VGA::GC_ReadMapSelectRegister gc04
 {
 	.mapSelect = 0
 };
 
-VGA::GC_05 gc05
+VGA::GC_GraphicsModeRegister gc05
 {
-	.readMode = VGA::GC_05::RM_0,
-	.writeMode = VGA::GC_05::WM_0,
+	.readMode = VGA::GC_GraphicsModeRegister::RM_0,
+	.writeMode = VGA::GC_GraphicsModeRegister::WM_0,
 	.shiftColor256 = 1,
 	.shiftInterleaved = 0,
 	.hostOddEven = 0,
 };
 
-VGA::GC_06 gc06
+VGA::GC_MiscellaneousGraphicsRegister gc06
 {
 	.alphanumericModeDisabled = 1,
 	.chainOE = 0,
 	.memoryMapSelect = 0b01,
 };
 
-VGA::GC_07 gc07
+VGA::GC_ColorDontCareRegister gc07
 {
 	.colorDontCare =
 	{
@@ -244,24 +287,14 @@ VGA::GC_07 gc07
 	},
 };
 
-//0xFF
-VGA::GC_08 gc08
+VGA::GC_BitMaskRegister gc08
 {
 	.bitMask = 0xff,
 };
 
 void write_regs(unsigned char *regs)
 {
-	unsigned i;
-
-/* write MISCELLANEOUS reg */
-	//HAL::Out8(VGA_MISC_WRITE, *regs);
-	//VGA::Write_3C2(*regs);
-
 	mo.Write();
-
-	regs++;
-/* write SEQUENCER regs */
 
 	seq0.Write();
 	seq1.Write();
@@ -269,15 +302,7 @@ void write_regs(unsigned char *regs)
 	seq3.Write();
 	seq4.Write();
 
-	for(i = 0; i < VGA_NUM_SEQ_REGS; i++)
-	{
-		//HAL::Out8(VGA_SEQ_INDEX, i);
-		//HAL::Out8(VGA_SEQ_DATA, *regs);
-		//VGA::Write_3C4(i, *regs);
-		regs++;
-	}
-/* unlock CRTC registers */
-
+	// Unblock CRTC registers
 	VGA::Registers::CRTC_EndHorizontalBlanking accessRetraceRegs;
 	accessRetraceRegs.Read();
 	accessRetraceRegs.enableVerticalRetraceAccess = true;
@@ -288,85 +313,56 @@ void write_regs(unsigned char *regs)
 	accessTimingRegs.protectEnabled = false;
 	accessTimingRegs.Write();
 
-	/*HAL::Out8(VGA_CRTC_INDEX, 0x03);
-	HAL::Out8(VGA_CRTC_DATA, HAL::In8(VGA_CRTC_DATA) | 0x80);
-	HAL::Out8(VGA_CRTC_INDEX, 0x11);
-	HAL::Out8(VGA_CRTC_DATA, HAL::In8(VGA_CRTC_DATA) & ~0x80);*/
-/* make sure they remain unlocked */
-//	regs[0x03] |= 0x80;
-//	regs[0x11] &= ~0x80;
-/* write CRTC regs */
-	crtc0.Write();
-	crtc1.Write();
-	crtc2.Write();
-	crtc3.Write();
-	crtc4.Write();
-	crtc5.Write();
-	crtc6.Write();
-	crtc7.Write();
-	crtc8.Write();
-	crtc9.Write();
-	crtc10.Write();
-	crtc11.Write();
-	crtc12.Write();
-	crtc13.Write();
-	crtc14.Write();
-	crtc15.Write();
-	crtc16.Write();
-	crtc17.Write();
-	crtc18.Write();
-	crtc19.Write();
-	crtc20.Write();
-	crtc21.Write();
-	crtc22.Write();
-	crtc23.Write();
-	crtc24.Write();
-	Print("\n----------\n");
-	for(i = 0; i < VGA_NUM_CRTC_REGS; i++)
-	{
-		//HAL::Out8(VGA_CRTC_INDEX, i);
-		//HAL::Out8(VGA_CRTC_DATA, *regs);
-		// VGA::Write_3D4(i, *regs);
-		Print("3D4: [%d] <- %x\t", (int)i, (int)*regs);
-		if(i%3 == 2)
-			Print("\n");
-		regs++;
-	}
+	// crtc0.Write();
+	// crtc1.Write();
+	// crtc2.Write();
+	// crtc3.Write();
+	// crtc4.Write();
+	// crtc5.Write();
+	// crtc6.Write();
+	// crtc7.Write();
+	// crtc8.Write();
+	// crtc9.Write();
+	// crtc10.Write();
+	// crtc11.Write();
+	// crtc12.Write();
+	// crtc13.Write();
+	// crtc14.Write();
+	// crtc15.Write();
+	// crtc16.Write();
+	// crtc17.Write();
+	// crtc18.Write();
+	// crtc19.Write();
+	// crtc20.Write();
+	// crtc21.Write();
+	// crtc22.Write();
+	// crtc23.Write();
+	// crtc24.Write();
+	// Print("\n=====\n");
+	crtc.Write();
 
-/* write GRAPHICS CONTROLLER regs */
-		gc00.Write();
-		gc01.Write();
-		gc02.Write();
-		gc03.Write();
-		gc04.Write();
-		gc05.Write();
-		gc06.Write();
-		gc07.Write();
-		gc08.Write();
-	for(i = 0; i < VGA_NUM_GC_REGS; i++)
-	{
-		//VGA::Write_3CE(i, *regs);
-		//HAL::Out8(VGA_GC_INDEX, i);
-		//HAL::Out8(VGA_GC_DATA, *regs);
-		regs++;
-	}
-/* write ATTRIBUTE CONTROLLER regs */
+	// __asm("cli");
+	// for(;;)
+	// 	HALT;
+
+	gc00.Write();
+	gc01.Write();
+	gc02.Write();
+	gc03.Write();
+	gc04.Write();
+	gc05.Write();
+	gc06.Write();
+	gc07.Write();
+	gc08.Write();
+
 	attrPalette.Write();
 	attrModeControl.Write();
 	attrOverscanColor.Write();
 	attrColorPlaneEnable.Write();
 	attrPixelPanning.Write();
 	attrColorSelect.Write();
-	for(i = 0; i < VGA_NUM_AC_REGS; i++)
-	{
-		//r(void)HAL::In8(VGA_INSTAT_READ);
-		//HAL::Out8(VGA_AC_INDEX, i);
-		//HAL::Out8(VGA_AC_WRITE, *regs);
 
-		//VGA::Write_3C0(i, *regs);
-		regs++;
-	}
-/* lock 16-color palette and unblank display */
+	/* lock 16-color palette and unblank display */
 	(void)HAL::In8(VGA_INSTAT_READ);
 	HAL::Out8(VGA_AC_INDEX, 0x20);
 }

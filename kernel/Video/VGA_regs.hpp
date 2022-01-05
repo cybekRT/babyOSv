@@ -1100,5 +1100,372 @@ namespace VGA
 		};
 
 		// http://www.osdever.net/FreeVGA/vga/crtcreg.htm
+
+		/**
+		 * Graphics Controller
+		 */
+
+		/**
+		 * The Graphics Registers are accessed via a pair of registers, the Graphics Address Register and the Graphics Data Register.
+		 * See the Accessing the VGA Registers section for more details.
+		 * The Address Register is located at port 3CEh and the Data Register is located at port 3CFh.
+		 *
+		 * Index 00h -- Set/Reset Register
+		 * Index 01h -- Enable Set/Reset Register
+		 * Index 02h -- Color Compare Register
+		 * Index 03h -- Data Rotate Register
+		 * Index 04h -- Read Map Select Register
+		 * Index 05h -- Graphics Mode Register
+		 * Index 06h -- Miscellaneous Graphics Register
+		 * Index 07h -- Color Don't Care Register
+		 * Index 08h -- Bit Mask Register
+		 *
+		 */
+
+		struct GC_SetResetRegister
+		{
+			/**
+			 * Bits 3-0 of this field represent planes 3-0 of the VGA display memory.
+			 * This field is used by Write Mode 0 and Write Mode 3 (See the Write Mode field.)
+			 * In Write Mode 0, if the corresponding bit in the Enable Set/Reset field is set,
+			 * and in Write Mode 3 regardless of the Enable Set/Reset field, the value of the
+			 * bit in this field is expanded to 8 bits and substituted for the data of the
+			 * respective plane and passed to the next stage in the graphics pipeline,
+			 * which for Write Mode 0 is the Logical Operation unit and for Write Mode 3 is the Bit Mask unit.
+			 */
+			bool setResetValue[4];
+
+			void Read()
+			{
+				u8 setResetReg = Read_3CE(0x00);
+				setResetValue[0] = !!(setResetReg & 0b0001);
+				setResetValue[1] = !!(setResetReg & 0b0010);
+				setResetValue[2] = !!(setResetReg & 0b0100);
+				setResetValue[3] = !!(setResetReg & 0b1000);
+			}
+
+			void Write()
+			{
+				u8 setResetReg = Read_3CE(0x00);
+				setResetReg &= ~(0b1111);
+				setResetReg |= ((int)setResetValue[0]) << 0;
+				setResetReg |= ((int)setResetValue[1]) << 1;
+				setResetReg |= ((int)setResetValue[2]) << 2;
+				setResetReg |= ((int)setResetValue[3]) << 3;
+				Write_3CE(0x00, setResetReg);
+			}
+		};
+
+		struct GC_EnableSetResetRegister
+		{
+			/**
+			 * Bits 3-0 of this field represent planes 3-0 of the VGA display memory.
+			 * This field is used in Write Mode 0 (See the Write Mode field) to select
+			 * whether data for each plane is derived from host data or from expansion of the respective bit in the Set/Reset field.
+			 */
+			bool setResetEnable[4];
+
+			void Read()
+			{
+				u8 enableSetResetReg = Read_3CE(0x01);
+				setResetEnable[0] = !!(enableSetResetReg & 0b0001);
+				setResetEnable[1] = !!(enableSetResetReg & 0b0010);
+				setResetEnable[2] = !!(enableSetResetReg & 0b0100);
+				setResetEnable[3] = !!(enableSetResetReg & 0b1000);
+			}
+
+			void Write()
+			{
+				u8 enSetResetReg = Read_3CE(0x01);
+				enSetResetReg &= ~(0b1111);
+				enSetResetReg |= ((int)setResetEnable[0]) << 0;
+				enSetResetReg |= ((int)setResetEnable[1]) << 1;
+				enSetResetReg |= ((int)setResetEnable[2]) << 2;
+				enSetResetReg |= ((int)setResetEnable[3]) << 3;
+				Write_3CE(0x01, enSetResetReg);
+			}
+		};
+
+		struct GC_ColorCompareRegister
+		{
+			/**
+			 * Bits 3-0 of this field represent planes 3-0 of the VGA display memory.
+			 * This field holds a reference color that is used by Read Mode 1 (See the Read Mode field.)
+			 * Read Mode 1 returns the result of the comparison between this value and a location of display memory, modified by the Color Don't Care field.
+			 */
+			bool memoryPlaneWriteEnable[4];
+
+			void Read()
+			{
+				u8 mapMaskRegister = Read_3CE(0x02);
+				memoryPlaneWriteEnable[0] = !!(mapMaskRegister & 0b0001);
+				memoryPlaneWriteEnable[1] = !!(mapMaskRegister & 0b0010);
+				memoryPlaneWriteEnable[2] = !!(mapMaskRegister & 0b0100);
+				memoryPlaneWriteEnable[3] = !!(mapMaskRegister & 0b1000);
+			}
+
+			void Write()
+			{
+				u8 mapMaskReg = Read_3CE(0x02);
+				mapMaskReg &= ~(0b1111);
+				mapMaskReg |= ((int)memoryPlaneWriteEnable[0]) << 0;
+				mapMaskReg |= ((int)memoryPlaneWriteEnable[1]) << 1;
+				mapMaskReg |= ((int)memoryPlaneWriteEnable[2]) << 2;
+				mapMaskReg |= ((int)memoryPlaneWriteEnable[3]) << 3;
+				Write_3CE(0x02, mapMaskReg);
+			}
+		};
+
+		struct GC_DataRotateRegister
+		{
+			/**
+			 * This field is used in Write Mode 0 and Write Mode 2 (See the Write Mode field.) The logical operation stage of the graphics pipeline is 32 bits wide (1 byte * 4 planes) and performs the operations on its inputs from the previous stage in the graphics pipeline and the latch register. The latch register remains unchanged and the result is passed on to the next stage in the pipeline. The results based on the value of this field are:
+			 *
+			 * 00b - Result is input from previous stage unmodified.
+			 * 01b - Result is input from previous stage logical ANDed with latch register.
+			 * 10b - Result is input from previous stage logical ORed with latch register.
+			 * 11b - Result is input from previous stage logical XORed with latch register.
+			 *
+			 */
+			enum LogicalOperation
+			{
+				LO_Normal	= 0,
+				LO_AND		= 1,
+				LO_OR		= 2,
+				LO_XOR		= 3,
+			} logicalOperation;
+
+			/**
+			 * This field is used in Write Mode 0 and Write Mode 3 (See the Write Mode field.)
+			 * In these modes, the host data is rotated to the right by the value specified by the value of this field.
+			 * A rotation operation consists of moving bits 7-1 right one position to bits 6-0, simultaneously wrapping bit 0 around to bit 7,
+			 * and is repeated the number of times specified by this field.
+			 */
+			u8 rotateCount;
+
+			void Read()
+			{
+				u8 dataRotateReg = Read_3CE(0x03);
+				logicalOperation = (LogicalOperation)((dataRotateReg >> 3) & 0b11);
+				rotateCount = (dataRotateReg >> 0) & 0b111;
+			}
+
+			void Write()
+			{
+				u8 dataRotateReg = Read_3CE(0x03);
+				dataRotateReg &= ~(0b11111);
+				dataRotateReg |= (logicalOperation << 3) & 0b11000;
+				dataRotateReg |= (rotateCount << 0) & 0b111;
+				Write_3CE(0x03, dataRotateReg);
+			}
+		};
+
+		struct GC_ReadMapSelectRegister
+		{
+			/**
+			 * This value of this field is used in Read Mode 0 (see the Read Mode field) to specify the display memory plane to transfer data from.
+			 * Due to the arrangement of video memory, this field must be modified four times to read one or more pixels values in the planar video modes.
+			 */
+			u8 mapSelect;
+
+			void Read()
+			{
+				u8 v = Read_3CE(0x04);
+				mapSelect = v & 0b11;
+			}
+
+			void Write()
+			{
+				u8 v = Read_3CE(0x04);
+				v &= ~(0b11);
+				v |= (mapSelect << 0) & 0b11;
+				Write_3CE(0x04, v);
+			}
+		};
+
+		struct GC_GraphicsModeRegister
+		{
+			/**
+			 * This field selects between two read modes, simply known as Read Mode 0, and Read Mode 1, based upon the value of this field:
+			 *
+			 * 0b - Read Mode 0: In this mode, a byte from one of the four planes is returned on read operations.
+			 * 		The plane from which the data is returned is determined by the value of the Read Map Select field.
+			 * 1b - Read Mode 1: In this mode, a comparison is made between display memory and a reference color defined by the Color Compare field.
+			 * 		Bit planes not set in the Color Don't Care field then the corresponding color plane is not considered in the comparison.
+			 * 		Each bit in the returned result represents one comparison between the reference color, with the bit being set if the comparison is true.
+			 *
+			 */
+			enum ReadMode
+			{
+				RM_0 = 0,
+			} readMode;
+
+			/**
+			 * This field selects between four write modes, simply known as Write Modes 0-3, based upon the value of this field:
+			 *
+			 * 00b - Write Mode 0: In this mode, the host data is first rotated as per the Rotate Count field,
+			 * 		then the Enable Set/Reset mechanism selects data from this or the Set/Reset field.
+			 * 		Then the selected Logical Operation is performed on the resulting data and the data in the latch register.
+			 * 		Then the Bit Mask field is used to select which bits come from the resulting data and which come from the latch register.
+			 * 		Finally, only the bit planes enabled by the Memory Plane Write Enable field are written to memory.
+			 * 01b - Write Mode 1: In this mode, data is transferred directly from the 32 bit latch register to display memory,
+			 * 		affected only by the Memory Plane Write Enable field. The host data is not used in this mode.
+			 * 10b - Write Mode 2: In this mode, the bits 3-0 of the host data are replicated across all 8 bits of their respective planes.
+			 * 		Then the selected Logical Operation is performed on the resulting data and the data in the latch register.
+			 * 		Then the Bit Mask field is used to select which bits come from the resulting data and which come from the latch register.
+			 * 		Finally, only the bit planes enabled by the Memory Plane Write Enable field are written to memory.
+			 * 11b - Write Mode 3: In this mode, the data in the Set/Reset field is used as if the Enable Set/Reset field were set to 1111b.
+			 * 		Then the host data is first rotated as per the Rotate Count field, then logical ANDed with the value of the Bit Mask field.
+			 * 		The resulting value is used on the data obtained from the Set/Reset field in the same way that the Bit Mask field would ordinarily be used.
+			 * 		to select which bits come from the expansion of the Set/Reset field and which come from the latch register.
+			 * 		Finally, only the bit planes enabled by the Memory Plane Write Enable field are written to memory.
+			 *
+			 */
+			enum WriteMode
+			{
+				WM_0 = 0,
+				WM_3 = 3,
+			} writeMode;
+
+			/**
+			 * When set to 0, this bit allows bit 5 to control the loading of the shift registers.
+			 * When set to 1, this bit causes the shift registers to be loaded in a manner that supports the 256-color mode.
+			 */
+			bool shiftColor256;
+
+			/**
+			 * When set to 1, this bit directs the shift registers in the graphics controller to format the serial data stream
+			 * with even-numbered bits from both maps on even-numbered maps, and odd-numbered bits from both maps on the odd-numbered maps.
+			 * This bit is used for modes 4 and 5.
+			 */
+			bool shiftInterleaved;
+
+			/**
+			 * When set to 1, this bit selects the odd/even addressing mode used by the IBM Color/Graphics Monitor Adapter.
+			 * Normally, the value here follows the value of Memory Mode register bit 2 in the sequencer.
+			 */
+			bool hostOddEven;
+
+			void Read()
+			{
+				u8 reg = Read_3CE(0x05);
+				readMode = (ReadMode)((reg >> 3) & 0b1);
+				writeMode = (WriteMode)((reg >> 0) & 0b11);
+				shiftColor256 = !!(reg & (1 << 6));
+				shiftInterleaved = !!(reg & (1 << 5));
+				hostOddEven = !!(reg & (1 << 4));
+			}
+
+			void Write()
+			{
+				u8 reg = Read_3CE(0x05);
+				reg &= ~(0b01111011);
+				reg |= ((int)writeMode) << 0;
+				reg |= ((int)readMode) << 3;
+				reg |= ((int)shiftColor256) << 6;
+				reg |= ((int)shiftInterleaved) << 5;
+				reg |= ((int)hostOddEven) << 4;
+				Write_3CE(0x05, reg);
+			}
+		};
+
+		struct GC_MiscellaneousGraphicsRegister
+		{
+			/**
+			 * This bit controls alphanumeric mode addressing.
+			 * When set to 1, this bit selects graphics modes, which also disables the character generator latches.
+			 */
+			bool alphanumericModeDisabled;
+
+			/**
+			 * Chain O/E -- Chain Odd/Even Enable
+			 * "When set to 1, this bit directs the system address bit, A0, to be replaced by a higher-order bit.
+			 * The odd map is then selected when A0 is 1, and the even map when A0 is 0."
+			 */
+			bool chainOE;
+
+			/**
+			 * This field specifies the range of host memory addresses that is decoded by the VGA hardware and mapped into display memory accesses.
+			 * The values of this field and their corresponding host memory ranges are:
+			 *
+			 * 00b -- A0000h-BFFFFh (128K region)
+			 * 01b -- A0000h-AFFFFh (64K region)
+			 * 10b -- B0000h-B7FFFh (32K region)
+			 * 11b -- B8000h-BFFFFh (32K region)
+			 *
+			 */
+			u8 memoryMapSelect;
+
+			void Read()
+			{
+				u8 v = Read_3CE(0x06);
+				alphanumericModeDisabled = !!(v & 0b1);
+				chainOE = !!(v & 0b10);
+				memoryMapSelect = (v >> 2) & 0b11;
+			}
+
+			void Write()
+			{
+				u8 v = Read_3CE(0x06);
+				v &= ~(0b1111);
+				v |= (memoryMapSelect << 2) & 0b1100;
+				v |= (chainOE << 1) & 0b10;
+				v |= (alphanumericModeDisabled << 0) & 0b1;
+				Write_3CE(0x06, v);
+			}
+		};
+
+		struct GC_ColorDontCareRegister
+		{
+			/**
+			 * Bits 3-0 of this field represent planes 3-0 of the VGA display memory.
+			 * This field selects the planes that are used in the comparisons made by Read Mode 1 (See the Read Mode field.)
+			 * Read Mode 1 returns the result of the comparison between the value of the Color Compare field and a location of display memory.
+			 * If a bit in this field is set, then the corresponding display plane is considered in the comparison.
+			 * If it is not set, then that plane is ignored for the results of the comparison.
+			 */
+			bool colorDontCare[4];
+
+			void Read()
+			{
+				u8 v = Read_3CE(0x07);
+				colorDontCare[0] = !!(v & 0b0001);
+				colorDontCare[1] = !!(v & 0b0010);
+				colorDontCare[2] = !!(v & 0b0100);
+				colorDontCare[3] = !!(v & 0b1000);
+			}
+
+			void Write()
+			{
+				u8 v = Read_3CE(0x07);
+				v &= ~(0b1111);
+				v |= ((int)colorDontCare[0]) << 0;
+				v |= ((int)colorDontCare[1]) << 1;
+				v |= ((int)colorDontCare[2]) << 2;
+				v |= ((int)colorDontCare[3]) << 3;
+				Write_3CE(0x07, v);
+			}
+		};
+
+		struct GC_BitMaskRegister
+		{
+			/**
+			 * This field is used in Write Modes 0, 2, and 3 (See the Write Mode field.)
+			 * It it is applied to one byte of data in all four display planes.
+			 * If a bit is set, then the value of corresponding bit from the previous stage in the graphics pipeline is selected; otherwise the value of the corresponding bit in the latch register is used instead.
+			 * In Write Mode 3, the incoming data byte, after being rotated is logical ANDed with this byte and the resulting value is used in the same way this field would normally be used by itself.
+			 */
+			u8 bitMask;
+
+			void Read()
+			{
+				bitMask = Read_3CE(0x08);
+			}
+
+			void Write()
+			{
+				Write_3CE(0x08, bitMask);
+			}
+		};
 	}
 }

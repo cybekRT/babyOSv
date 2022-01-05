@@ -81,7 +81,7 @@ void VGA::Registers::CRTC::Write()
 	CRTC_StartHorizontalRetrace(horizontalRetraceStart).Write();
 	CRTC_EndHorizontalRetrace(horizontalBlankingEnd, horizontalRetraceSkew, horizontalRetraceEnd).Write();
 	CRTC_VerticalTotal(verticalTotal).Write();
-	CRTC_OverflowRegister(verticalRetraceStart, verticalRetraceEnd, verticalTotal, lineCompare, verticalBlankingStart).Write();
+	CRTC_OverflowRegister(verticalRetraceStart, verticalDisplayEnd, verticalTotal, lineCompare, verticalBlankingStart).Write();
 	CRTC_PresetRowScanRegister(bytePanning, presetRowScan).Write();
 	CRTC_MaximumScanLineRegister(scanDoubling, lineCompare, verticalBlankingStart, maximumScanLine).Write();
 	CRTC_CursorStartRegister(cursorDisabled, cursorScanLineStart).Write();
