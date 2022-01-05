@@ -119,6 +119,41 @@ VGA::Seq_04 seq4 = {
 	.extendedMemory = true
 };
 
+/*
+	0x00,	0x00
+	*/
+
+VGA::ATTR_PaletteRegister attrPalette = {
+	.paletteIndex = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 }
+};
+
+VGA::ATTR_ModeControlRegister attrModeControl = {
+	.paletteBits54Select = false,
+	.color8BitEnabled = true,
+	.pixelPanningMode = false,
+	.blinkEnabled = false,
+	.lineGraphicsEnabled = false,
+	.monochromeEmulation = false,
+	.attributeControllerGraphicsEnabled = true
+};
+
+VGA::ATTR_OverscanColorRegister attrOverscanColor = {
+	.overscanPaletteIndex = 0
+};
+
+VGA::ATTR_ColorPlaneEnableRegister attrColorPlaneEnable = {
+	.planeEnabled = { true, true, true, true }
+};
+
+VGA::ATTR_HorizontalPixelPanningRegister attrPixelPanning = {
+	.pixelShiftCount = 0
+};
+
+VGA::ATTR_ColorSelectRegister attrColorSelect = {
+	.colorSelect76 = false,
+	.colorSelect54 = false
+};
+
 unsigned char g_320x200x256[] =
 {
 /* MISC */
@@ -316,13 +351,19 @@ void write_regs(unsigned char *regs)
 		regs++;
 	}
 /* write ATTRIBUTE CONTROLLER regs */
+	attrPalette.Write();
+	attrModeControl.Write();
+	attrOverscanColor.Write();
+	attrColorPlaneEnable.Write();
+	attrPixelPanning.Write();
+	attrColorSelect.Write();
 	for(i = 0; i < VGA_NUM_AC_REGS; i++)
 	{
 		//r(void)HAL::In8(VGA_INSTAT_READ);
 		//HAL::Out8(VGA_AC_INDEX, i);
 		//HAL::Out8(VGA_AC_WRITE, *regs);
 
-		VGA::Write_3C0(i, *regs);
+		//VGA::Write_3C0(i, *regs);
 		regs++;
 	}
 /* lock 16-color palette and unblank display */
@@ -332,6 +373,7 @@ void write_regs(unsigned char *regs)
 
 static void set_plane(unsigned p)
 {
+	return;
 	unsigned char pmask;
 
 	p &= 3;
