@@ -6,7 +6,7 @@ namespace VGA
 {
 	namespace Registers
 	{
-		struct GC
+		struct GraphicsController
 		{
 			/**
 			 * Bits 3-0 of this field represent planes 3-0 of the VGA display memory.
@@ -42,13 +42,7 @@ namespace VGA
 			 * 11b - Result is input from previous stage logical XORed with latch register.
 			 *
 			 */
-			/*enum LogicalOperation
-			{
-				LO_Normal	= 0,
-				LO_AND		= 1,
-				LO_OR		= 2,
-				LO_XOR		= 3,
-			}*/ GC_DataRotateRegister::LogicalOperation logicalOperation;
+			GC_DataRotateRegister::LogicalOperation logicalOperation;
 
 			/**
 			 * This field is used in Write Mode 0 and Write Mode 3 (See the Write Mode field.)
@@ -74,10 +68,7 @@ namespace VGA
 			 * 		Each bit in the returned result represents one comparison between the reference color, with the bit being set if the comparison is true.
 			 *
 			 */
-			enum ReadMode
-			{
-				RM_0 = 0,
-			} readMode;
+			VGA::Registers::GC_GraphicsModeRegister::ReadMode readMode;
 
 			/**
 			 * This field selects between four write modes, simply known as Write Modes 0-3, based upon the value of this field:
@@ -100,11 +91,7 @@ namespace VGA
 			 * 		Finally, only the bit planes enabled by the Memory Plane Write Enable field are written to memory.
 			 *
 			 */
-			enum WriteMode
-			{
-				WM_0 = 0,
-				WM_3 = 3,
-			} writeMode;
+			VGA::Registers::GC_GraphicsModeRegister::WriteMode writeMode;
 
 			/**
 			 * When set to 0, this bit allows bit 5 to control the loading of the shift registers.

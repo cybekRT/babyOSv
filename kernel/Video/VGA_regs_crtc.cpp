@@ -1,7 +1,7 @@
 #include"VGA_regs.hpp"
 #include"VGA_regs_crtc.hpp"
 
-void VGA::Registers::CRTC::Read()
+void VGA::Registers::CRTController::Read()
 {
 	/*
 	u8 horizontalTotal;
@@ -72,7 +72,7 @@ void VGA::Registers::CRTC::Read()
 	*/
 }
 
-void VGA::Registers::CRTC::Write()
+void VGA::Registers::CRTController::Write()
 {
 	CRTC_HorizontalTotal(horizontalTotal).Write();
 	CRTC_EndHorizontalDisplay(horizontalDisplayEnd).Write();

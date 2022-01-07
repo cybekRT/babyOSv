@@ -4,7 +4,7 @@ namespace VGA
 {
 	namespace Registers
 	{
-		struct CRTC
+		struct CRTController
 		{
 			/**
 			 * This field is used to specify the number of character clocks per scan line.

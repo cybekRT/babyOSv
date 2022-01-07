@@ -388,6 +388,12 @@ extern "C" void kmain()
 							Print("=== VGA ===\n");
 							VGA::Init();
 							memcpy((void*)0x800a0000, splashBuffer, splashRead);
+
+							for(unsigned a = 0; a < 256; a++)
+							{
+								int v = (a << 2);
+								VGA::Write_3C8(a, v, v, v);
+							}
 					}
 					else
 					{
