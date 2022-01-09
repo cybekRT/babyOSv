@@ -53,6 +53,7 @@ namespace ISA_DMA
 
 	void Start(u8 channel, TransferDir dir, void* physAddress, u16 count)
 	{
+		// TODO: "write" direction
 		ASSERT(channel == 2, "Only channel 2 is supported~!");
 		u32 addr = (u32)physAddress;
 

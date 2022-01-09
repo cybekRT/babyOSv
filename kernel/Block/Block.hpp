@@ -55,6 +55,7 @@ namespace Block
 		u8				name[64];
 
 		u8 Read(u32 lba, u8* buffer);
+		u8 Write(u32 lba, u8* buffer);
 	};
 
 	//extern Array<BlockDevice> devices;

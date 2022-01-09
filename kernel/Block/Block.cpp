@@ -25,6 +25,17 @@ namespace Block
 		return device->drv->Read(device->drvPriv, lbaOffset + lba, buffer);
 	}
 
+	u8 BlockPartition::Write(u32 lba, u8* buffer)
+	{
+		if(lba >= lbaCount)
+		{
+			Print("Try to write LBA %d/%d\n", lba, lbaCount);
+			return 1;
+		}
+
+		return device->drv->Write(device->drvPriv, lbaOffset + lba, buffer);
+	}
+
 	bool Init()
 	{
 		return true;
