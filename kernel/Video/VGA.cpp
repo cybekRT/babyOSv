@@ -89,11 +89,11 @@ VGA::Registers::GraphicsController gc
 VGA::Registers::Sequencer seq = {
 	.syncReset = true,
 	.asyncReset = true,
-	.screenDisabled = true,
+	.screenDisabled = false,
 	.shift4Enabled = false,
 	.dotClockRate = false,
 	.shiftLoadRate = false,
-	.dot8Mode = false,
+	.dot8Mode = true,
 	.memoryPlaneWriteEnabled = { 1, 1, 1, 1 },
 	.characterSetASelect = 0,
 	.characterSetBSelect = 0,
@@ -202,6 +202,16 @@ void SetMode13H()
 	gc.Write();
 	attr.Write();
 
+	for(unsigned a = 0; a < 256; a++)
+	{
+		// RGB323
+		u8 r = ((a >> 5) & 0b111) << 3;
+		u8 g = ((a >> 3) & 0b011) << 4;
+		u8 b = ((a >> 0) & 0b111) << 3;
+
+		VGA::Write_3C8(a, r, g, b);
+	}
+
 	/* lock 16-color palette and unblank display */
 	HAL::In8(0x3DA);
 	HAL::Out8(0x3C0, 0x20);
@@ -299,17 +309,6 @@ namespace VGA
 		// https://www.amazon.com/dp/0201624907
 
 		SetMode13H();
-
-		// Set RGB palette
-		for(unsigned a = 0; a < 256; a++)
-		{
-			// RGB323
-			u8 r = ((a >> 5) & 0b111) << 3;
-			u8 g = ((a >> 3) & 0b011) << 4;
-			u8 b = ((a >> 0) & 0b111) << 3;
-
-			Write_3C8(a, r, g, b);
-		}
 
 		return true;
 	}
