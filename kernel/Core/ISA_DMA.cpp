@@ -70,9 +70,9 @@ namespace ISA_DMA
 			DMAModeRegister reg;
 			u8* regPtr = (u8*)&reg;
 			reg.channel = 2;
-			reg.mode = TransferMode::Block;
+			reg.mode = TransferMode::Single;
 			reg.reverse = false;
-			reg.autoInit = 1;
+			reg.autoInit = false;
 			reg.type = TransferType::PeripheralToMemory;
 
 			PortOut(IOPort::ModeRegister, *regPtr);
@@ -84,12 +84,9 @@ namespace ISA_DMA
 			reg.channel = 2;
 			reg.mode = TransferMode::Single;
 			reg.reverse = false;
-			reg.autoInit = 1;
+			reg.autoInit = false;
 			reg.type = TransferType::MemoryToPeripheral;
-
-			PortOut(IOPort::ModeRegister, *regPtr);
 		}
-
 		Unmask(channel);
 	}
 }
