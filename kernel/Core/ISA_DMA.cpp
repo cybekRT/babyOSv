@@ -18,23 +18,6 @@ namespace ISA_DMA
 		PortOut(IOPort::FlipFlopResetRegister, 0xff);
 	}
 
-	bool Init()
-	{
-		ASSERT(sizeof(DMAModeRegister) == 1, "Invalid DMAModeRegister size");
-
-		DMAModeRegister reg;
-		u8* regPtr = (u8*)&reg;
-		*regPtr = PortIn(IOPort::ModeRegister);
-
-		reg.channel = 3;
-		reg.mode = TransferMode::Block;
-		reg.reverse = 1;
-		reg.autoInit = 1;
-		reg.type = TransferType::MemoryToPeripheral;
-
-		return true;
-	}
-
 	void Mask(u8 channel)
 	{
 		ASSERT(channel < 4, "Invalid channel");
@@ -51,13 +34,18 @@ namespace ISA_DMA
 		PortOut(IOPort::SingleChannelMaskRegister, data);
 	}
 
+	bool Init()
+	{
+		ASSERT(sizeof(DMAModeRegister) == 1, "Invalid DMAModeRegister size");
+
+		return true;
+	}
+
 	void Start(u8 channel, TransferDir dir, void* physAddress, u16 count)
 	{
 		// TODO: "write" direction
 		ASSERT(channel == 2, "Only channel 2 is supported~!");
 		u32 addr = (u32)physAddress;
-
-		u8 channelToPageRegister[] = { 0x87, 0x83, 0x81, 0x82, 0x8F, 0x8B, 0x89, 0x8A };
 
 		ASSERT((addr & 0xffff) + count <= 0xffff, "Invalid DMA address");
 
@@ -72,7 +60,35 @@ namespace ISA_DMA
 		ResetFlipFlop();
 
 		PortOut(IOPort::CountRegisterChannel2, count & 0xff);
-		PortOut(IOPort::CountRegisterChannel2, count >> 8);
+		PortOut(IOPort::CountRegisterChannel2, count >> 8);		
+
+		// Unmask(channel);
+		// Mask(channel);
+
+		if(dir == TransferDir::READ)
+		{
+			DMAModeRegister reg;
+			u8* regPtr = (u8*)&reg;
+			reg.channel = 2;
+			reg.mode = TransferMode::Block;
+			reg.reverse = false;
+			reg.autoInit = 1;
+			reg.type = TransferType::PeripheralToMemory;
+
+			PortOut(IOPort::ModeRegister, *regPtr);
+		}
+		else
+		{
+			DMAModeRegister reg;
+			u8* regPtr = (u8*)&reg;
+			reg.channel = 2;
+			reg.mode = TransferMode::Single;
+			reg.reverse = false;
+			reg.autoInit = 1;
+			reg.type = TransferType::MemoryToPeripheral;
+
+			PortOut(IOPort::ModeRegister, *regPtr);
+		}
 
 		Unmask(channel);
 	}
