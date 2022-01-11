@@ -4,6 +4,7 @@
 #include"Container/LinkedList.hpp"
 #include"Interrupt.hpp"
 #include"Timer.hpp"
+#include"preinit.hpp"
 
 namespace Thread
 {
@@ -370,6 +371,8 @@ namespace Thread
 		threads.PushBack(thread);
 		Terminal::Print("Started thread: %s\n", thread->name);
 		Interrupt::Enable();
+
+		return Status::Success;
 	}
 
 	Status Join(Thread** thread, int* code)
@@ -377,7 +380,7 @@ namespace Thread
 		if(code != nullptr)
 			(*code) = -1;
 
-		return Status::Fail;
+		return Status::Undefined;
 	}
 
 	State GetState(Thread* thread)

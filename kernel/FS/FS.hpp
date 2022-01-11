@@ -2,18 +2,11 @@
 
 #include"Block/Block.hpp"
 #include"Container/LinkedList.hpp"
+#include"Status.hpp"
 
 namespace FS
 {
 	constexpr u32 MaxFilenameLength = 256;
-
-	enum class Status
-	{
-		Success = 0,
-		EOF = 1,
-
-		Undefined = 255
-	};
 
 	struct DirEntry
 	{
@@ -31,24 +24,36 @@ namespace FS
 
 	struct FSInfo
 	{
-		u32 (*Name)(u8* buffer);
+		char* name;
+
 		Status (*Probe)(Block::BlockPartition* part);
+		Status (*Format)(Block::BlockPartition* part, void* params);
 
-		Status (*Alloc)(Block::BlockPartition* part, void** fs);
-		Status (*Dealloc)(Block::BlockPartition* part, void** fs);
+		Status (*Mount)(Block::BlockPartition* part, void** fs);
+		Status (*Unmount)(Block::BlockPartition* part, void** fs);
 
-		Status (*OpenRoot)(void* fs, Directory** dir);
-		Status (*OpenDirectory)(void* fs, Directory* src, Directory** dir);
-		Status (*CloseDirectory)(void* fs, Directory** dir);
-		Status (*RewindDirectory)(void* fs, Directory* dir);
+		Status (*LabelGet)(void* fs, char* buffer, u32* bufferSize);
+		Status (*LabelSet)(void* fs, char* buffer);
 
-		Status (*ReadDirectory)(void* fs, Directory* dir, DirEntry* entry);
-		Status (*ChangeDirectory)(void* fs, Directory* dir);
+		Status (*DirectoryOpenRoot)(void* fs, Directory** dir);
+		Status (*DirectoryClose)(void* fs, Directory** dir);
 
-		Status (*OpenFile)(void* fs, Directory* dir, File** file);
-		Status (*CloseFile)(void* fs, File** file);
+		Status (*DirectoryRead)(void* fs, Directory* dir, DirEntry* entry);
+		Status (*DirectoryRewind)(void* fs, Directory* dir);
+		Status (*DirectoryFollow)(void* fs, Directory* dir);
+		Status (*DirectoryCreate)(void* fs, Directory* dir, char* name);
+		Status (*DirectoryRemove)(void* fs, Directory* dir);
 
-		Status (*ReadFile)(void* fs, File* file, u8* buffer, u32 bufferSize, u32* readCount);
+		Status (*FileCreate)(void* fs, Directory* dir, char* name);
+		Status (*FileDelete)(void* fs, Directory* dir);
+		Status (*FileOpen)(void* fs, Directory* dir, File** file);
+		Status (*FileClose)(void* fs, File** file);
+
+		Status (*FileRead)(void* fs, File* file, u8* buffer, u32 bufferSize, u32* readCount);
+		Status (*FileWrite)(void* fs, File* file, u8* buffer, u32 bufferSize, u32* writeCount);
+
+		Status (*FileSetPointer)(void* fs, File* file, u32 offset);
+		Status (*FileGetPointer)(void* fs, File* file, u32* offset);
 	};
 
 	extern Container::LinkedList<FSInfo*> filesystems;

@@ -14,7 +14,8 @@ ifeq ($(OS),Windows_NT)
 	VBOXMANAGE			:= C:/Program\ Files/VirtualBox/VBoxManage.exe
 	CFS					:= ../cFS/cFS-cli/cFS-cli
 	QEMU_DOS_IMG		:= -hda D:/Drop/dos.img
-	QEMU_DOSEXT_IMG		:= 
+	QEMU_DOSEXT_IMG		:=
+	GTEST_FLAGS			:= 
 ####################
 #
 #	MacOS configuration
@@ -22,7 +23,7 @@ ifeq ($(OS),Windows_NT)
 ####################
 else
 	NASM				:= nasm
-	BOCHS				:= bochs -f bochs.cfg
+	BOCHS				:= /home/mb/Workspace/bochs-2.7/bin/bin/bochs -f bochs.cfg
 	OUT					:= $(PWD)/out
 	GCC_PREFIX			:= /usr/local/osdev/bin/i386-elf-
 	QEMU				:= qemu-system-i386
@@ -30,8 +31,9 @@ else
 	PCEM				:= fail
 	VBOXMANAGE			:= vboxmanage
 	CFS					:= ../cFS/cFS-cli/cFS-cli
-	QEMU_DOS_IMG		:= -hda /Users/cybek/dos.img
-	QEMU_DOSEXT_IMG		:= -hdb /Users/cybek/dos-empty.img
+#	QEMU_DOS_IMG		:= -hda /Users/cybek/dos.img
+#	QEMU_DOSEXT_IMG		:= -hdb /Users/cybek/dos-empty.img
+	GTEST_FLAGS			:= -lpthread
 endif
 
 ifeq ($(CHROMEOS),1)
@@ -115,6 +117,15 @@ out/kmain_startup.o: kernel/kmain_startup.asm
 out/%.d: kernel/%.cpp
 	$(GCC) $(GCC_FLAGS) -MM -MT $(@:%.d=%.o) -MF $@ $<
 
+out/kernel.elf.text: out/kernel.elf
+	objcopy -O binary --only-section=.text out/kernel.elf out/kernel.elf.text
+
+out/kernel.elf.crc32: out/kernel.elf.text
+	crc32 out/kernel.elf.text > out/kernel.elf.crc32
+
+#crc32: out/kernel.elf.crc32
+#	cat $<
+
 ####################
 #
 #	Tests
@@ -129,7 +140,7 @@ tests: test-run
 
 test-objs: $(TESTS_OBJS)
 test-exe: test-objs #deps/libgtest.a
-	g++ $(GCC_FLAGS) $(TESTS_OBJS) -Ldeps/googletest/googletest/build/lib -Ldeps/googletest/build/lib -Ideps/googletest/googletest/include -Ideps/googletest/include -o out_tests/run_tests -lgtest_main -lgtest
+	g++ $(GCC_FLAGS) $(TESTS_OBJS) -Ldeps/googletest/googletest/build/lib -Ldeps/googletest/build/lib -Ideps/googletest/googletest/include -Ideps/googletest/include -o out_tests/run_tests -lgtest_main -lgtest $(GTEST_FLAGS)
 test-run: test-exe
 	out_tests/run_tests
 
@@ -159,12 +170,7 @@ $(AUTOGEN_OUT)/Keyboard_map.hpp: kernel/Input/Keyboard_map.inc kernel/Input/Keyb
 ####################
 
 ifneq ($(MAKECMDGOALS), clean)
-ifneq ($(MAKECMDGOALS), test)
 -include $(DEPS)
-endif
-endif
-
-ifeq ($(MAKECMDGOALS), test)
 -include $(TESTS_DEPS)
 endif
 

@@ -18,7 +18,6 @@ namespace FS
 		FSInfo *fsInfo;
 		void* fsPriv;
 		FS::Directory* fsDir;
-		//LinkedList<u8*> path;
 		Path path;
 	};
 }
@@ -56,19 +55,17 @@ namespace VFS
 		if(!part)
 		{
 			Print("No partition...\n");
-			return Status::Fail;
+			return Status::Undefined;
 		}
 
 		auto fss = FS::filesystems;
 		FS::FSInfo* fsInfo = nullptr;
 		for(auto itr : fss)
 		{
-			u8 tmp[256];
-
-			if(fsType && itr->Name(tmp) && strcmp(fsType, (char*)tmp))
+			if(fsType && strcmp(fsType, itr->name))
 				continue;
 
-			if(itr->Probe(part) == FS::Status::Success)
+			if(itr->Probe(part) == Status::Success)
 			{
 				fsInfo = itr;
 				break;
@@ -78,12 +75,12 @@ namespace VFS
 		if(!fsInfo)
 		{
 			Print("No filesystem...\n");
-			return Status::Fail;
+			return Status::Undefined;
 		}
 
 		void* fsPriv;
-		if(fsInfo->Alloc(part, &fsPriv) != FS::Status::Success)
-			return Status::Fail;
+		if(fsInfo->Mount(part, &fsPriv) != Status::Success)
+			return Status::Undefined;
 
 		MountPoint mp = {
 			.fsInfo = fsInfo,
@@ -96,7 +93,12 @@ namespace VFS
 		return Status::Success;
 	}
 
-	Status OpenRoot(FS::Directory** dir)
+	Status Unmount(char* mountPoint)
+	{
+		return Status::Undefined;
+	}
+
+	Status DirectoryOpenRoot(FS::Directory** dir)
 	{
 		ASSERT(dir, "Invalid pointer to dir");
 
@@ -119,18 +121,13 @@ namespace VFS
 		return Status::Success;
 	}
 
-	Status OpenDirectory(FS::Directory* src, FS::Directory** dir)
-	{
-		return Status::Fail;
-	}
-
-	Status CloseDirectory(FS::Directory** dir)
+	Status DirectoryClose(FS::Directory** dir)
 	{
 		ASSERT(dir, "Invalid poitner to dir");
 
 		if((*dir)->fsDir != nullptr)
 		{
-			(*dir)->fsInfo->CloseDirectory((*dir)->fsPriv, &(*dir)->fsDir);
+			(*dir)->fsInfo->DirectoryClose((*dir)->fsPriv, &(*dir)->fsDir);
 		}
 
 		/*while(!(*dir)->path.IsEmpty())
@@ -146,29 +143,15 @@ namespace VFS
 		return Status::Success;
 	}
 
-	Status RewindDirectory(FS::Directory* dir)
-	{
-		ASSERT(dir, "No dir");
-
-		if(dir->fsInfo != nullptr)
-		{
-			auto fsResult = dir->fsInfo->RewindDirectory(dir->fsPriv, dir->fsDir);
-			return (fsResult == FS::Status::Success ? Status::Success : Status::Fail);
-		}
-
-		dir->index = -1;
-		return Status::Success;
-	}
-
-	Status ReadDirectory(FS::Directory* dir, FS::DirEntry* entry)
+	Status DirectoryRead(FS::Directory* dir, FS::DirEntry* entry)
 	{
 		ASSERT(dir, "No dir");
 		ASSERT(entry, "No entry");
 
 		if(dir->fsInfo != nullptr)
 		{
-			auto fsResult = dir->fsInfo->ReadDirectory(dir->fsPriv, dir->fsDir, entry);
-			return (fsResult == FS::Status::Success ? Status::Success : Status::Fail);
+			auto fsResult = dir->fsInfo->DirectoryRead(dir->fsPriv, dir->fsDir, entry);
+			return fsResult;
 		}
 
 		dir->index++;
@@ -193,22 +176,36 @@ namespace VFS
 			a++;
 		}
 
-		return Status::Fail;
+		return Status::Undefined;
 	}
 
-	Status ChangeDirectory(FS::Directory* dir, u8* name)
+	Status DirectoryRewind(FS::Directory* dir)
 	{
 		ASSERT(dir, "No dir");
 
-		FS::Status status;
+		if(dir->fsInfo != nullptr)
+		{
+			auto fsResult = dir->fsInfo->DirectoryRewind(dir->fsPriv, dir->fsDir);
+			return fsResult;
+		}
+
+		dir->index = -1;
+		return Status::Success;
+	}
+
+	Status DirectoryChange(FS::Directory* dir, char* name)
+	{
+		ASSERT(dir, "No dir");
+
+		Status status;
 
 		if(dir->fsInfo != nullptr)
 		{
-			status = FS::Status::EOF;
-			dir->fsInfo->RewindDirectory(dir->fsPriv, dir->fsDir);
+			status = Status::EndOfFile;
+			dir->fsInfo->DirectoryRewind(dir->fsPriv, dir->fsDir);
 			FS::DirEntry entry;
 			Print("Reading directory...\n");
-			while(dir->fsInfo->ReadDirectory(dir->fsPriv, dir->fsDir, &entry) == FS::Status::Success)
+			while(dir->fsInfo->DirectoryRead(dir->fsPriv, dir->fsDir, &entry) == Status::Success)
 			{
 				Print(">");
 				if(!entry.isValid)
@@ -216,9 +213,9 @@ namespace VFS
 
 				if(!strcmp((char*)entry.name, (char*)name))
 				{
-					status = dir->fsInfo->ChangeDirectory(dir->fsPriv, dir->fsDir);
+					status = dir->fsInfo->DirectoryFollow(dir->fsPriv, dir->fsDir);
 
-					if(status == FS::Status::Success)
+					if(status == Status::Success)
 					{
 						if(strcmp((char*)entry.name, ".."))
 						{
@@ -231,9 +228,9 @@ namespace VFS
 				}
 			}
 
-			if(status != FS::Status::Success && strcmp((char*)name, "..") == 0)
+			if(status != Status::Success && strcmp((char*)name, "..") == 0)
 			{
-				dir->fsInfo->CloseDirectory(dir->fsPriv, &dir->fsDir);
+				dir->fsInfo->DirectoryClose(dir->fsPriv, &dir->fsDir);
 
 				dir->fsDir = nullptr;
 				dir->fsInfo = nullptr;
@@ -245,7 +242,7 @@ namespace VFS
 			}
 
 			Print("Result %x: %s:%d\n", status, __FILE__, __LINE__);
-			return (status == FS::Status::Success ? Status::Success : Status::Fail);
+			return status;
 		}
 		else
 		{
@@ -261,12 +258,12 @@ namespace VFS
 
 			if(!mp)
 			{
-				return Status::Fail;
+				return Status::Undefined;
 			}
 
 			dir->fsInfo = mp->fsInfo;
 			dir->fsPriv = mp->fsPriv;
-			dir->fsInfo->OpenRoot(dir->fsPriv, &dir->fsDir);
+			dir->fsInfo->DirectoryOpenRoot(dir->fsPriv, &dir->fsDir);
 
 			Print("Adding path: %s\n", mp->name);
 			dir->path.Add((char*)mp->name);
@@ -276,28 +273,43 @@ namespace VFS
 		return Status::Success;
 	}
 
-	Status GetPath(FS::Directory* dir, Path& path)
+	Status DirectoryCreate(FS::Directory* dir, char* name)
+	{
+		return Status::Undefined;
+	}
+
+	Status DirectoryRemove(FS::Directory* dir, char* name)
+	{
+		return Status::Undefined;
+	}
+
+	Status DirectoryGetPath(FS::Directory* dir, Path& path)
 	{
 		path = dir->path;
 		return Status::Success;
 	}
 
-	Status IsRoot(FS::Directory* dir, bool* result)
+	Status FileCreate(FS::Directory* dir, char* name)
 	{
-
+		return Status::Undefined;
 	}
 
-	Status OpenFile(FS::Directory* dir, u8* name, FS::File** file)
+	Status FileDelete(FS::Directory* dir, char* name)
+	{
+		return Status::Undefined;
+	}
+
+	Status FileOpen(FS::Directory* dir, char* name, FS::File** file)
 	{
 		ASSERT(dir, "No dir");
 		ASSERT(file, "Invalid pointer to file");
 
 		if(dir->fsInfo != nullptr)
 		{
-			dir->fsInfo->RewindDirectory(dir->fsPriv, dir->fsDir);
+			dir->fsInfo->DirectoryRewind(dir->fsPriv, dir->fsDir);
 
 			FS::DirEntry entry;
-			while(dir->fsInfo->ReadDirectory(dir->fsPriv, dir->fsDir, &entry) == FS::Status::Success)
+			while(dir->fsInfo->DirectoryRead(dir->fsPriv, dir->fsDir, &entry) == Status::Success)
 			{
 				if(!entry.isValid)
 					continue;
@@ -311,19 +323,19 @@ namespace VFS
 			(*file)->fsInfo = dir->fsInfo;
 			(*file)->fsPriv = dir->fsPriv;
 
-			auto fsResult = dir->fsInfo->OpenFile(dir->fsPriv, dir->fsDir, &(*file)->fsFile);
+			auto fsResult = dir->fsInfo->FileOpen(dir->fsPriv, dir->fsDir, &(*file)->fsFile);
 			Print("Result %x: %s:%d\n", fsResult, __FILE__, __LINE__);
-			return (fsResult == FS::Status::Success ? Status::Success : Status::Fail);
+			return fsResult;
 		}
 
-		return Status::Fail;
+		return Status::Undefined;
 	}
 
-	Status CloseFile(FS::File** file)
+	Status FileClose(FS::File** file)
 	{
 		ASSERT(file, "Pointer to file is invalid");
 
-		(*file)->fsInfo->CloseFile((*file)->fsPriv, &(*file)->fsFile);
+		(*file)->fsInfo->FileClose((*file)->fsPriv, &(*file)->fsFile);
 		//Memory::Free(*file);
 		delete *file;
 		(*file) = nullptr;
@@ -331,12 +343,27 @@ namespace VFS
 		return Status::Success;
 	}
 
-	Status ReadFile(FS::File* file, u8* buffer, u32 bufferSize, u32* readCount)
+	Status FileRead(FS::File* file, u8* buffer, u32 bufferSize, u32* readCount)
 	{
 		ASSERT(file, "No file");
 
-		auto fsResult = file->fsInfo->ReadFile(file->fsPriv, file->fsFile, buffer, bufferSize, readCount);
+		auto fsResult = file->fsInfo->FileRead(file->fsPriv, file->fsFile, buffer, bufferSize, readCount);
 
-		return (fsResult == FS::Status::Success ? Status::Success : Status::Fail);
+		return fsResult;
+	}
+
+	Status FileWrite(FS::File* file, u8* buffer, u32 bufferSize, u32* writeCount)
+	{
+		return Status::Undefined;
+	}
+
+	Status FileSetPointer(FS::File* file, u32 offset)
+	{
+		return Status::Undefined;
+	}
+
+	Status FileGetPointer(FS::File* file, u32* offset)
+	{
+		return Status::Undefined;
 	}
 }

@@ -2,6 +2,7 @@
 #include"Memory.hpp"
 #include"HAL.hpp"
 #include"Thread.hpp"
+#include"preinit.hpp"
 
 using Thread::currentThread;
 
@@ -222,8 +223,8 @@ namespace Interrupt
 
 		Print("Address: %x:%x\n", regs.cs, regs.eip);
 		Print("Flags:   %x\n", regs.eflags);
-		Print("Error code: %s%s - %x\n", 
-			(errorCode & 1 ? "(EXT) " : ""), 
+		Print("Error code: %s%s - %x\n",
+			(errorCode & 1 ? "(EXT) " : ""),
 			((errorCode >> 1) & 0b11) == 0 ? "GDT" : ((errorCode >> 1) & 0b11) == 0b10 ? "LDT" : "IDT",
 			((errorCode >> 3) & 0b1111111111111) );
 		Print("Stack:   %x:%x, %x\n", regs.ss, regs.esp, regs.ebp);

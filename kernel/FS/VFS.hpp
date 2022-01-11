@@ -7,21 +7,24 @@ namespace VFS
 {
 	Status Init();
 
-	//Status Mount(Block::BlockPartition* part);
 	Status Mount(char* partName, char* mountPoint, char* fsType = nullptr);
+	Status Unmount(char* mountPoint);
 
-	Status OpenRoot(FS::Directory** dir);
-	Status OpenDirectory(FS::Directory* src, FS::Directory** dir);
-	Status CloseDirectory(FS::Directory** dir);
-	Status RewindDirectory(FS::Directory* dir);
+	Status DirectoryOpenRoot(FS::Directory** dir);
+	Status DirectoryClose(FS::Directory** dir);
+	Status DirectoryRead(FS::Directory* dir, FS::DirEntry* entry);
+	Status DirectoryRewind(FS::Directory* dir);
+	Status DirectoryChange(FS::Directory* dir, char* name);
+	Status DirectoryCreate(FS::Directory* dir, char* name);
+	Status DirectoryRemove(FS::Directory* dir, char* name);
+	Status DirectoryGetPath(FS::Directory* dir, Path& path);
 
-	Status ReadDirectory(FS::Directory* dir, FS::DirEntry* entry);
-	Status ChangeDirectory(FS::Directory* dir, u8* name);
-	//Status GetPath(FS::Directory* dir, u8* buffer);
-	Status GetPath(FS::Directory* dir, Path& path);
-
-	Status OpenFile(FS::Directory* dir, u8* name, FS::File** file);
-	Status CloseFile(FS::File** file);
-
-	Status ReadFile(FS::File* file, u8* buffer, u32 bufferSize, u32* readCount);
+	Status FileCreate(FS::Directory* dir, char* name);
+	Status FileDelete(FS::Directory* dir, char* name);
+	Status FileOpen(FS::Directory* dir, char* name, FS::File** file);
+	Status FileClose(FS::File** file);
+	Status FileRead(FS::File* file, u8* buffer, u32 bufferSize, u32* readCount);
+	Status FileWrite(FS::File* file, u8* buffer, u32 bufferSize, u32* writeCount);
+	Status FileSetPointer(FS::File* file, u32 offset);
+	Status FileGetPointer(FS::File* file, u32* offset);
 }

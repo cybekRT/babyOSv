@@ -1,5 +1,6 @@
 #include "Memory.hpp"
 #include "bootloader_info.hpp"
+#include "preinit.hpp"
 
 // TODO: stop using bubble sort everywhere! Optimize sorting algorithms in allocator~!
 

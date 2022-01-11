@@ -92,4 +92,28 @@ void* memcpy(void* dst, const void* src, size_t len)
 	return dst;
 }
 
+int tolower(int c)
+{
+	if(c >= 'A' && c <= 'Z')
+	{
+		return c - ('A' - 'a');
+	}
+	else
+	{
+		return c;
+	}
+}
+
+int toupper(int c)
+{
+	if(c >= 'a' && c <= 'z')
+	{
+		return c - ('a' - 'A');
+	}
+	else
+	{
+		return c;
+	}
+}
+
 }

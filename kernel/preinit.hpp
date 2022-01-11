@@ -1,0 +1,10 @@
+struct bootloader_info_t;
+extern bootloader_info_t* _bootloader_info_ptr;
+extern u32 _kernel_beg;
+extern u32 _kernel_end;
+extern u32 _kernel_code_beg;
+extern u32 _kernel_code_end;
+extern u32 _kernel_data_beg;
+extern u32 _kernel_data_end;
+extern u32 _org_stack_beg;
+extern u32 _org_stack_end;

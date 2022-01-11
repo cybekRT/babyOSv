@@ -22,7 +22,7 @@ namespace Block
 			return 1;
 		}
 
-		return device->drv->Read(device->drvPriv, lbaOffset + lba, buffer);
+		return device->drv->Read(device->drvPriv, deviceLbaOffset + lba, buffer);
 	}
 
 	u8 BlockPartition::Write(u32 lba, u8* buffer)
@@ -33,7 +33,7 @@ namespace Block
 			return 1;
 		}
 
-		return device->drv->Write(device->drvPriv, lbaOffset + lba, buffer);
+		return device->drv->Write(device->drvPriv, deviceLbaOffset + lba, buffer);
 	}
 
 	bool Init()
@@ -98,7 +98,7 @@ namespace Block
 		BlockPartition* part = new BlockPartition();// (BlockPartition*)Memory::Alloc(sizeof(BlockPartition));
 		part->type = type;
 		part->device = dev;
-		part->lbaOffset = lbaOffset;
+		part->deviceLbaOffset = lbaOffset;
 		part->lbaCount = lbaCount;
 
 		static int x = 0;
@@ -114,7 +114,7 @@ namespace Block
 		//part->name[nameLen] = '0' + x++;
 		//part->name[nameLen+1] = 0;
 
-		Print("Registering partition: %s (%d %d)\n", part->name, part->lbaOffset, part->lbaCount);
+		Print("Registering partition: %s (%d %d)\n", part->name, part->deviceLbaOffset, part->lbaCount);
 		partitions.PushBack(part);
 	}
 

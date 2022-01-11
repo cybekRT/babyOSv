@@ -50,7 +50,7 @@ namespace Block
 	{
 		PartitionType	type;
 		BlockDevice*	device;
-		u32				lbaOffset;
+		u32				deviceLbaOffset;
 		u32				lbaCount;
 		u8				name[64];
 

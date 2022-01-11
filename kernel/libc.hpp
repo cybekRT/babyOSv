@@ -1,3 +1,5 @@
+#pragma once
+
 extern "C"
 {
 // Strings
@@ -9,6 +11,9 @@ char* strcat(char* dst, const char* src);
 void* memmove(void* dst, const void* src, size_t len);
 void* memset(void* ptr, int c, size_t len);
 void* memcpy(void* dst, const void* src, size_t len);
+
+int tolower(int c);
+int toupper(int c);
 
 // Memory
 // void* operator new(size_t size);

@@ -107,7 +107,7 @@ namespace ATA
 	bool Read(u32 lba, void* dstBuffer)
 	{
 		while(regAlternateStatus.Read().busy);
-		regDriveHead.Write( { .driveNumber = 0, .reserved1 = 1, .isLBA = 1, .reserved2 = 1 } );
+		regDriveHead.Write( { .lba_24_27 = 0, .driveNumber = 0, .reserved1 = 1, .isLBA = 1, .reserved2 = 1 } );
 
 		regSectorCount.Write(1);
 		regLBALow.Write ( (lba >>  0) & 0xff );
@@ -138,12 +138,12 @@ namespace ATA
 		Interrupt::Register(Interrupt::IRQ2INT(Interrupt::IRQ_ATA2), ISR_ATA);
 		//Interrupt::Disable();
 
-		regDeviceControl.Write( { .disableInterrupts = 0, .reset = 1 } );
+		regDeviceControl.Write( { .reserved1 = 0, .disableInterrupts = 0, .reset = 1, .reserved2 = 0, .highOrderByte = 0 } );
 		Timer::Delay(100);
-		regDeviceControl.Write( { .disableInterrupts = 0, .reset = 0 } );
+		regDeviceControl.Write( { .reserved1 = 0, .disableInterrupts = 0, .reset = 0, .reserved2 = 0, .highOrderByte = 0 } );
 		Timer::Delay(100);
 
-		regDriveHead.Write( { .driveNumber = 0, .reserved1 = 1, .reserved2 = 1 } );
+		regDriveHead.Write( { .lba_24_27 = 0, .driveNumber = 0, .reserved1 = 1, .isLBA = true, .reserved2 = 1 } );
 
 		StatusRegister status;
 		for(unsigned a = 0; a < 16; a++)
@@ -167,7 +167,7 @@ namespace ATA
 		//regFeatures.Write(0);
 
 		// Identify
-		regDriveHead.Write( { .driveNumber = 0, .reserved1 = 1, .reserved2 = 1 } );
+		regDriveHead.Write( { .lba_24_27 = 0, .driveNumber = 0, .reserved1 = 1, .isLBA = true, .reserved2 = 1 } );
 		regSectorCount.Write(0);
 		regLBALow.Write(0);
 		regLBAMid.Write(0);

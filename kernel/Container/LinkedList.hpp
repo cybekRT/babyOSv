@@ -58,8 +58,9 @@ namespace Container
 				virtual const Iterator operator+(int v) const
 				{
 					LinkedListItem<T> *item = container_of(ptr, LinkedListItem<T>, value);
-					for(unsigned a = 0; a < v; a++)
+					for(int a = 0; a < v; a++)
 						item = item->next;
+						
 					if(!item)
 						return Iterator<T>(nullptr);
 					else
@@ -92,7 +93,7 @@ namespace Container
 				virtual Iterator& operator+=(int v) override
 				{
 					LinkedListItem<T> *item = container_of(ptr, LinkedListItem<T>, value);
-					for(unsigned a = 0; a < v; a++)
+					for(int a = 0; a < v; a++)
 						item = item->next;
 
 					if(!item)

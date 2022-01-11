@@ -86,7 +86,10 @@ namespace ISA_DMA
 			reg.reverse = false;
 			reg.autoInit = false;
 			reg.type = TransferType::MemoryToPeripheral;
+
+			PortOut(IOPort::ModeRegister, *regPtr);
 		}
+		
 		Unmask(channel);
 	}
 }

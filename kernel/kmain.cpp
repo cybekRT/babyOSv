@@ -159,6 +159,7 @@ extern "C" void kmain()
 	Floppy::Init();
 	ATA::Init();
 
+#if 0
 	u8 tmpBuf[512];
 	Print("Reading...\n");
 	Floppy::Read(nullptr, 0, tmpBuf);
@@ -178,11 +179,13 @@ extern "C" void kmain()
 	}
 
 	for(;;) HALT;
+#endif
 
 	FS::Init();
 	FAT::Init();
 	FS::BlkFS::Init();
 
+#if 1
 	VFS::Init();
 
 	if(VFS::Mount("fdd0r1", "fdd") != Status::Success)
@@ -194,7 +197,7 @@ extern "C" void kmain()
 	VFS::Mount("hdd0p3", "hdd");
 
 	FS::Directory* dir;
-	VFS::OpenRoot(&dir);
+	VFS::DirectoryOpenRoot(&dir);
 
 	Thread::Start(testThread);
 
@@ -301,10 +304,10 @@ extern "C" void kmain()
 
 						FS::DirEntry entry;
 						Print("Dir: %p\n", dir);
-						VFS::RewindDirectory(dir);
+						VFS::DirectoryRewind(dir);
 
 						Print("Directory content:\n");
-						while(VFS::ReadDirectory(dir, &entry) == Status::Success)
+						while(VFS::DirectoryRead(dir, &entry) == Status::Success)
 						{
 							if(!entry.isValid)
 								continue;
@@ -312,7 +315,7 @@ extern "C" void kmain()
 							Print("<DATE>\t<HOUR>\t%s\t%u\t%s\n", (entry.isDirectory) ? "DIR" : "", entry.size, entry.name);
 						}
 
-						VFS::RewindDirectory(dir);
+						VFS::DirectoryRewind(dir);
 						//bd->drv->Unlock(bd->dev);
 					}
 					else if(strlen(tmp) > 3 && tmp[0] == 'c' && tmp[1] == 'd' && tmp[2] == ' ')
@@ -334,7 +337,7 @@ extern "C" void kmain()
 
 						(*dst) = 0;
 
-						if(VFS::ChangeDirectory(dir, path) == Status::Success)
+						if(VFS::DirectoryChange(dir, (char*)path) == Status::Success)
 							Print("Changed to: %s\n", path);
 						else
 							Print("Directory \"%s\" not found!\n", path);
@@ -359,17 +362,17 @@ extern "C" void kmain()
 						(*dst) = 0;
 
 						FS::DirEntry entry;
-						VFS::RewindDirectory(dir);
+						VFS::DirectoryRewind(dir);
 
 						FS::File* file = nullptr;
-						while(VFS::ReadDirectory(dir, &entry) == Status::Success)
+						while(VFS::DirectoryRead(dir, &entry) == Status::Success)
 						{
 							if(!entry.isValid || entry.isDirectory)
 								continue;
 
 							if(!strcmp((char*)path, (char*)entry.name))
 							{
-								VFS::OpenFile(dir, entry.name, &file);
+								VFS::FileOpen(dir, (char*)entry.name, &file);
 								break;
 							}
 						}
@@ -388,7 +391,7 @@ extern "C" void kmain()
 						u8 buf[bufSize];
 						Status s;
 						//bd->drv->Lock(bd->dev);
-						while((s = VFS::ReadFile(file, buf, bufSize, &readCount)) == Status::Success)
+						while((s = VFS::FileRead(file, buf, bufSize, &readCount)) == Status::Success)
 						{
 							for(unsigned a = 0; a < readCount; a++)
 							{
@@ -397,29 +400,29 @@ extern "C" void kmain()
 						}
 
 						//bd->drv->Unlock(bd->dev);
-						VFS::CloseFile(&file);
+						VFS::FileClose(&file);
 					}
 					else if(strcmp(tmp, "splash") == 0)
 					{
-							FS::Directory* splashDir;
-							FS::File* splashFile;
-							u32 splashRead;
-							u8* splashBuffer = new u8[320*200];
-							VFS::OpenRoot(&splashDir);
-							VFS::ChangeDirectory(splashDir, (u8*)"fdd");
-							VFS::OpenFile(splashDir, (u8*)"splash", &splashFile);
-							VFS::ReadFile(splashFile, splashBuffer, 320*200, &splashRead);
-							Print("Splash size: %d\n", splashRead);
+						FS::Directory* splashDir;
+						FS::File* splashFile;
+						u32 splashRead;
+						u8* splashBuffer = new u8[320*200];
+						VFS::DirectoryOpenRoot(&splashDir);
+						VFS::DirectoryChange(splashDir, "fdd");
+						VFS::FileOpen(splashDir, "splash", &splashFile);
+						VFS::FileRead(splashFile, splashBuffer, 320*200, &splashRead);
+						Print("Splash size: %d\n", splashRead);
 
-							Print("=== VGA ===\n");
-							VGA::Init();
-							memcpy((void*)0x800a0000, splashBuffer, splashRead);
+						Print("=== VGA ===\n");
+						VGA::Init();
+						memcpy((void*)0x800a0000, splashBuffer, splashRead);
 
-							for(unsigned a = 0; a < 256; a++)
-							{
-								int v = (a << 2);
-								VGA::Write_3C8(a, v, v, v);
-							}
+						for(unsigned a = 0; a < 256; a++)
+						{
+							int v = (a << 2);
+							VGA::Write_3C8(a, v, v, v);
+						}
 					}
 					else
 					{
@@ -430,7 +433,7 @@ extern "C" void kmain()
 				Print("\n");
 
 				Path dirPath;
-				VFS::GetPath(dir, dirPath);
+				VFS::DirectoryGetPath(dir, dirPath);
 				char tmp[Path::MaxLength];
 				dirPath.ToString(tmp);
 
@@ -449,9 +452,12 @@ extern "C" void kmain()
 		//Timer::Delay(100);
 	}
 #endif
+#endif
 
+	Print("\n\nKernel halted, should shutdown now...\n");
 	for(;;)
 	{
+		__asm("cli");
 		__asm("hlt");
 	}
 }
