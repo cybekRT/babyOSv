@@ -104,6 +104,12 @@ extern u32* _ctors_end;
 
 #include"Video/VGA.hpp"
 
+namespace Floppy
+{
+	u8 Read(void* dev, u32 lba, u8* buffer);
+	u8 Write(void* dev, u32 lba, u8* buffer);
+}
+
 extern "C" void kmain()
 {
 	ASSERT(sizeof(u64) == 8, "u64");
@@ -152,6 +158,26 @@ extern "C" void kmain()
 	ISA_DMA::Init();
 	Floppy::Init();
 	ATA::Init();
+
+	u8 tmpBuf[512];
+	Print("Reading...\n");
+	Floppy::Read(nullptr, 0, tmpBuf);
+	tmpBuf[510] = 0x00;
+	tmpBuf[511] = 0x00;
+
+	for(unsigned a = 0; a < 512; a++)
+		tmpBuf[a] = 0x00;
+
+	Timer::Delay(3000);
+
+	Print("Writing...\n");
+	for(unsigned a = 0; a < 10; a++)
+	{
+		if(!Floppy::Write(nullptr, 0, tmpBuf))
+			break;
+	}
+
+	for(;;) HALT;
 
 	FS::Init();
 	FAT::Init();

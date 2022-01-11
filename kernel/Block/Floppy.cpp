@@ -368,7 +368,7 @@ namespace Floppy
 		u8 cmd = (u8)FDD_CMD_OPTION_MULTITRACK | (u8)FDD_CMD_OPTION_MFM | (u8)FDD_CMD_OPTION_SKIP | (u8)FDD_CMD_READ_DATA;
 		u8 driveNo = 0;
 
-		Print("Fdd CHS: %x %d %d %d\n", cmd, cylinder, head, sector);
+		//Print("Fdd CHS: %x %d %d %d\n", cmd, cylinder, head, sector);
 
 		Thread::SetState(nullptr, Thread::State::Unstoppable);
 		Exec((Command)cmd, 8, (head << 2) | driveNo, cylinder, head, sector, 0x02, 0x12, 0x1B, 0xFF);
@@ -381,6 +381,8 @@ namespace Floppy
 		u8 sth = ReadData();
 		u8 str = ReadData();
 		u8 stn = ReadData();
+
+		Print("fdd status: %x %x %x %x %x %x %x\n", st0, st1, st2, stc, sth, str, stn);
 
 		static int retryCounter = 0;
 		if(st0 & 0b11000000 || stn != 0x02)
@@ -395,7 +397,7 @@ namespace Floppy
 			Print("Retry... ");
 			MotorOff();
 			Reset();
-			
+
 			//return Read(dev, lba, buffer);
 			return 1;
 		}
@@ -410,6 +412,70 @@ namespace Floppy
 		{
 			*dst++ = *src++;
 		}
+
+		return 0;
+	}
+
+	u8 Write(void* dev, u32 lba, u8* buffer)
+	{
+		u8* dst = (u8*)dmaLogic;
+		u8* src = (u8*)buffer;
+		for(unsigned a = 0; a < 512; a++)
+		{
+			*dst++ = *src++;
+		}
+
+		MotorOn();
+
+		u8 cylinder = lba / 18 / 2;
+		u8 head = (lba / 18) % 2;
+		u8 sector = (lba % 18) + 1;
+
+		Seek(cylinder);
+
+		ISA_DMA::Start(2, ISA_DMA::TransferDir::WRITE, dmaPhys, 512);
+
+		irqReceived = 0;
+		u8 cmd = (u8)FDD_CMD_OPTION_MULTITRACK | (u8)FDD_CMD_OPTION_MFM | (u8)FDD_CMD_WRITE_DATA;
+		u8 driveNo = 0;
+
+		//Print("Fdd CHS: %x %d %d %d\n", cmd, cylinder, head, sector);
+
+		Thread::SetState(nullptr, Thread::State::Unstoppable);
+		Exec((Command)cmd, 8, (head << 2) | driveNo, cylinder, head, sector, 0x02, 0x12, 0x1B, 0xFF);
+		WaitIRQ();
+
+		u8 st0 = ReadData();
+		u8 st1 = ReadData();
+		u8 st2 = ReadData();
+		u8 stc = ReadData();
+		u8 sth = ReadData();
+		u8 str = ReadData();
+		u8 stn = ReadData();
+
+		Print("fdd status: %x %x %x %x %x %x %x\n", st0, st1, st2, stc, sth, str, stn);
+
+		static int retryCounter = 0;
+		if(st0 & 0b11000000 || stn != 0x02)
+		{
+			// PCem needs this, uh...
+			// TODO: decide if FAIL is appropriate or
+			// maybe always reset and return with failure...
+
+			if(++retryCounter > 10)
+				FAIL("floppy read status - 10 fails");
+
+			Print("Retry...\n");
+			MotorOff();
+			Reset();
+
+			//return Read(dev, lba, buffer);
+			return 1;
+		}
+
+		retryCounter = 0;
+
+		MotorOff();
 
 		return 0;
 	}
@@ -450,11 +516,6 @@ namespace Floppy
 		return 512;
 	}
 
-	u8 _Write(void* dev, u32 lba, u8* buffer)
-	{
-		return 1;
-	}
-
 	Block::BlockDeviceDriver drv
 	{
 		.Name = Name,
@@ -465,6 +526,6 @@ namespace Floppy
 		.Unlock = Unlock,
 
 		.Read = Read,
-		.Write = _Write
+		.Write = Write
 	};
 }
