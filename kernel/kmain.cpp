@@ -15,13 +15,10 @@
 #include"FS/FS.hpp"
 #include"FS/BlkFS.hpp"
 #include"FS/FAT.hpp"
-
 #include"FS/VFS.hpp"
-
 #include"Mutex.hpp"
-
-bool shellReady = false;
-u8 tolower(u8 c);
+#include"Shell.hpp"
+#include"Video/VGA.hpp"
 
 Mutex m;
 int YoLo(void*)
@@ -70,12 +67,8 @@ int YoLo2(void*)
 		((u8*)0x800b8000)[79*2+0]++;// = 0x00;
 
 		Interrupt::Enable();
-		//Print(".");
-
 		Timer::Delay(100);
 		m.Unlock();
-
-		// Print(".");
 	}
 }
 
@@ -101,8 +94,6 @@ extern "C" void __cxa_pure_virtual()
 
 extern u32* _ctors_beg;
 extern u32* _ctors_end;
-
-#include"Video/VGA.hpp"
 
 namespace Floppy
 {
@@ -196,9 +187,6 @@ extern "C" void kmain()
 
 	VFS::Mount("hdd0p3", "hdd");
 
-	FS::Directory* dir;
-	VFS::DirectoryOpenRoot(&dir);
-
 	Thread::Start(testThread);
 
 	Thread::Thread* testThread2;
@@ -207,13 +195,15 @@ extern "C" void kmain()
 
 #if 0
 	{
+		FS::Directory* dir;
+		VFS::DirectoryOpenRoot(&dir);
+
 		auto bd = &Block::devices[0];
 		auto fs = FS::filesystems.Front();
 		void* fsPriv;
 
 		fs->Alloc(bd, &fsPriv);
 		fs->OpenRoot(fsPriv, &dir);
-
 
 		Print("Searching splash\n");
 		FS::DirEntry entry;
@@ -243,221 +233,17 @@ extern "C" void kmain()
 	// Thread::Create(&fakeKbdThread, (u8*)"FakeKbd", FakeKbdThread);
 	// Thread::Start(fakeKbdThread);
 
-	char tmp[64];
-	u8 tmpX = 0;
-	Keyboard::KeyEvent keyEvent;
-	Print("=== If you need help, write \"help\" ===\n");
-	Print("> ");
-	shellReady = true;
-
-	for(;;)
-	{
-		while(Keyboard::WaitAndReadEvent(&keyEvent))
-		{
-			if(keyEvent.type == Keyboard::KeyType::Released)
-				continue;
-
-			if(keyEvent.key == Keyboard::KeyCode::Backspace)
-			{
-				if(tmpX > 0)
-				{
-					tmpX--;
-					tmp[tmpX] = 0;
-					Print("\b");
-				}
-			}
-			else if(keyEvent.key == Keyboard::KeyCode::Enter)
-			{
-				tmp[tmpX] = 0;
-
-				if(tmpX > 0)
-				{
-					tmpX = 0;
-					Print("\nExecuting: %s\n", tmp);
-
-					if(!strcmp(tmp, "help"))
-					{
-						Terminal::Print("=== Available commands:               ===\n");
-						Terminal::Print("=== dir - lists current directory     ===\n");
-						Terminal::Print("=== cd <x> - enters <x> directory     ===\n");
-						Terminal::Print("=== cat <x> - reads <x> file          ===\n");
-						Terminal::Print("=== mem - prints current memory usage ===\n");
-						Terminal::Print("=== fail - kernel panic               ===\n");
-						Terminal::Print("\n");
-					}
-					else if(!strcmp(tmp, "mem"))
-					{
-						Memory::Physical::PrintMemoryMap();
-					}
-					else if(!strcmp(tmp, "fail"))
-					{
-						u8* x = (u8*)0x1234;
-						*x = 5;
-					}
-					else if(!strcmp(tmp, "task"))
-					{
-						Thread::UpdateThreadsList();
-					}
-					else if(!strcmp(tmp, "dir"))
-					{
-						//bd->drv->Lock(bd->dev);
-
-						FS::DirEntry entry;
-						Print("Dir: %p\n", dir);
-						VFS::DirectoryRewind(dir);
-
-						Print("Directory content:\n");
-						while(VFS::DirectoryRead(dir, &entry) == Status::Success)
-						{
-							if(!entry.isValid)
-								continue;
-
-							Print("<DATE>\t<HOUR>\t%s\t%u\t%s\n", (entry.isDirectory) ? "DIR" : "", entry.size, entry.name);
-						}
-
-						VFS::DirectoryRewind(dir);
-						//bd->drv->Unlock(bd->dev);
-					}
-					else if(strlen(tmp) > 3 && tmp[0] == 'c' && tmp[1] == 'd' && tmp[2] == ' ')
-					{
-						u8 path[256];
-						u8* dst = path;
-						bool foundAny = false;
-						for(unsigned a = 3; a < strlen(tmp); a++)
-						{
-							if(tmp[a] != ' ')
-							{
-								//(*dst++) = tolower(tmp[a]);
-								(*dst++) = tmp[a];
-								foundAny = true;
-							}
-							else if(foundAny)
-								break;
-						}
-
-						(*dst) = 0;
-
-						if(VFS::DirectoryChange(dir, (char*)path) == Status::Success)
-							Print("Changed to: %s\n", path);
-						else
-							Print("Directory \"%s\" not found!\n", path);
-					}
-					else if(strlen(tmp) > 4 && tmp[0] == 'c' && tmp[1] == 'a' && tmp[2] == 't' && tmp[3] == ' ')
-					{
-						u8 path[256];
-						u8* dst = path;
-						bool foundAny = false;
-						for(unsigned a = 4; a < strlen(tmp); a++)
-						{
-							if(tmp[a] != ' ')
-							{
-								//(*dst++) = tolower(tmp[a]);
-								(*dst++) = tmp[a];
-								foundAny = true;
-							}
-							else if(foundAny)
-								break;
-						}
-
-						(*dst) = 0;
-
-						FS::DirEntry entry;
-						VFS::DirectoryRewind(dir);
-
-						FS::File* file = nullptr;
-						while(VFS::DirectoryRead(dir, &entry) == Status::Success)
-						{
-							if(!entry.isValid || entry.isDirectory)
-								continue;
-
-							if(!strcmp((char*)path, (char*)entry.name))
-							{
-								VFS::FileOpen(dir, (char*)entry.name, &file);
-								break;
-							}
-						}
-
-						if(file)
-							Print("Found file: %s\n", path);
-						else
-						{
-							Print("File \"%s\" not found!\n", path);
-							Print("\n> ");
-							continue;
-						}
-
-						u32 readCount;
-						const u32 bufSize = 512;
-						u8 buf[bufSize];
-						Status s;
-						//bd->drv->Lock(bd->dev);
-						while((s = VFS::FileRead(file, buf, bufSize, &readCount)) == Status::Success)
-						{
-							for(unsigned a = 0; a < readCount; a++)
-							{
-								Print("%c", buf[a]);
-							}
-						}
-
-						//bd->drv->Unlock(bd->dev);
-						VFS::FileClose(&file);
-					}
-					else if(strcmp(tmp, "splash") == 0)
-					{
-						FS::Directory* splashDir;
-						FS::File* splashFile;
-						u32 splashRead;
-						u8* splashBuffer = new u8[320*200];
-						VFS::DirectoryOpenRoot(&splashDir);
-						VFS::DirectoryChange(splashDir, "fdd");
-						VFS::FileOpen(splashDir, "splash", &splashFile);
-						VFS::FileRead(splashFile, splashBuffer, 320*200, &splashRead);
-						Print("Splash size: %d\n", splashRead);
-
-						Print("=== VGA ===\n");
-						VGA::Init();
-						memcpy((void*)0x800a0000, splashBuffer, splashRead);
-
-						for(unsigned a = 0; a < 256; a++)
-						{
-							int v = (a << 2);
-							VGA::Write_3C8(a, v, v, v);
-						}
-					}
-					else
-					{
-						Print("Invalid command...\n");
-					}
-				}
-
-				Print("\n");
-
-				Path dirPath;
-				VFS::DirectoryGetPath(dir, dirPath);
-				char tmp[Path::MaxLength];
-				dirPath.ToString(tmp);
-
-				Print("%s> ", tmp);
-			}
-			else if(keyEvent.ascii)
-			{
-				tmp[tmpX] = keyEvent.ascii;
-				tmpX++;
-				Print("%c", keyEvent.ascii);
-			}
-		}
-
-		//__asm("sti");
-		//__asm("hlt");
-		//Timer::Delay(100);
-	}
+	Thread::Thread* shellThread;
+	Thread::Create(&shellThread, (u8*)"Shell", Shell::Thread);
+	Thread::Start(shellThread);
 #endif
 #endif
 
-	Print("\n\nKernel halted, should shutdown now...\n");
+	Print("\n\nKernel running...\n");
 	for(;;)
 	{
-		__asm("cli");
-		__asm("hlt");
+		Thread::SetState(Thread::currentThread, Thread::State::Zombie);
+		Thread::NextThread();
+		Print("WTF~!\n");
 	}
 }

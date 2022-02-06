@@ -185,7 +185,7 @@ namespace Thread
 
 		thread->process = nullptr;
 		thread->id = 0;
-		memcpy(thread->name, (void*)"kmain", 6);
+		memcpy(thread->name, (void*)"Init", 4);
 		thread->state = State::Running;
 
 		thread->stackSize = 8192*4;
