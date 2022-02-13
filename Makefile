@@ -31,8 +31,8 @@ else
 	PCEM				:= fail
 	VBOXMANAGE			:= vboxmanage
 	CFS					:= ../cFS/cFS-cli/cFS-cli
-#	QEMU_DOS_IMG		:= -hda /Users/cybek/dos.img
-#	QEMU_DOSEXT_IMG		:= -hdb /Users/cybek/dos-empty.img
+	QEMU_DOS_IMG		:= -hda /Users/cybek/dos.img
+	QEMU_DOSEXT_IMG		:= -hdb /Users/cybek/dos-empty.img
 	GTEST_FLAGS			:= -lpthread
 endif
 
@@ -64,7 +64,7 @@ LD			:= $(GCC_PREFIX)ld
 GCC_FLAGS	:= -include kernel/global.hpp -Ikernel/ -Ikernel/Core -I$(AUTOGEN_OUT)/
 GCC_FLAGS	+= -Wall -Wextra -Wno-unused-parameter -g3 -O0 -std=gnu++1z
 GCC_FLAGS	+= -fno-exceptions
-ifneq ($(MAKECMDGOALS), test)
+ifneq ($(MAKECMDGOALS), tests)
 GCC_FLAGS	+= -m32 -march=i486
 GCC_FLAGS	+= -mgeneral-regs-only -fno-isolate-erroneous-paths-attribute -fno-asynchronous-unwind-tables
 GCC_FLAGS	+= -fno-rtti -fno-omit-frame-pointer -fno-use-cxa-atexit -fno-stack-protector
@@ -135,7 +135,6 @@ TESTS_SRCS	:= $(shell sh -c "find tests -name *.cpp")
 TESTS_OBJS	:= $(TESTS_SRCS:tests/%.cpp=out_tests/%.o)
 TESTS_DEPS	:= $(TESTS_OBJS:%.o=%.d)
 
-test: test-run
 tests: test-run
 
 test-objs: $(TESTS_OBJS)
@@ -180,8 +179,9 @@ endif
 #
 ####################
 
+# FIXME: move this tests' image to out_tests...
 clean:
-	rm out/*/* out/* $(AUTOGEN) $(TESTS_OBJS) 2>/dev/null || true
+	rm out/*/* out/* $(AUTOGEN) $(TESTS_OBJS) dummy_part.tst 2>/dev/null || true
 
 qemu: out/floppy.img
 	$(QEMU) -fda $< $(QEMU_FLAGS) 2> /dev/null

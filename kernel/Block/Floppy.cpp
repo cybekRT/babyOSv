@@ -382,8 +382,6 @@ namespace Floppy
 		u8 str = ReadData();
 		u8 stn = ReadData();
 
-		Print("fdd status: %x %x %x %x %x %x %x\n", st0, st1, st2, stc, sth, str, stn);
-
 		static int retryCounter = 0;
 		if(st0 & 0b11000000 || stn != 0x02)
 		{
@@ -452,8 +450,6 @@ namespace Floppy
 		u8 sth = ReadData();
 		u8 str = ReadData();
 		u8 stn = ReadData();
-
-		Print("fdd status: %x %x %x %x %x %x %x\n", st0, st1, st2, stc, sth, str, stn);
 
 		static int retryCounter = 0;
 		if(st0 & 0b11000000 || stn != 0x02)

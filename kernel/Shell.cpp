@@ -87,6 +87,7 @@ namespace Shell
 						}
 						else if(strlen(tmp) > 3 && tmp[0] == 'c' && tmp[1] == 'd' && tmp[2] == ' ')
 						{
+							// FIXME: "cd ." causes infinite loop...
 							u8 path[256];
 							u8* dst = path;
 							bool foundAny = false;
@@ -168,6 +169,28 @@ namespace Shell
 
 							//bd->drv->Unlock(bd->dev);
 							VFS::FileClose(&file);
+						}
+						else if(strlen(tmp) > 4 && tmp[0] == 'm' && tmp[1] == 'k' && tmp[2] == 'd' && tmp[3] == ' ')
+						{
+							u8 path[256];
+							u8* dst = path;
+							bool foundAny = false;
+							for(unsigned a = 4; a < strlen(tmp); a++)
+							{
+								if(tmp[a] != ' ')
+								{
+									//(*dst++) = tolower(tmp[a]);
+									(*dst++) = tmp[a];
+									foundAny = true;
+								}
+								else if(foundAny)
+									break;
+							}
+
+							(*dst) = 0;
+
+							auto s = VFS::DirectoryCreate(dir, (char*)path);
+							Print("Status: %d - \"%s\"\n", s, path);
 						}
 						else if(strcmp(tmp, "splash") == 0)
 						{

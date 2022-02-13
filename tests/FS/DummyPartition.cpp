@@ -71,12 +71,8 @@ std::fstream f;
 
 u8 Block::BlockPartition::Read(u32 lba, u8* buffer)
 {
-	printf("Reading LBA %d, ", lba);
-
 	f.seekg(lba * 512, std::ios::beg);
 	f.read((char*)buffer, 512);
-
-	printf("%s\n", f.fail() ? "FAILED~!" : "OK");
 }
 
 u8 Block::BlockPartition::Write(u32 lba, u8* buffer)

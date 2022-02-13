@@ -275,6 +275,12 @@ namespace VFS
 
 	Status DirectoryCreate(FS::Directory* dir, char* name)
 	{
+		if(dir->fsInfo != nullptr)
+		{
+			return dir->fsInfo->DirectoryCreate(dir->fsPriv, dir->fsDir, name);
+		}
+
+		Print("Invalid path...\n");
 		return Status::Undefined;
 	}
 
