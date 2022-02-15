@@ -4,3 +4,4 @@ extern Block::BlockPartition dummyPartition;
 
 bool DummyPartitionOpen();
 bool DummyPartitionClose();
+bool DummyPartitionClear();

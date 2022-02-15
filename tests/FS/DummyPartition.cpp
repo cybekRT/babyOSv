@@ -1,5 +1,6 @@
 #include"DummyPartition.hpp"
 #include<fstream>
+#include<cstring>
 
 const u32 blockSize = 512;
 const u32 lbaCount = 2000;
@@ -69,36 +70,62 @@ Block::BlockPartition dummyPartition
 const char* fPath = "dummy_part.tst";
 std::fstream f;
 
+char* fBuffer = nullptr;
+
 u8 Block::BlockPartition::Read(u32 lba, u8* buffer)
 {
-	f.seekg(lba * 512, std::ios::beg);
-	f.read((char*)buffer, 512);
+	// f.seekg(lba * 512, std::ios::beg);
+	// f.read((char*)buffer, 512);
+
+	memcpy((char*)buffer, fBuffer + lba * 512, 512);
+
+	return 0;
 }
 
 u8 Block::BlockPartition::Write(u32 lba, u8* buffer)
 {
-	f.seekp(lba * 512, std::ios::beg);
-	f.write((char*)buffer, 512);
+	// f.seekp(lba * 512, std::ios::beg);
+	// f.write((char*)buffer, 512);
+
+	memcpy(fBuffer + lba * 512, (char*)buffer, 512);
+
+	return 0;
 }
 
 bool DummyPartitionOpen()
 {
-	f.open(fPath, std::ios::in | std::ios::out | std::ios::trunc | std::ios::binary);
-	if(!f)
-		return false;
+	// f.open(fPath, std::ios::in | std::ios::out | std::ios::trunc | std::ios::binary);
+	// if(!f)
+	// 	return false;
 
-	char tmp[blockSize] = { 0 };
-	for(unsigned a = 0; a < lbaCount; a++)
-		f.write(tmp, blockSize);
+	// char tmp[blockSize] = { 0 };
+	// for(unsigned a = 0; a < lbaCount; a++)
+	// 	f.write(tmp, blockSize);
+
+	if(!fBuffer)
+	{
+		fBuffer = new char[blockSize * lbaCount];
+		memset(fBuffer, 0, blockSize * lbaCount);
+	}
 
 	return true;
 }
 
 bool DummyPartitionClose()
 {
-	bool failed = f.fail();
+	// bool failed = f.fail();
 
-	f.close();
+	// f.close();
 
-	return !failed;
+	// return !failed;
+
+	// delete[] fBuffer;
+	return true;
+}
+
+bool DummyPartitionClear()
+{
+	memset(fBuffer, 0, blockSize * lbaCount);
+
+	return true;
 }

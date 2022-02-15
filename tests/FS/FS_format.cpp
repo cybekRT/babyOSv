@@ -7,6 +7,7 @@ public:
 	FSTest()
 	{
 		DummyPartitionOpen();
+		DummyPartitionClear();
 		FAT::Init();
 	}
 
