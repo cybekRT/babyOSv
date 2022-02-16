@@ -1,8 +1,6 @@
 #include"FS.hpp"
 #include"Memory.hpp"
 
-#include<cstdio>
-
 using FS::File;
 using FS::Directory;
 using FS::DirEntry;
@@ -17,13 +15,24 @@ namespace FS
 {
 	struct File
 	{
+		bool dirty;
 		u32 firstCluster;
 		u32 currentCluster;
 		u32 totalDataOffset; // Total data offset, not position in buffer
 		u32 size;
 		u8 bufferValid;
 		u32 bufferSize;
-		u8 buffer[];
+		u8* buffer;
+
+		File(u32 bufferSize, u32 firstCluster, u32 size) : dirty(false), firstCluster(firstCluster), currentCluster(firstCluster), totalDataOffset(0), size(size), bufferValid(false), bufferSize(bufferSize)
+		{
+			buffer = new u8[bufferSize];
+		}
+
+		~File()
+		{
+			delete[] buffer;
+		}
 	};
 
 	struct Directory
@@ -34,7 +43,17 @@ namespace FS
 		u32 dataOffset;
 		u8 bufferValid;
 		u32 bufferSize;
-		u8 buffer[];
+		u8* buffer;
+
+		Directory(u32 bufferSize, u32 firstCluster) : dirty(false), firstCluster(firstCluster), currentCluster(firstCluster), dataOffset(0), bufferValid(false), bufferSize(bufferSize)
+		{
+			buffer = new u8[bufferSize];
+		}
+
+		~Directory()
+		{
+			delete[] buffer;
+		}
 	};
 }
 
@@ -663,14 +682,7 @@ namespace FAT
 
 		Info* info = (Info*)fs;
 		u32 bufferSize = info->part->device->drv->BlockSize(info->part->device->drvPriv) * info->bpb->sectorsPerCluster;
-		*dir = (Directory*)Memory::Alloc(sizeof(Directory) + bufferSize);
-
-		(*dir)->dirty = false;
-		(*dir)->firstCluster = 0;
-		(*dir)->currentCluster = (*dir)->firstCluster;
-		(*dir)->dataOffset = 0;
-		(*dir)->bufferValid = 0;
-		(*dir)->bufferSize = bufferSize;
+		*dir = new Directory(bufferSize, 0);
 
 		return Status::Success;
 	}
@@ -682,10 +694,8 @@ namespace FAT
 
 		DirectoryFlush((Info*)fs, *dir);
 
-		// Info* info = (Info*)fs;
-
-		Memory::Free(*dir);
-		*dir = nullptr;
+		delete (*dir);
+		(*dir) = nullptr;
 
 		return Status::Success;
 	}
@@ -1024,15 +1034,7 @@ namespace FAT
 		u32 bufferSize = info->part->device->drv->BlockSize(info->part->device->drvPriv) * info->bpb->sectorsPerCluster;
 		FAT16_DirEntry* fatEntry = (FAT16_DirEntry*)(dir->buffer + dir->dataOffset);
 
-		(*file) = (File*)Memory::Alloc(sizeof(File) + bufferSize);
-
-		(*file)->firstCluster = (fatEntry->clusterHigh << 16) | fatEntry->cluster;
-		(*file)->currentCluster = (*file)->firstCluster;
-
-		(*file)->totalDataOffset = 0;
-		(*file)->bufferValid = 0;
-		(*file)->bufferSize = bufferSize;
-		(*file)->size = fatEntry->size;
+		(*file) = new File(bufferSize, (fatEntry->clusterHigh << 16) | fatEntry->cluster, fatEntry->size);
 
 		return Status::Success;
 	}
@@ -1042,9 +1044,7 @@ namespace FAT
 		if(!fs)
 			return Status::Undefined;
 
-		// Info* info = (Info*)fs;
-
-		Memory::Free(*file);
+		delete (*file);
 		(*file) = nullptr;
 
 		return Status::Success;
