@@ -11,6 +11,11 @@ const u16 CLUSTER_LAST	=	0xFF8;
 const u16 ENTRY_REMOVED	=	0xE5;
 const u16 ENTRY_LAST	=	0x00;
 
+namespace FAT
+{
+	struct Info;
+}
+
 namespace FS
 {
 	struct File
@@ -33,6 +38,10 @@ namespace FS
 		{
 			delete[] buffer;
 		}
+
+		Status Flush(FAT::Info* info);
+		Status ReadNextCluster(FAT::Info* info, bool resizeIfNeeded);
+		Status ReadAtOffset(FAT::Info* info, u32 newTotalOffset, bool resizeIfNeeded);
 	};
 
 	struct Directory
@@ -167,7 +176,6 @@ namespace FAT
 
 	void LFNToF83(char* lfn, char* filename)
 	{
-		//char filename[8 + 3];
 		char* ext = filename + 8;
 
 		auto lfnLen = strlen(lfn);
@@ -1187,4 +1195,64 @@ namespace FAT
 
 		return true;
 	}
+}
+
+Status FS::File::Flush(FAT::Info* info)
+{
+	if(!dirty || !bufferValid)
+		return;
+
+	u32 sector = FAT::GetSectorToRead(info, currentCluster, false);
+	for(unsigned a = 0; a < info->bpb->sectorsPerCluster; a++)
+	{
+		info->part->Write(sector + a, buffer + 512 * a);
+	}
+
+	dirty = false;
+
+	return Status::Success;
+}
+
+Status FS::File::ReadNextCluster(FAT::Info* info, bool resizeIfNeeded)
+{
+	Flush(info);
+
+	if(bufferValid)
+	{
+		u32 nextCluster = FAT::GetNextCluster(info, currentCluster);
+
+		if(nextCluster == CLUSTER_LAST)
+		{
+			if(!resizeIfNeeded)
+				return Status::EndOfFile;
+			else
+			{
+				if(FAT::AddCluster(info, currentCluster, &nextCluster) != Status::Success)
+					return Status::Undefined;
+
+				char tmp[512] = { 0 };
+				u32 sector = FAT::GetSectorToRead(info, nextCluster, false);
+				for(unsigned a = 0; a < info->bpb->sectorsPerCluster; a++)
+					info->part->Write(sector + a, (u8*)tmp);
+			}
+		}
+
+		totalDataOffset += bufferSize;
+		totalDataOffset -= totalDataOffset % bufferSize;
+
+		currentCluster = nextCluster;
+	}
+
+	u32 sector = FAT::GetSectorToRead(info, currentCluster, false);
+	for(unsigned a = 0; a < info->bpb->sectorsPerCluster; a++)
+		info->part->Read(sector + a, buffer + 512 * a);
+
+	bufferValid = true;
+
+	return Status::Success;
+}
+
+Status FS::File::ReadAtOffset(FAT::Info* info, u32 newTotalOffset, bool resizeIfNeeded)
+{
+	Flush(info);
 }
