@@ -25,6 +25,7 @@ namespace FS
 		u32 currentCluster;
 		u32 totalDataOffset; // Total data offset, not position in buffer
 		u32 size;
+		bool sizeDirty; // TODO update file entry
 		u8 bufferValid;
 		u32 bufferSize;
 		u8* buffer;
@@ -1038,6 +1039,8 @@ namespace FAT
 		if(!fs)
 			return Status::Undefined;
 
+		// printf("# Opening file\n");
+
 		Info* info = (Info*)fs;
 		u32 bufferSize = info->part->device->drv->BlockSize(info->part->device->drvPriv) * info->bpb->sectorsPerCluster;
 		FAT16_DirEntry* fatEntry = (FAT16_DirEntry*)(dir->buffer + dir->dataOffset);
@@ -1052,6 +1055,10 @@ namespace FAT
 		if(!fs)
 			return Status::Undefined;
 
+		// printf("# Flushing file\n");
+		(*file)->Flush((Info*)fs);
+
+		// printf("# Closing file\n");
 		delete (*file);
 		(*file) = nullptr;
 
@@ -1139,12 +1146,41 @@ namespace FAT
 		return Status::Success;
 	}
 
+	void FilePutByte(Info* info, File* file, u8 byte)
+	{
+		file->dirty = true;
+
+		// printf("#   put byte: \"%x\" - %d %d\n", byte, file->currentCluster, file->totalDataOffset);
+
+		if((file->totalDataOffset > 0 && file->totalDataOffset % file->bufferSize == 0) || !file->bufferValid)
+		{
+			// printf("#  ReadNextCluster: %d - %d,%d\n", file->totalDataOffset, file->firstCluster, file->currentCluster);
+			file->ReadNextCluster(info, true);
+		}
+
+		file->buffer[file->totalDataOffset % file->bufferSize] = byte;
+		file->totalDataOffset++;
+
+		if(file->totalDataOffset > file->size)
+		{
+			file->sizeDirty = true;
+			file->size = file->totalDataOffset;
+		}
+	}
+
 	Status FileWrite(void* fs, File* file, u8* buffer, u32 bufferSize, u32* writeCount)
 	{
-		if(!fs)
+		if(!fs || !file)
 			return Status::Undefined;
 
-		return Status::Undefined;
+		// printf("# Write file: %d\n", bufferSize);
+
+		for(unsigned a = 0; a < bufferSize; a++)
+		{
+			FilePutByte((Info*)fs, file, buffer[a]);
+		}
+
+		return Status::Success;
 	}
 
 	Status FileSetPointer(void* fs, File* file, u32 offset)
@@ -1200,9 +1236,16 @@ namespace FAT
 Status FS::File::Flush(FAT::Info* info)
 {
 	if(!dirty || !bufferValid)
-		return;
+		return Status::Success;
 
 	u32 sector = FAT::GetSectorToRead(info, currentCluster, false);
+
+	if(sector >= info->part->lbaCount)
+	{
+		// printf("Invalid sector (%d) for cluster %d\n", sector, currentCluster);
+		return Status::EndOfFile;
+	}
+
 	for(unsigned a = 0; a < info->bpb->sectorsPerCluster; a++)
 	{
 		info->part->Write(sector + a, buffer + 512 * a);
@@ -1215,7 +1258,8 @@ Status FS::File::Flush(FAT::Info* info)
 
 Status FS::File::ReadNextCluster(FAT::Info* info, bool resizeIfNeeded)
 {
-	Flush(info);
+	if(Flush(info) != Status::Success)
+		return Status::IOError;
 
 	if(bufferValid)
 	{
@@ -1242,6 +1286,21 @@ Status FS::File::ReadNextCluster(FAT::Info* info, bool resizeIfNeeded)
 
 		currentCluster = nextCluster;
 	}
+	else
+	{
+		if(firstCluster == 0)
+		{
+			if(FAT::AddCluster(info, 0, &firstCluster) != Status::Success)
+				return Status::Undefined;
+
+			char tmp[512] = { 0 };
+			u32 sector = FAT::GetSectorToRead(info, firstCluster, false);
+			for(unsigned a = 0; a < info->bpb->sectorsPerCluster; a++)
+				info->part->Write(sector + a, (u8*)tmp);
+
+			currentCluster = firstCluster;
+		}
+	}
 
 	u32 sector = FAT::GetSectorToRead(info, currentCluster, false);
 	for(unsigned a = 0; a < info->bpb->sectorsPerCluster; a++)
@@ -1254,5 +1313,6 @@ Status FS::File::ReadNextCluster(FAT::Info* info, bool resizeIfNeeded)
 
 Status FS::File::ReadAtOffset(FAT::Info* info, u32 newTotalOffset, bool resizeIfNeeded)
 {
-	Flush(info);
+	if(Flush(info) != Status::Success)
+		return Status::IOError;
 }

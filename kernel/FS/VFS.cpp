@@ -297,7 +297,11 @@ namespace VFS
 
 	Status FileCreate(FS::Directory* dir, char* name)
 	{
-		return Status::Undefined;
+		ASSERT(dir, "No directory");
+
+		auto fsResult = dir->fsInfo->FileCreate(dir->fsPriv, dir->fsDir, name);
+
+		return fsResult;
 	}
 
 	Status FileDelete(FS::Directory* dir, char* name)
@@ -360,16 +364,28 @@ namespace VFS
 
 	Status FileWrite(FS::File* file, u8* buffer, u32 bufferSize, u32* writeCount)
 	{
-		return Status::Undefined;
+		ASSERT(file, "No file");
+
+		auto fsResult = file->fsInfo->FileWrite(file->fsPriv, file->fsFile, buffer, bufferSize, writeCount);
+
+		return fsResult;
 	}
 
 	Status FileSetPointer(FS::File* file, u32 offset)
 	{
-		return Status::Undefined;
+		ASSERT(file, "No file");
+
+		auto fsResult = file->fsInfo->FileSetPointer(file->fsPriv, file->fsFile, offset);
+
+		return fsResult;
 	}
 
 	Status FileGetPointer(FS::File* file, u32* offset)
 	{
-		return Status::Undefined;
+		ASSERT(file, "No file");
+
+		auto fsResult = file->fsInfo->FileGetPointer(file->fsPriv, file->fsFile, offset);
+
+		return fsResult;
 	}
 }

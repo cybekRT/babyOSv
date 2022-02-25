@@ -113,6 +113,9 @@ bool DummyPartitionOpen()
 
 bool DummyPartitionClose()
 {
+	std::ofstream f("out_tests/part.img", std::ios::binary);
+	f.write(fBuffer, blockSize * lbaCount);
+	f.close();
 	// bool failed = f.fail();
 
 	// f.close();
