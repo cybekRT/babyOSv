@@ -206,6 +206,21 @@ namespace Container
 			size--;
 		}
 
+		Array<T>& operator=(const Array<T>& arg)
+		{
+			if(objs)
+				delete[] objs;
+
+			capacity = arg.capacity;
+			size = arg.size;
+			objs = (T*)new u8[capacity * sizeof(T)];
+
+			for(unsigned a = 0; a < size; a++)
+				objs[a] = arg.objs[a];
+
+			return *this;
+		}
+
 	private:
 		void Realloc()
 		{
