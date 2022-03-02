@@ -59,6 +59,25 @@ namespace Shell
 		return 0;
 	}
 
+	HANDLER(test, "Test file")
+	{
+		FS::Directory* dir;
+		VFS::DirectoryOpenRoot(&dir);
+		VFS::DirectoryChange(dir, "fdd");
+
+		char tmp[] = "YoLo YoLo YoLo YoLo YoLo";
+
+		FS::File* file;
+		u32 wc;
+		VFS::FileCreate(dir, "yolo.txt");
+		VFS::FileOpen(dir, "yolo.txt", &file);
+		VFS::FileWrite(file, (u8*)tmp, sizeof(tmp), &wc);
+		Print("Written: %d\n", wc);
+		VFS::FileClose(&file);
+
+		return 0;
+	}
+
 	HANDLER(fail, "Crash system")
 	{
 		u8* x = (u8*)0x1234;
@@ -147,6 +166,7 @@ namespace Shell
 		//bd->drv->Lock(bd->dev);
 		while((s = VFS::FileRead(file, buf, bufSize, &readCount)) == Status::Success)
 		{
+			Print("=== read count - %d ===\n", readCount);
 			for(unsigned a = 0; a < readCount; a++)
 			{
 				Print("%c", buf[a]);
