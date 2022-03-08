@@ -244,6 +244,13 @@ TEST_F(FS_ops, FAT_ReadFile)
 	EXPECT_EQ(s, Status::Success);
 	EXPECT_EQ(readCount, bufferSize);
 
+	printf("===== read =====\n");
+	for(unsigned a = 0; a < readCount; a++)
+	{
+		printf("%02x", buffer[a]);
+	}
+	printf("\n===== /read =====\n");
+
 	bool bufferIsOk = true;
 	for(unsigned a = 0; a < bufferSize; a++)
 	{

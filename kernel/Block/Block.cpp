@@ -19,6 +19,7 @@ namespace Block
 		if(lba >= lbaCount)
 		{
 			Print("Try to read LBA %d/%d\n", lba, lbaCount);
+			FAIL("Invalid LBA");
 			return 1;
 		}
 

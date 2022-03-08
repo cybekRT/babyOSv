@@ -25,7 +25,8 @@ namespace FS
 	{
 		u32 rootCluster;
 
-		FAT::Cache* buffer;
+		u32 bufferOffset;
+		FAT::Cache* cache;
 	};
 
 	struct File
@@ -33,8 +34,11 @@ namespace FS
 		u32 rootCluster;
 		u32 parentCluster;
 		u32 parentOffset;
+		bool parentNeedsUpdate;
 
-		FAT::Cache* buffer;
+		u32 totalOffset;
+		u32 totalSize;
+		FAT::Cache* cache;
 	};
 
 	// struct File
@@ -179,44 +183,9 @@ namespace FAT
 		u32 firstRootSector;
 		u32 firstDataSector;
 		u8* fat;
+
+		Container::LinkedList<Cache*> cacheObjects;
 	};
-
-	/*
-	 * Cache
-	 */
-
-	struct Cache
-	{
-		u32 refCount;
-		u32 cluster;
-		bool dirty;
-
-		u32 bufferSize;
-		u8* buffer;
-	};
-
-	Container::LinkedList<Cache*> cacheObjects;
-
-	Cache* GetCache(u32 cluster)
-	{
-		for(auto v : cacheObjects)
-		{
-			if(v->cluster == cluster)
-			{
-				v->refCount++;
-				return v;
-			}
-		}
-
-		if(cluster == 0)
-		{
-			// Read root
-		}
-		else
-		{
-			// Read data
-		}
-	}
 
 	/*
 	 *  Helper functions
@@ -297,6 +266,12 @@ namespace FAT
 	{
 		u32 nextCluster;
 
+		if(cluster < 2)
+		{
+			Print("Invalid cluster in chain... %d\n", cluster);
+			return 0;
+		}
+
 		if(fs->type == Type::FAT12)
 		{
 			u32 fatOffset = cluster + (cluster >> 1);
@@ -306,6 +281,8 @@ namespace FAT
 				nextCluster = nextCluster >> 4;
 			else
 				nextCluster = nextCluster & 0xfff;
+
+			Print("Cluster chain: %d -> %d\n", cluster, nextCluster);
 
 			if(nextCluster >= 0xFF8) // Last one...
 				nextCluster = 0;
@@ -363,7 +340,7 @@ namespace FAT
 
 	bool IsRoot(Directory* dir)
 	{
-		return dir->firstCluster == 0;
+		return dir->rootCluster == 0;
 	}
 
 	bool SetCluster(Info* info, u16 cluster, u16 nextCluster)
@@ -443,6 +420,80 @@ namespace FAT
 	bool IsFreeOrRemoved(FAT16_DirEntry* entry)
 	{
 		return (entry->name[0] == 0 || entry->name[0] == ' ' || entry->name[0] == ENTRY_REMOVED);
+	}
+
+	/*
+	 * Cache
+	 */
+
+	struct Cache
+	{
+		u32 refCount;
+		u32 cluster;
+		bool dirty;
+
+		u32 bufferSize;
+		u8* buffer;
+	};
+
+	Cache* GetCache(Info* info, u32 cluster)
+	{
+		for(auto v : info->cacheObjects)
+		{
+			if(v->cluster == cluster)
+			{
+				v->refCount++;
+				return v;
+			}
+		}
+
+		Cache* cache = new Cache();
+		cache->refCount = 1;
+		cache->cluster = cluster;
+		cache->dirty = 0;
+
+		if(cluster == 0)
+		{
+			// Read root
+			auto sectorsCount = info->bpb->rootEntriesCount * sizeof(FAT16_DirEntry) / 512;
+			u32 sector = GetRootSector(info);
+
+			cache->bufferSize = sectorsCount * 512;
+			cache->buffer = new u8[cache->bufferSize];
+			for(unsigned a = 0; a < sectorsCount; a++)
+				info->part->Read(sector + a, cache->buffer + a * 512);
+		}
+		else
+		{
+			// Read data
+			u32 sector = GetSectorToRead(info, cluster, false);
+
+			cache->bufferSize = 512 * info->bpb->sectorsPerCluster;
+			cache->buffer = new u8[cache->bufferSize];
+			for(unsigned a = 0; a < info->bpb->sectorsPerCluster; a++)
+				info->part->Read(sector + a, cache->buffer + a * 512);
+		}
+
+		info->cacheObjects.PushBack(cache);
+		return cache;
+	}
+
+	void FreeCache(Info* info, Cache* cache)
+	{
+		if(!cache)
+			return;
+
+		cache->refCount--;
+		// TODO: flush and delete
+
+		if(cache->refCount <= 0 && cache->dirty)
+		{
+			u32 sector = GetSectorToRead(info, cache->cluster, cache->cluster == 0);
+			for(unsigned a = 0; a < cache->bufferSize; a+=512)
+			{
+				info->part->Write(sector + a / 512, cache->buffer + a);
+			}
+		}
 	}
 
 	/*
@@ -663,7 +714,8 @@ namespace FAT
 
 		u32 totalSectors = (bpb->totalSectors > 0) ? bpb->totalSectors : bpb->totalSectorsHigh;
 
-		Info* info = (Info*)Memory::Alloc(sizeof(Info));
+		//Info* info = (Info*)Memory::Alloc(sizeof(Info));
+		Info* info = new Info();
 
 		if(totalSectors < 4085)
 			info->type = Type::FAT12;
@@ -709,6 +761,9 @@ namespace FAT
 			return Status::Success;
 
 		Info* info = (Info*)(*fs);
+
+		Print("Unsaved sectors: %d\n", info->cacheObjects.Size());
+
 		Memory::Free(info->bpb);
 		Memory::Free(info->fat);
 		Memory::Free(info);
@@ -740,7 +795,10 @@ namespace FAT
 
 		Info* info = (Info*)fs;
 		u32 bufferSize = info->part->device->drv->BlockSize(info->part->device->drvPriv) * info->bpb->sectorsPerCluster;
-		*dir = new Directory(bufferSize, 0);
+		(*dir) = new Directory;//(bufferSize, 0);
+		(*dir)->rootCluster = 0;
+		(*dir)->bufferOffset = 0;
+		(*dir)->cache = nullptr;
 
 		return Status::Success;
 	}
@@ -750,7 +808,9 @@ namespace FAT
 		if(!fs || !dir || !(*dir))
 			return Status::Undefined;
 
-		(*dir)->Flush((Info*)fs);
+		// (*dir)->Flush((Info*)fs);
+		Info* info = (Info*)fs;
+		FreeCache(info, (*dir)->cache);
 
 		delete (*dir);
 		(*dir) = nullptr;
@@ -762,50 +822,67 @@ namespace FAT
 	{
 		auto part = info->part;
 
-		if(dir->bufferValid)
-			dir->dataOffset += 32;
-
-		if(dir->dataOffset == 0 || dir->dataOffset == 512 * info->bpb->sectorsPerCluster)
+		//if(dir->dataOffset == 0 || dir->dataOffset == 512 * info->bpb->sectorsPerCluster)
+		if(!dir->cache || dir->bufferOffset + sizeof(FAT16_DirEntry) >= dir->cache->bufferSize)
 		{
-			dir->Flush(info);
+			// dir->Flush(info);
 
-			if(dir->dataOffset == 512 * info->bpb->sectorsPerCluster)
+			if(!dir->cache)
 			{
-				if(dir->firstCluster == 0)
-					dir->currentCluster++;
+				dir->cache = GetCache(info, dir->rootCluster);
+			}
+			else //if(dir->bufferOffset + sizeof(FAT16_DirEntry) >= dir->cache->bufferSize)
+			{
+				if(dir->rootCluster == 0)
+					//dir->currentCluster++;
+					return Status::EndOfFile;
 				else
-					dir->currentCluster = NextCluster(info, dir->currentCluster);
+				{
+					u32 nextCluster = NextCluster(info, dir->cache->cluster);
+					if(nextCluster == 0)
+						return Status::EndOfFile;
 
-				dir->dataOffset = 0;
+					FreeCache(info, dir->cache);
+					dir->cache = GetCache(info, nextCluster);
+
+					//dir->currentCluster = NextCluster(info, dir->currentCluster);
+				}
+
+				dir->bufferOffset = 0;
 			}
 
 			// Check if eof of root
-			if(dir->firstCluster == 0 && dir->currentCluster >= (info->bpb->rootEntriesCount * 32 / (512 * info->bpb->sectorsPerCluster)))
-			{
-				dir->bufferValid = 0;
-				return Status::EndOfFile;
-			}
+			// if(dir->firstCluster == 0 && dir->currentCluster >= (info->bpb->rootEntriesCount * 32 / (512 * info->bpb->sectorsPerCluster)))
+			// {
+			// 	dir->bufferValid = 0;
+			// 	return Status::EndOfFile;
+			// }
 			// Check if eof of non-root
-			if(dir->firstCluster != 0 && dir->currentCluster == 0)
-			{
-				dir->bufferValid = 0;
-				return Status::EndOfFile;
-			}
+			// if(dir->firstCluster != 0 && dir->currentCluster == 0)
+			// {
+			// 	dir->bufferValid = 0;
+			// 	return Status::EndOfFile;
+			// }
 
-			u32 firstSector = GetSectorToRead(info, dir->currentCluster, IsRoot(dir));
-			// u32 firstSector = (dir->firstCluster == 0)
-			// 		? (info->firstRootSector + dir->currentCluster * info->bpb->sectorsPerCluster)
-			// 		: (info->firstDataSector + (dir->currentCluster - 2) * info->bpb->sectorsPerCluster);
+			// u32 firstSector = GetSectorToRead(info, dir->currentCluster, IsRoot(dir));
+			// // u32 firstSector = (dir->firstCluster == 0)
+			// // 		? (info->firstRootSector + dir->currentCluster * info->bpb->sectorsPerCluster)
+			// // 		: (info->firstDataSector + (dir->currentCluster - 2) * info->bpb->sectorsPerCluster);
 
-			for(unsigned a = 0; a < info->bpb->sectorsPerCluster; a++)
-			{
-				part->Read(firstSector + a, dir->buffer + 512 * a);
-			}
+			// for(unsigned a = 0; a < info->bpb->sectorsPerCluster; a++)
+			// {
+			// 	part->Read(firstSector + a, dir->buffer + 512 * a);
+			// }
 
-			dir->bufferValid = 1;
+			// dir->bufferValid = 1;
+		}
+		else
+		{
+			// if(dir->cache)
+				dir->bufferOffset += 32;
 		}
 
-		FAT16_DirEntry* fatEntry = (FAT16_DirEntry*)(dir->buffer + dir->dataOffset);
+		FAT16_DirEntry* fatEntry = (FAT16_DirEntry*)(dir->cache->buffer + dir->bufferOffset);
 
 		// printf("_ read dir, cluster: %d, offset: %d\n", dir->currentCluster, dir->dataOffset);
 
@@ -864,15 +941,19 @@ namespace FAT
 		if(!fs)
 			return Status::Undefined;
 
+		Info* info = (Info*)fs;
+
 		// if(dir->currentCluster != dir->firstCluster) // bufferValid must be zeroed
 		// or otherwise, reading directory will skip first entry :(
 		{
-			dir->Flush((Info*)fs);
-			dir->currentCluster = dir->firstCluster;
-			dir->bufferValid = 0;
+			// dir->Flush((Info*)fs);
+			// dir->currentCluster = dir->firstCluster;
+			// dir->bufferValid = 0;
+			FreeCache(info, dir->cache);
+			dir->cache = nullptr;
 		}
 
-		dir->dataOffset = 0;
+		dir->bufferOffset = 0;
 
 		return Status::Success;
 	}
@@ -882,10 +963,9 @@ namespace FAT
 		if(!fs)
 			return Status::Undefined;
 
-		dir->Flush((Info*)fs);
+		// dir->Flush((Info*)fs);
 
-		Print("Changing directory...\n");
-		FAT16_DirEntry* fatEntry = (FAT16_DirEntry*)(dir->buffer + dir->dataOffset);
+		FAT16_DirEntry* fatEntry = (FAT16_DirEntry*)(dir->cache->buffer + dir->bufferOffset);
 
 		if(!(fatEntry->attributes & (u8)Attribute::Directory))
 		{
@@ -893,9 +973,12 @@ namespace FAT
 			return Status::Undefined;
 		}
 
-		dir->firstCluster = dir->currentCluster = fatEntry->cluster;
-		dir->dataOffset = 0;
-		dir->bufferValid = 0;
+		Info* info = (Info*)fs;
+
+		dir->rootCluster = fatEntry->cluster;
+		dir->bufferOffset = 0;
+		FreeCache(info, dir->cache);
+		dir->cache = nullptr;
 
 		return Status::Success;
 	}
@@ -916,7 +999,7 @@ namespace FAT
 			if(IsRoot(dir))
 				return Status::EndOfFile;
 
-			auto currentCluster = dir->firstCluster;
+			auto currentCluster = dir->rootCluster;
 			auto nextCluster = currentCluster;
 
 			do
@@ -927,10 +1010,14 @@ namespace FAT
 
 			AddCluster(info, currentCluster, &nextCluster);
 
-			u32 clusterSize = 512 * info->bpb->sectorsPerCluster;
-			memset(dir->buffer, 0, dir->bufferSize);
-			auto sector = GetSectorToRead(info, nextCluster, false);
-			info->part->Write(sector, (u8*)dir->buffer);
+			FreeCache(info, dir->cache);
+			dir->cache = GetCache(info, nextCluster);
+
+			// u32 clusterSize = 512 * info->bpb->sectorsPerCluster;
+			memset(dir->cache->buffer, 0, dir->cache->bufferSize);
+			dir->cache->dirty = true;
+			// auto sector = GetSectorToRead(info, nextCluster, false);
+			// info->part->Write(sector, (u8*)dir->buffer);
 
 			Print("Directory extended~!\n");
 		}
@@ -956,15 +1043,15 @@ namespace FAT
 			// Timer::Delay(100);
 		} while(s == Status::Success && entry.isValid);
 
-		Print("Adding entry: Cluster: %d, Offset: %d - \"%s\"\n", dir->currentCluster, dir->dataOffset, fatEntryTemplate->name);
+		// Print("Adding entry: Cluster: %d, Offset: %d - \"%s\"\n", dir->currentCluster, dir->dataOffset, fatEntryTemplate->name);
 
-		FAT16_DirEntry* newEntry = (FAT16_DirEntry*)(dir->buffer + dir->dataOffset);
+		FAT16_DirEntry* newEntry = (FAT16_DirEntry*)(dir->cache->buffer + dir->bufferOffset);
 		memcpy(newEntry, fatEntryTemplate, sizeof(*fatEntryTemplate));
 
 		// auto dirLBA = GetSectorToRead(info, dir->currentCluster, IsRoot(dir));
 		// info->part->Write(dirLBA, dir->buffer);
 
-		dir->dirty = true;
+		dir->cache->dirty = true;
 		// DirectoryFlush(fs, dir);
 
 		return Status::Success;
@@ -996,7 +1083,7 @@ namespace FAT
 		parentEntry.size = 0;
 
 		DirectoryAddEntry(info, dir, &parentEntry);
-		dir->Flush(info);
+		// dir->Flush(info);
 
 		// Flush
 		// u32 dirFirstCluster = dir->firstCluster;
@@ -1013,7 +1100,9 @@ namespace FAT
 		// };
 		Directory* newDir;
 		DirectoryOpenRoot(info, &newDir); // TODO: check status
-		newDir->firstCluster = newDir->currentCluster = newDirCluster;
+		newDir->rootCluster = newDirCluster;
+		newDir->bufferOffset = 0;
+		newDir->cache = nullptr;
 
 		FAT16_DirEntry newEntry;
 		newEntry._reserved = 0x4D;
@@ -1030,13 +1119,13 @@ namespace FAT
 		LFNToF83(".", (char*)newEntry.name);
 		newEntry.cluster = newDirCluster;
 		DirectoryAddEntry(info, newDir, &newEntry);
-		newDir->Flush(info);
+		// newDir->Flush(info);
 		// ..
 		LFNToF83("..", (char*)newEntry.name);
-		newEntry.cluster = dir->firstCluster;
+		newEntry.cluster = dir->rootCluster;
 		DirectoryAddEntry(info, newDir, &newEntry);
 
-		newDir->Flush(info);
+		// newDir->Flush(info);
 
 		return Status::Success;
 	}
@@ -1070,7 +1159,7 @@ namespace FAT
 		newEntry.clusterHigh = 0;
 		newEntry.cluster = 0;
 		DirectoryAddEntry(info, dir, &newEntry);
-		dir->Flush(info);
+		// dir->Flush(info);
 
 		return Status::Success;
 	}
@@ -1088,13 +1177,19 @@ namespace FAT
 		if(!fs)
 			return Status::Undefined;
 
-		// printf("# Opening file\n");
-
 		Info* info = (Info*)fs;
 		u32 bufferSize = info->part->device->drv->BlockSize(info->part->device->drvPriv) * info->bpb->sectorsPerCluster;
-		FAT16_DirEntry* fatEntry = (FAT16_DirEntry*)(dir->buffer + dir->dataOffset);
+		FAT16_DirEntry* fatEntry = (FAT16_DirEntry*)(dir->cache->buffer + dir->bufferOffset);
 
-		(*file) = new File(bufferSize, (fatEntry->clusterHigh << 16) | fatEntry->cluster, fatEntry->size, dir->firstCluster);
+		//(*file) = new File(bufferSize, (fatEntry->clusterHigh << 16) | fatEntry->cluster, fatEntry->size, dir->firstCluster);
+
+		(*file) = new File;
+		(*file)->rootCluster = fatEntry->cluster;
+		(*file)->parentCluster = dir->cache->cluster;
+		(*file)->parentOffset = dir->bufferOffset;
+		(*file)->totalOffset = 0;
+		(*file)->totalSize = fatEntry->size;
+		(*file)->cache = nullptr;
 
 		return Status::Success;
 	}
@@ -1105,7 +1200,11 @@ namespace FAT
 			return Status::Undefined;
 
 		Print("# Flushing file\n");
-		(*file)->Flush((Info*)fs);
+		// (*file)->Flush((Info*)fs);
+
+		Info* info = (Info*)fs;
+
+		FreeCache(info, (*file)->cache);
 
 		Print("# Closing file\n");
 		delete (*file);
@@ -1124,33 +1223,43 @@ namespace FAT
 
 		(*readCount) = 0;
 
-		if(file->totalDataOffset >= file->size)
+		if(file->totalOffset >= file->totalSize)
 		{
 			Print("EoF\n");
-			// return Status::EndOfFile;
+			return Status::EndOfFile;
 		}
 
-		if(!file->bufferValid)
+		//if(!file->bufferValid)
+		if(!file->cache || file->totalOffset % file->cache->bufferSize == 0)
 		{
-			if(file->totalDataOffset > 0)
+			if(file->totalOffset > 0)
 			{
-				file->currentCluster = NextCluster(info, file->currentCluster);
+				//file->currentCluster = NextCluster(info, file->currentCluster);
+				u32 nextCluster = NextCluster(info, file->cache->cluster);
 
-				if(file->currentCluster == 0)
+				//if(file->currentCluster == 0)
+				if(nextCluster == 0)
 				{
 					Print("Last cluster\n");
 					return Status::EndOfFile;
 				}
+
+				FreeCache(info, file->cache);
+				file->cache = GetCache(info, nextCluster);
+			}
+			else
+			{
+				file->cache = GetCache(info, file->rootCluster);
 			}
 
-			u32 sector = info->firstDataSector + (file->currentCluster - 2) * info->bpb->sectorsPerCluster;
-			Print("Reading sector: %d (%d)\n", sector, info->bpb->sectorsPerCluster);
-			part->Read(sector, file->buffer);
-			file->bufferValid = 1;
+			// u32 sector = info->firstDataSector + (file->currentCluster - 2) * info->bpb->sectorsPerCluster;
+			// Print("Reading sector: %d (%d)\n", sector, info->bpb->sectorsPerCluster);
+			// part->Read(sector, file->buffer);
+			// file->bufferValid = 1;
 		}
 
 		// If there's need to read more data than in internal buffer, divide to 2 separate calls
-		u32 inBuffer = file->bufferSize - (file->totalDataOffset % file->bufferSize);
+		u32 inBuffer = file->cache->bufferSize - (file->totalOffset % file->cache->bufferSize);
 		if(bufferSize > inBuffer)
 		{
 			Status status;
@@ -1159,7 +1268,7 @@ namespace FAT
 			part->device->drv->Lock(part->device->drvPriv);
 			for(unsigned a = 0; a < bufferSize; )
 			{
-				u32 curSize = (bufferSize - (*readCount) > file->bufferSize ? file->bufferSize : bufferSize - (*readCount));
+				u32 curSize = (bufferSize - (*readCount) > file->cache->bufferSize ? file->cache->bufferSize : bufferSize - (*readCount));
 
 				status = FileRead(fs, file, buffer + (*readCount), curSize, &subread);
 				Print("Read: %u\n", subread);
@@ -1178,20 +1287,20 @@ namespace FAT
 		}
 
 		// Otherwise, read from internal buffer
-		u32 offset = (file->totalDataOffset % file->bufferSize);
+		u32 offset = (file->totalOffset % file->cache->bufferSize);
 		for(unsigned a = 0; a < bufferSize; a++)
 		{
 			// if(file->totalDataOffset >= file->size)
 			// 	break;
 
-			buffer[a] = file->buffer[offset + a];
+			buffer[a] = file->cache->buffer[offset + a];
 
-			file->totalDataOffset++;
+			file->totalOffset++;
 			(*readCount)++;
 		}
 
-		if(file->totalDataOffset % file->bufferSize == 0)
-			file->bufferValid = 0;
+		// if(file->totalOffset % file->cache->bufferSize == 0)
+		// 	file->bufferValid = 0;
 
 		if((*readCount) == 0)
 		{
@@ -1204,23 +1313,46 @@ namespace FAT
 
 	void FilePutByte(Info* info, File* file, u8 byte)
 	{
-		file->dirty = true;
+		// file->dirty = true;
 
-		Print("#   put byte: \"%x\" - %d %d\n", byte, file->currentCluster, file->totalDataOffset);
+		// Print("#   put byte: \"%x\" - %d %d\n", byte, file->currentCluster, file->totalDataOffset);
 
-		if((file->totalDataOffset > 0 && file->totalDataOffset % file->bufferSize == 0) || !file->bufferValid)
+		if(!file->cache)
 		{
-			Print("#  ReadNextCluster: %d - %d,%d\n", file->totalDataOffset, file->firstCluster, file->currentCluster);
-			file->ReadNextCluster(info, true);
+			if(file->rootCluster == 0)
+			{
+				u32 nextCluster;
+				AddCluster(info, 0, &nextCluster);
+
+				file->rootCluster = nextCluster;
+				file->cache = GetCache(info, file->rootCluster);
+				memset(file->cache->buffer, 0, file->cache->bufferSize);
+			}
+			else
+			{
+				file->cache = GetCache(info, file->rootCluster);
+			}
+		}
+		else if(file->totalOffset > 0 && file->totalOffset % file->cache->bufferSize == 0)
+		{
+			// Print("#  ReadNextCluster: %d - %d,%d\n", file->totalDataOffset, file->firstCluster, file->currentCluster);
+			u32 nextCluster = GetNextCluster(info, file->cache->cluster);
+			if(nextCluster == 0)
+			{
+				AddCluster(info, file->cache->cluster, &nextCluster);
+			}
+
+			FreeCache(info, file->cache);
+			file->cache = GetCache(info, nextCluster);
 		}
 
-		file->buffer[file->totalDataOffset % file->bufferSize] = byte;
-		file->totalDataOffset++;
+		file->cache->buffer[file->totalOffset % file->cache->bufferSize] = byte;
+		file->totalOffset++;
 
-		if(file->totalDataOffset > file->size)
+		if(file->totalOffset > file->totalSize)
 		{
-			file->sizeDirty = true;
-			file->size = file->totalDataOffset;
+			file->parentNeedsUpdate = true;
+			file->totalSize = file->totalOffset;
 		}
 	}
 
@@ -1291,125 +1423,125 @@ namespace FAT
 	}
 }
 
-Status FS::File::Flush(FAT::Info* info)
-{
-	if(sizeDirty)
-	{
-		// Update dir entry
-		FS::DirEntry entry;
-		Directory* dir = new Directory(512, directoryCluster);
-		while(FAT::DirectoryReadInternal(info, dir, &entry) == Status::Success)
-		{
-			FAT::FAT16_DirEntry* fatEntry = (FAT::FAT16_DirEntry*)(dir->buffer + dir->dataOffset);
+// Status FS::File::Flush(FAT::Info* info)
+// {
+// 	if(sizeDirty)
+// 	{
+// 		// Update dir entry
+// 		FS::DirEntry entry;
+// 		Directory* dir = new Directory(512, directoryCluster);
+// 		while(FAT::DirectoryReadInternal(info, dir, &entry) == Status::Success)
+// 		{
+// 			FAT::FAT16_DirEntry* fatEntry = (FAT::FAT16_DirEntry*)(dir->buffer + dir->dataOffset);
 
-			if(fatEntry->cluster == this->firstCluster || (this->firstCluster == 0 && strcmp()))
-			{
-				Print("Found entry to update size~!\n");
-				fatEntry->size = this->size;
-				dir->dirty = true;
-				break;
-			}
-			else if(fatEntry->cluster != 0)
-				Print("- %d ?= %d - %s\n", fatEntry->cluster, this->firstCluster, entry.name);
-		}
+// 			if(fatEntry->cluster == this->firstCluster || (this->firstCluster == 0 && strcmp()))
+// 			{
+// 				Print("Found entry to update size~!\n");
+// 				fatEntry->size = this->size;
+// 				dir->dirty = true;
+// 				break;
+// 			}
+// 			else if(fatEntry->cluster != 0)
+// 				Print("- %d ?= %d - %s\n", fatEntry->cluster, this->firstCluster, entry.name);
+// 		}
 
-		Print("Updated size: %d\n", this->size);
-		dir->Flush(info);
-		sizeDirty = false;
-	}
+// 		Print("Updated size: %d\n", this->size);
+// 		dir->Flush(info);
+// 		sizeDirty = false;
+// 	}
 
-	if(!dirty || !bufferValid)
-		return Status::Success;
+// 	if(!dirty || !bufferValid)
+// 		return Status::Success;
 
-	u32 sector = FAT::GetSectorToRead(info, currentCluster, false);
+// 	u32 sector = FAT::GetSectorToRead(info, currentCluster, false);
 
-	if(sector >= info->part->lbaCount)
-	{
-		Print("Invalid sector (%d) for cluster %d\n", sector, currentCluster);
-		return Status::EndOfFile;
-	}
+// 	if(sector >= info->part->lbaCount)
+// 	{
+// 		Print("Invalid sector (%d) for cluster %d\n", sector, currentCluster);
+// 		return Status::EndOfFile;
+// 	}
 
-	Print("Sector: %d\n", sector);
+// 	Print("Sector: %d\n", sector);
 
-	for(unsigned a = 0; a < info->bpb->sectorsPerCluster; a++)
-	{
-		info->part->Write(sector + a, buffer + 512 * a);
-	}
+// 	for(unsigned a = 0; a < info->bpb->sectorsPerCluster; a++)
+// 	{
+// 		info->part->Write(sector + a, buffer + 512 * a);
+// 	}
 
-	dirty = false;
+// 	dirty = false;
 
-	return Status::Success;
-}
+// 	return Status::Success;
+// }
 
-Status FS::File::ReadNextCluster(FAT::Info* info, bool resizeIfNeeded)
-{
-	if(Flush(info) != Status::Success)
-		return Status::IOError;
+// Status FS::File::ReadNextCluster(FAT::Info* info, bool resizeIfNeeded)
+// {
+// 	if(Flush(info) != Status::Success)
+// 		return Status::IOError;
 
-	if(bufferValid)
-	{
-		u32 nextCluster = FAT::GetNextCluster(info, currentCluster);
+// 	if(bufferValid)
+// 	{
+// 		u32 nextCluster = FAT::GetNextCluster(info, currentCluster);
 
-		if(nextCluster == CLUSTER_LAST)
-		{
-			if(!resizeIfNeeded)
-				return Status::EndOfFile;
-			else
-			{
-				if(FAT::AddCluster(info, currentCluster, &nextCluster) != Status::Success)
-					return Status::Undefined;
+// 		if(nextCluster == CLUSTER_LAST)
+// 		{
+// 			if(!resizeIfNeeded)
+// 				return Status::EndOfFile;
+// 			else
+// 			{
+// 				if(FAT::AddCluster(info, currentCluster, &nextCluster) != Status::Success)
+// 					return Status::Undefined;
 
-				char tmp[512] = { 0 };
-				u32 sector = FAT::GetSectorToRead(info, nextCluster, false);
-				for(unsigned a = 0; a < info->bpb->sectorsPerCluster; a++)
-					info->part->Write(sector + a, (u8*)tmp);
-			}
-		}
+// 				char tmp[512] = { 0 };
+// 				u32 sector = FAT::GetSectorToRead(info, nextCluster, false);
+// 				for(unsigned a = 0; a < info->bpb->sectorsPerCluster; a++)
+// 					info->part->Write(sector + a, (u8*)tmp);
+// 			}
+// 		}
 
-		totalDataOffset += bufferSize;
-		totalDataOffset -= totalDataOffset % bufferSize;
+// 		totalDataOffset += bufferSize;
+// 		totalDataOffset -= totalDataOffset % bufferSize;
 
-		currentCluster = nextCluster;
-	}
-	else
-	{
-		if(firstCluster == 0)
-		{
-			if(FAT::AddCluster(info, 0, &firstCluster) != Status::Success)
-				return Status::Undefined;
+// 		currentCluster = nextCluster;
+// 	}
+// 	else
+// 	{
+// 		if(firstCluster == 0)
+// 		{
+// 			if(FAT::AddCluster(info, 0, &firstCluster) != Status::Success)
+// 				return Status::Undefined;
 
-			char tmp[512] = { 0 };
-			u32 sector = FAT::GetSectorToRead(info, firstCluster, false);
-			for(unsigned a = 0; a < info->bpb->sectorsPerCluster; a++)
-				info->part->Write(sector + a, (u8*)tmp);
+// 			char tmp[512] = { 0 };
+// 			u32 sector = FAT::GetSectorToRead(info, firstCluster, false);
+// 			for(unsigned a = 0; a < info->bpb->sectorsPerCluster; a++)
+// 				info->part->Write(sector + a, (u8*)tmp);
 
-			currentCluster = firstCluster;
-		}
-	}
+// 			currentCluster = firstCluster;
+// 		}
+// 	}
 
-	u32 sector = FAT::GetSectorToRead(info, currentCluster, false);
-	for(unsigned a = 0; a < info->bpb->sectorsPerCluster; a++)
-		info->part->Read(sector + a, buffer + 512 * a);
+// 	u32 sector = FAT::GetSectorToRead(info, currentCluster, false);
+// 	for(unsigned a = 0; a < info->bpb->sectorsPerCluster; a++)
+// 		info->part->Read(sector + a, buffer + 512 * a);
 
-	bufferValid = true;
+// 	bufferValid = true;
 
-	return Status::Success;
-}
+// 	return Status::Success;
+// }
 
-Status FS::File::ReadAtOffset(FAT::Info* info, u32 newTotalOffset, bool resizeIfNeeded)
-{
-	if(Flush(info) != Status::Success)
-		return Status::IOError;
-}
+// Status FS::File::ReadAtOffset(FAT::Info* info, u32 newTotalOffset, bool resizeIfNeeded)
+// {
+// 	if(Flush(info) != Status::Success)
+// 		return Status::IOError;
+// }
 
-Status FS::Directory::Flush(FAT::Info* info)
-{
-	if(!dirty)
-		return Status::Success;
+// Status FS::Directory::Flush(FAT::Info* info)
+// {
+// 	if(!dirty)
+// 		return Status::Success;
 
-	auto sector = GetSectorToRead(info, currentCluster, FAT::IsRoot(this));
-	for(unsigned a = 0; a < info->bpb->sectorsPerCluster; a++)
-		info->part->Write(sector + a, buffer + 512 * a);
+// 	auto sector = GetSectorToRead(info, currentCluster, FAT::IsRoot(this));
+// 	for(unsigned a = 0; a < info->bpb->sectorsPerCluster; a++)
+// 		info->part->Write(sector + a, buffer + 512 * a);
 
-	dirty = false;
-}
+// 	dirty = false;
+// }
