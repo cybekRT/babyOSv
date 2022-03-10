@@ -209,6 +209,7 @@ TEST_F(FS_ops, FAT_WriteFile)
 	u32 writtenCount = 0;;
 	s = fs->FileWrite(fsPriv, file, (u8*)buffer, bufferSize, &writtenCount);
 	EXPECT_EQ(s, Status::Success);
+	EXPECT_EQ(writtenCount, bufferSize);
 
 	s = fs->FileClose(fsPriv, &file);
 	EXPECT_EQ(s, Status::Success);
