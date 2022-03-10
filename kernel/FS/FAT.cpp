@@ -19,8 +19,6 @@ namespace FAT
 
 namespace FS
 {
-	// struct Cache;
-
 	struct Directory
 	{
 		u32 rootCluster;
@@ -40,59 +38,6 @@ namespace FS
 		u32 totalSize;
 		FAT::Cache* cache;
 	};
-
-	// struct File
-	// {
-	// 	bool dirty;
-	// 	u32 firstCluster;
-	// 	u32 currentCluster;
-	// 	u32 totalDataOffset; // Total data offset, not position in buffer
-	// 	u32 size;
-	// 	bool sizeDirty; // TODO update file entry
-	// 	u8 bufferValid;
-	// 	u32 bufferSize;
-	// 	u8* buffer;
-	// 	u32 directoryCluster;
-
-	// 	File(u32 bufferSize, u32 firstCluster, u32 size, u32 dirClust) : dirty(false),
-	// 		firstCluster(firstCluster), currentCluster(firstCluster), totalDataOffset(0),
-	// 		size(size), bufferValid(false), bufferSize(bufferSize), directoryCluster(dirClust)
-	// 	{
-	// 		buffer = new u8[bufferSize];
-	// 	}
-
-	// 	~File()
-	// 	{
-	// 		delete[] buffer;
-	// 	}
-
-	// 	Status Flush(FAT::Info* info);
-	// 	Status ReadNextCluster(FAT::Info* info, bool resizeIfNeeded);
-	// 	Status ReadAtOffset(FAT::Info* info, u32 newTotalOffset, bool resizeIfNeeded);
-	// };
-
-	// struct Directory
-	// {
-	// 	bool dirty;
-	// 	u32 firstCluster;
-	// 	u32 currentCluster;
-	// 	u32 dataOffset;
-	// 	u8 bufferValid;
-	// 	u32 bufferSize;
-	// 	u8* buffer;
-
-	// 	Directory(u32 bufferSize, u32 firstCluster) : dirty(false), firstCluster(firstCluster), currentCluster(firstCluster), dataOffset(0), bufferValid(false), bufferSize(bufferSize)
-	// 	{
-	// 		buffer = new u8[bufferSize];
-	// 	}
-
-	// 	~Directory()
-	// 	{
-	// 		delete[] buffer;
-	// 	}
-
-	// 	Status Flush(FAT::Info* info);
-	// };
 }
 
 namespace FAT
@@ -262,7 +207,7 @@ namespace FAT
 		}
 	}
 
-	u32 NextCluster(Info* fs, u16 cluster)
+	u32 GetNextCluster(Info* fs, u16 cluster)
 	{
 		u32 nextCluster;
 
@@ -294,8 +239,9 @@ namespace FAT
 			if(nextCluster >= 0xFFF8) // Last one...
 				nextCluster = 0;
 		}
-		else
+		else // FAT32
 		{
+			Print("No FAT32 support yet...");
 			nextCluster = 0;
 		}
 
@@ -322,27 +268,6 @@ namespace FAT
 			sectorToRead += bpb->rootEntriesCount * sizeof(FAT16_DirEntry) / bpb->bytesPerSector - 2;
 
 		return sectorToRead;
-	}
-
-	u16 GetNextCluster(Info* info, u16 cluster)
-	{
-		if(cluster >= CLUSTER_LAST)
-			return 0;//CLUSTER_LAST;
-
-		u32 nextCluster;
-
-		u16 offset = cluster + (cluster >> 1);
-		u16 value = *(u16*)(info->fat + offset);
-
-		if(cluster & 0x0001)
-			nextCluster = value >> 4;
-		else
-			nextCluster = value & (u16)0x0FFF;
-
-		if(nextCluster >= CLUSTER_LAST)
-			return 0;
-
-		return nextCluster;
 	}
 
 	bool IsRoot(Directory* dir)
@@ -455,6 +380,7 @@ namespace FAT
 			}
 		}
 
+		// TODO: mutex
 		Cache* cache = new Cache();
 		cache->refCount = 1;
 		cache->cluster = cluster;
@@ -492,7 +418,7 @@ namespace FAT
 			return;
 
 		cache->refCount--;
-		// TODO: flush and delete
+		// TODO: mutex
 
 		if(cache->refCount <= 0 && cache->dirty)
 		{
@@ -553,7 +479,6 @@ namespace FAT
 	Status FormatFAT(Block::BlockPartition* part, BPB* bpb, Parameters* p)
 	{
 		char tmp_fat[512] = { 0 };
-		//memset(h->fat, 0, bpb->sectorsPerFat * bpb->bytesPerSector);
 		tmp_fat[0] = tmp_fat[1] = tmp_fat[2] = 0xFF; // mark as reserved
 		tmp_fat[0] = 0xF0;
 
@@ -563,8 +488,6 @@ namespace FAT
 		memset(tmp_fat, 0, 512);
 		for(unsigned a = 1; a <  bpb->sectorsPerFat; a++)
 			part->Write(fat_sector + a, (u8*)tmp_fat);
-
-		//memset(h->fatDirty, 1, p->sectorsPerCluster);
 
 		return Status::Success;
 	}
@@ -576,9 +499,7 @@ namespace FAT
 
 		Info info;
 		info.bpb = bpb;
-		//memcpy(&info.bpb, bpb, sizeof(*bpb));
 
-		//unsigned rootSector = (p->reservedSectors + p->hiddenSectors) + (p->fatsCount * p->sectorsPerFat);
 		unsigned rootSector = GetRootSector(&info);
 		unsigned rootSectorsCount = p->rootEntriesCount * sizeof(FAT16_DirEntry) / p->bytesPerSector;
 
@@ -622,18 +543,10 @@ namespace FAT
 		if(!x.label || strlen(x.label) == 0)
 			x.label = "baby-cFS";
 
-		//p->reservedSectors++;
-
-		//auto usableSectors = p->totalSectors - p->reservedSectors - (p->rootEntriesCount * sizeof(DirectoryEntry) / 512);
-		//auto fatSize =
-
-		//auto bpb = info->bpb;
 		BPB bpb;
 		memset(&bpb, 0xcc, sizeof(BPB));
 
 		// Init BPB
-
-		//memcpy(&bpb._unused, "\xeb\x3c\x90", 3);
 		memcpy(&bpb._unused1, "\xeb\xfe\x90", 3);
 
 		memcpy(bpb.oem, "MSDOS5.0", 8);
@@ -647,7 +560,6 @@ namespace FAT
 
 		unsigned totalUsableSectors = bpb.totalSectors - bpb.reservedSectors - (bpb.rootEntriesCount * sizeof(FAT16_DirEntry) / x.bytesPerSector);
 
-		//bpb.sectorsPerFat = std::ceil((3 * totalUsableSectors) / (6 + (1024.0 * bpb.sectorsPerCluster))); // FIXME
 		int dividend = (3 * totalUsableSectors);
 		int divisor = (6 + (1024 * bpb.sectorsPerCluster));
 		bpb.sectorsPerFat = (dividend + divisor - 1) / divisor;
@@ -662,8 +574,7 @@ namespace FAT
 		bpb._unused2 = 0;
 		bpb.signature = 0x29; // TODO
 
-		*(u32*)&bpb.volumeId = 0x6F4C6F59; //0x596F4C6F;
-		//memcpy(bpb.label, FAT12::Filename(p->label).value, 11);
+		*(u32*)&bpb.volumeId = 0x6F4C6F59;
 
 		memset(bpb.label, ' ', 11);
 		memcpy(bpb.label, x.label, strlen(x.label));
@@ -704,7 +615,6 @@ namespace FAT
 		//bd->drv->Lock(bd->drvPriv);
 
 		BPB* bpb = (BPB*)Memory::Alloc(sizeof(BPB));
-		//bd->drv->Read(bd->drvPriv, 0, (u8*)bpb);
 		part->Read(0, (u8*)bpb);
 
 		Print("Sectors per FAT: %d\n", bpb->sectorsPerFat);
@@ -715,7 +625,6 @@ namespace FAT
 		u8* fat = (u8*)Memory::Alloc(fatSize);
 		for(unsigned a = 0; a < bpb->sectorsPerFat; a++)
 		{
-			//bd->drv->Read(bd->drvPriv, bpb->reservedSectors + bpb->hiddenSectors + a, fat + (a * 512));
 			part->Read(bpb->reservedSectors /*+ bpb->hiddenSectors*/ + a, fat + (a * 512));
 		}
 		Print("Done!\n");
@@ -846,7 +755,7 @@ namespace FAT
 					return Status::EndOfFile;
 				else
 				{
-					u32 nextCluster = NextCluster(info, dir->cache->cluster);
+					u32 nextCluster = GetNextCluster(info, dir->cache->cluster);
 					if(nextCluster == 0)
 						return Status::EndOfFile;
 
@@ -1243,7 +1152,7 @@ namespace FAT
 			if(file->totalOffset > 0)
 			{
 				//file->currentCluster = NextCluster(info, file->currentCluster);
-				u32 nextCluster = NextCluster(info, file->cache->cluster);
+				u32 nextCluster = GetNextCluster(info, file->cache->cluster);
 
 				//if(file->currentCluster == 0)
 				if(nextCluster == 0)
