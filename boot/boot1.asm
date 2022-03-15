@@ -80,10 +80,11 @@ ExecuteBoot2:
 	jmp	0x0:BOOT2_ADDR
 
 Fail:
-	mov	bx, 0xb800
-	mov	es, bx
-	mov	bx, 0
-	mov	byte [es:bx + 0], 'F'
+	xchg bx, bx
+	;mov	bx, 0xb800
+	;mov	es, bx
+	;mov	bx, 0
+	;mov	byte [es:bx + 0], 'F'
 
 	; Boot other device...
 	int	0x18

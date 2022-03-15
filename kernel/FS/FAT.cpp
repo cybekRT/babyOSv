@@ -412,6 +412,21 @@ namespace FAT
 		return cache;
 	}
 
+	void FlushCache(Info* info, Cache* cache)
+	{
+		if(cache->dirty)
+		{
+			u32 sector = GetSectorToRead(info, cache->cluster, cache->cluster == 0);
+			Print("Updating sector: %d\n", sector);
+			for(unsigned a = 0; a < cache->bufferSize; a += 512)
+			{
+				info->part->Write(sector + a / 512, cache->buffer + a);
+			}
+
+			cache->dirty = false;
+		}
+	}
+
 	void FreeCache(Info* info, Cache* cache)
 	{
 		if(!cache)
@@ -422,11 +437,7 @@ namespace FAT
 
 		if(cache->refCount <= 0 && cache->dirty)
 		{
-			u32 sector = GetSectorToRead(info, cache->cluster, cache->cluster == 0);
-			for(unsigned a = 0; a < cache->bufferSize; a+=512)
-			{
-				info->part->Write(sector + a / 512, cache->buffer + a);
-			}
+			FlushCache(info, cache);
 		}
 	}
 
@@ -686,6 +697,18 @@ namespace FAT
 		Memory::Free(info);
 
 		(*fs) = nullptr;
+		return Status::Success;
+	}
+
+	Status Flush(void* fs)
+	{
+		Info* info = (Info*)fs;
+
+		for(auto itr : info->cacheObjects)
+		{
+			FlushCache(info, itr);
+		}
+
 		return Status::Success;
 	}
 
@@ -1346,6 +1369,7 @@ namespace FAT
 		.Format = Format,
 		.Mount = Mount,
 		.Unmount = Unmount,
+		.Flush = Flush,
 		.LabelGet = LabelGet,
 		.LabelSet = LabelSet,
 		.DirectoryOpenRoot = DirectoryOpenRoot,

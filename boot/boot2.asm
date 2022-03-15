@@ -187,7 +187,7 @@ main32:
 	or	ebx, (PAGE_DIRECTORY_FLAG_PRESENT | PAGE_DIRECTORY_FLAG_READ_WRITE | PAGE_DIRECTORY_FLAG_SUPERVISOR | PAGE_DIRECTORY_FLAG_PAGE_4K)
 	mov	[eax + 4 *    0], ebx ; 0x00000000
 	mov	[eax + 4 *  512], ebx ; 0x80000000
-	
+
 	; Recursive mapping
 	mov	ebx, PageDirectory
 	and	ebx, ~0xFFF

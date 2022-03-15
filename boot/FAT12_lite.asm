@@ -165,6 +165,7 @@ ReadSector:
 	mov	dl, [cs:BPB_LOC + BPB_t.driveNumber]
 	pop	bx
 
+	xchg bx, bx
 	int	13h
 	jc	Fail
 	ret

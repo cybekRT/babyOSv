@@ -274,6 +274,8 @@ namespace Shell
 		{
 			if(printPrompt)
 			{
+				VFS::Flush();
+
 				VFS::DirectoryGetPath(dir, dirPath);
 				char tmp[Path::MaxLength];
 				dirPath.ToString(tmp);

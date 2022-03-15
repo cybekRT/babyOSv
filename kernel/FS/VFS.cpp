@@ -98,6 +98,16 @@ namespace VFS
 		return Status::Undefined;
 	}
 
+	Status Flush()
+	{
+		for(auto itr : mountPoints)
+		{
+			itr.fsInfo->Flush(itr.fsPriv);
+		}
+
+		return Status::Success;
+	}
+
 	Status DirectoryOpenRoot(FS::Directory** dir)
 	{
 		ASSERT(dir, "Invalid pointer to dir");

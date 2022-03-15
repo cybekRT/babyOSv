@@ -9,6 +9,7 @@ namespace VFS
 
 	Status Mount(char* partName, char* mountPoint, char* fsType = nullptr);
 	Status Unmount(char* mountPoint);
+	Status Flush();
 
 	Status DirectoryOpenRoot(FS::Directory** dir);
 	Status DirectoryClose(FS::Directory** dir);

@@ -31,6 +31,7 @@ namespace FS
 
 		Status (*Mount)(Block::BlockPartition* part, void** fs);
 		Status (*Unmount)(Block::BlockPartition* part, void** fs);
+		Status (*Flush)(void* fs);
 
 		Status (*LabelGet)(void* fs, char* buffer, u32* bufferSize);
 		Status (*LabelSet)(void* fs, char* buffer);
