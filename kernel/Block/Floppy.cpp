@@ -416,6 +416,14 @@ namespace Floppy
 
 	u8 Write(void* dev, u32 lba, u8* buffer)
 	{
+		if(lba == 32)
+		{
+			Print("oopsie...");
+			//return 1;
+		}
+
+		Print("Writing LBA %d to fdd\n", lba);
+
 		u8* dst = (u8*)dmaLogic;
 		u8* src = (u8*)buffer;
 		for(unsigned a = 0; a < 512; a++)

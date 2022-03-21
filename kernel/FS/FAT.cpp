@@ -417,7 +417,7 @@ namespace FAT
 		if(cache->dirty)
 		{
 			u32 sector = GetSectorToRead(info, cache->cluster, cache->cluster == 0);
-			Print("Updating sector: %d\n", sector);
+			Print("Updating sector: %d - %d\n", sector, cache->bufferSize);
 			for(unsigned a = 0; a < cache->bufferSize; a += 512)
 			{
 				info->part->Write(sector + a / 512, cache->buffer + a);
