@@ -155,7 +155,9 @@ Memory_Init:
 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 GDT_data:
+; Null entry
 dq 0
+; Ring 0 - code
 istruc GDT
 	at GDT.limit_0_15, dw 0xffff
 	at GDT.base_0_15, dw 0
@@ -164,12 +166,30 @@ istruc GDT
 	at GDT.limit_16_19_attributes, db 0xF | (GDT_ATTRIBUTE_32BIT_SIZE | GDT_ATTRIBUTE_GRANULARITY)
 	at GDT.base_24_31, db 0
 iend
-
+; Ring 0 - data
 istruc GDT
 	at GDT.limit_0_15, dw 0xffff
 	at GDT.base_0_15, dw 0
 	at GDT.base_16_23, db 0
 	at GDT.flags, db (GDT_FLAG_DATA_WRITE | GDT_FLAG_SEG_DATA | GDT_FLAG_SEG_CODE_OR_DATA | GDT_FLAG_RING_0 | GDT_FLAG_ENTRY_PRESENT)
+	at GDT.limit_16_19_attributes, db 0xF | (GDT_ATTRIBUTE_32BIT_SIZE | GDT_ATTRIBUTE_GRANULARITY)
+	at GDT.base_24_31, db 0
+iend
+; Ring 3 - code
+istruc GDT
+	at GDT.limit_0_15, dw 0xffff
+	at GDT.base_0_15, dw 0
+	at GDT.base_16_23, db 0
+	at GDT.flags, db (GDT_FLAG_CODE_READ | GDT_FLAG_SEG_CODE | GDT_FLAG_SEG_CODE_OR_DATA | GDT_FLAG_RING_3 | GDT_FLAG_ENTRY_PRESENT)
+	at GDT.limit_16_19_attributes, db 0xF | (GDT_ATTRIBUTE_32BIT_SIZE | GDT_ATTRIBUTE_GRANULARITY)
+	at GDT.base_24_31, db 0
+iend
+; Ring 3 - data
+istruc GDT
+	at GDT.limit_0_15, dw 0xffff
+	at GDT.base_0_15, dw 0
+	at GDT.base_16_23, db 0
+	at GDT.flags, db (GDT_FLAG_DATA_WRITE | GDT_FLAG_SEG_DATA | GDT_FLAG_SEG_CODE_OR_DATA | GDT_FLAG_RING_3 | GDT_FLAG_ENTRY_PRESENT)
 	at GDT.limit_16_19_attributes, db 0xF | (GDT_ATTRIBUTE_32BIT_SIZE | GDT_ATTRIBUTE_GRANULARITY)
 	at GDT.base_24_31, db 0
 iend
