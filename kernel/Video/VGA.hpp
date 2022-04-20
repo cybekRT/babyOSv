@@ -2,7 +2,8 @@
 
 #include"HAL.hpp"
 
-#define RGB(r, g, b) (( r & 0b11100000 ) | (( g & 0b11000000 ) >> 3) | (( b & 0b11100000 ) >> 5))
+#define RGB2VGA(r, g, b) (( r & 0b11100000 ) | (( g & 0b11000000 ) >> 3) | (( b & 0b11100000 ) >> 5))
+#define VGA2RGB(v) { (v & 0b11100000), ((v & 0b00011000) << 3), ((v & 0b111) << 5) }
 
 namespace VGA
 {

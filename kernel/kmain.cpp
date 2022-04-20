@@ -19,6 +19,8 @@
 #include"Mutex.hpp"
 #include"Shell.hpp"
 #include"Video/VGA.hpp"
+#include"Video/Video.hpp"
+#include"Video/Video_VGA.hpp"
 
 Mutex m;
 int YoLo(void*)
@@ -227,6 +229,25 @@ extern "C" void kmain()
 		for(;;);
 	}
 #endif
+
+{
+	Video::SetDriver(&Video::vgaDriver);
+
+	Container::LinkedList<Video::Mode> modes;
+	Video::GetAvailableModes(modes);
+
+	Print("Available modes:\n");
+	for(auto mode : modes)
+	{
+		Print("- [%c] %dx%d %dbpp\n", (mode.type == Video::Mode::Type::Graphical) ? 'G' : 'T', mode.width, mode.height, mode.bpp);
+	}
+
+	Video::SetMode(modes.Back());
+	Video::Clear();
+
+	Video::DrawRect(Video::Rect(10, 10, 180, 50), Video::Color(255, 0, 0));
+	Video::DrawRect(Video::Rect(40, 30, 180, 20), Video::Color(0, 255, 0, 128));
+}
 
 #if 1
 	// Thread::Thread* fakeKbdThread;
