@@ -52,7 +52,7 @@ namespace Terminal
 		{
 			cursorY++;
 			cursorX = 0;
-			
+
 			handled = true;
 		}
 		else if(c == '\b')
@@ -131,7 +131,7 @@ namespace Terminal
 
 	static u32 PrintInternal(const char *fmt, va_list args)
 	{
-		__asm("pushf\ncli");
+		// __asm("pushf\ncli");
 		u32 len = 0;
 
 		bool isFormat = false;
@@ -149,7 +149,7 @@ namespace Terminal
 				{
 					len += PutChar(c);
 				}
-				
+
 			}
 			else if(isFormat)
 			{
@@ -203,7 +203,7 @@ namespace Terminal
 							*buf++ = "0123456789"[v % 10];
 							v /= 10;
 						} while(v > 0);
-						
+
 						buf--;
 
 						do
@@ -232,11 +232,11 @@ namespace Terminal
 			{
 				len += PutChar(*fmt);
 			}
-			
+
 			fmt++;
 		}
 
-		__asm("popf");
+		// __asm("popf");
 		return len;
 	}
 

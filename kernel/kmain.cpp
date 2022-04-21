@@ -22,6 +22,55 @@
 #include"Video/Video.hpp"
 #include"Video/Video_VGA.hpp"
 
+void TestFuncBody()
+{
+	u8* p = (u8*)0x800a0000;
+	u8 r = 0, g = 0, b = 0;
+	for(;;)
+	{
+		for(unsigned a = 0; a < 320*200; a++)
+			//p[a] = c;
+			Video::SetPixel(a % 320, a / 320, Video::Color(r, g, b));
+
+		//c++;
+		r+=32;
+		if(r == 0)
+		{
+			g+=32;
+			if(g == b)
+				b+=32;
+		}
+
+		Video::DrawRect(Video::Rect(10, 10, 180, 50), Video::Color(255, 0, 0));
+		Video::DrawRect(Video::Rect(40, 30, 180, 20), Video::Color(0, 255, 0, 128));
+
+		for(volatile unsigned a = 0; a < 100000; a++)
+		{
+			__asm("int $255");
+		}
+	}
+}
+
+void TestFunc()
+{
+	__asm(
+		"mov $(4*8 | 3), %%ax \r\n"
+		"mov %%ax, %%ds \r\n"
+		"mov %%ax, %%es \r\n"
+		"mov %%ax, %%fs \r\n"
+		"mov %%ax, %%gs \r\n"
+		"mov %%esp, %%eax \r\n"
+		"push $(4*8 | 3) \r\n"
+		"push %%eax \r\n"
+		"pushf \r\n"
+		"push $(3*8 | 3) \r\n"
+		"push $%0 \r\n"
+		"xchg %%bx, %%bx \r\n"
+		"iret \r\n"
+		: : "m"(TestFuncBody)
+	);
+}
+
 Mutex m;
 int YoLo(void*)
 {
@@ -245,8 +294,10 @@ extern "C" void kmain()
 	Video::SetMode(modes.Back());
 	Video::Clear();
 
-	Video::DrawRect(Video::Rect(10, 10, 180, 50), Video::Color(255, 0, 0));
-	Video::DrawRect(Video::Rect(40, 30, 180, 20), Video::Color(0, 255, 0, 128));
+	TestFunc();
+
+	// Video::DrawRect(Video::Rect(10, 10, 180, 50), Video::Color(255, 0, 0));
+	// Video::DrawRect(Video::Rect(40, 30, 180, 20), Video::Color(0, 255, 0, 128));
 }
 
 #if 1

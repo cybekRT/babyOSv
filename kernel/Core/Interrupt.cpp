@@ -310,6 +310,7 @@ namespace Interrupt
 
 		idt->entries[index].SetAddress(isr);
 		idt->entries[index].flags |= IDT_Entry::Flag::IDT_FLAG_ENTRY_PRESENT;
+		idt->entries[index].flags |= IDT_Entry::Flag::IDT_FLAG_RING_3;
 
 		Print("Ok~!\n");
 	}
