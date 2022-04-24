@@ -1,5 +1,5 @@
 [submodule "deps/googletest"]
 	path = deps/googletest
 	#url = https://github.com/google/googletest.git
-	url = ssh://git@babypi/~/googletest.git
+	url = ../googletest.git
 	branch = release-1.10.0
