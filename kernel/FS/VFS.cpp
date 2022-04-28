@@ -351,6 +351,23 @@ namespace VFS
 		return Status::Undefined;
 	}
 
+	Status FileOpen(char* pathStr, FS::File** file)
+	{
+		Path paths(pathStr);
+
+		FS::Directory* dir;
+		DirectoryOpenRoot(&dir);
+
+		paths.paths.Back();
+
+		for(auto path : paths.paths)
+		{
+			Print("Directory: %s\n", path);
+		}
+
+		return Status::Success;
+	}
+
 	Status FileClose(FS::File** file)
 	{
 		ASSERT(file, "Pointer to file is invalid");

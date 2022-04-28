@@ -23,6 +23,7 @@ namespace VFS
 	Status FileCreate(FS::Directory* dir, char* name);
 	Status FileDelete(FS::Directory* dir, char* name);
 	Status FileOpen(FS::Directory* dir, char* name, FS::File** file);
+	Status FileOpen(char* path, FS::File** file);
 	Status FileClose(FS::File** file);
 	Status FileRead(FS::File* file, u8* buffer, u32 bufferSize, u32* readCount);
 	Status FileWrite(FS::File* file, u8* buffer, u32 bufferSize, u32* writeCount);

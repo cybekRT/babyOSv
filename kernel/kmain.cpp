@@ -22,6 +22,8 @@
 #include"Video/Video.hpp"
 #include"Video/Video_VGA.hpp"
 
+Video::Bitmap* screen = nullptr;
+
 void TestFuncBody()
 {
 	u8* p = (u8*)0x800a0000;
@@ -41,8 +43,9 @@ void TestFuncBody()
 				b+=32;
 		}
 
-		Video::DrawRect(Video::Rect(10, 10, 180, 50), Video::Color(255, 0, 0));
-		Video::DrawRect(Video::Rect(40, 30, 180, 20), Video::Color(0, 255, 0, 128));
+		Video::DrawRect(screen, Video::Rect(10, 10, 180, 50), Video::Color(255, 0, 0));
+		Video::DrawRect(screen, Video::Rect(40, 30, 180, 20), Video::Color(0, 255, 0, 128));
+		Video::UpdateScreen();
 
 		for(volatile unsigned a = 0; a < 100000; a++)
 		{
@@ -279,6 +282,10 @@ extern "C" void kmain()
 	}
 #endif
 
+	FS::File* logoFile;
+	VFS::FileOpen("/fdd0/images/logo.bmp", &logoFile);
+
+if(0)
 {
 	Video::SetDriver(&Video::vgaDriver);
 
@@ -293,6 +300,8 @@ extern "C" void kmain()
 
 	Video::SetMode(modes.Back());
 	Video::Clear();
+
+	screen = Video::GetScreen();
 
 	TestFunc();
 

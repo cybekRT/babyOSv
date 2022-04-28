@@ -1,8 +1,10 @@
 #include"Video.hpp"
+#include"FS/VFS.hpp"
 
 namespace Video
 {
 	Driver* currentDriver = nullptr;
+	Bitmap* screen = nullptr;
 
 	/*
 	 * Driver wrappers
@@ -27,7 +29,15 @@ namespace Video
 
 	bool SetMode(Mode mode)
 	{
-		return currentDriver->SetMode(mode);
+		auto res = currentDriver->SetMode(mode);
+
+		if(res)
+		{
+			FreeBitmap(screen);
+			CreateBitmap(mode.width, mode.height, &screen);
+		}
+
+		return res;
 	}
 
 	void Clear()
@@ -49,7 +59,66 @@ namespace Video
 	 * Driver-independent logic
 	 */
 
-	void DrawRect(Rect r, Color c)
+	bool Init()
+	{
+		return true;
+	}
+
+	Bitmap* GetScreen()
+	{
+		return screen;
+	}
+
+	void UpdateScreen()
+	{
+		for(unsigned y = 0; y < screen->height; y++)
+		{
+			for(unsigned x = 0; x < screen->width; x++)
+			{
+				currentDriver->SetPixel(x, y, screen->pixels[y * screen->width + x]);
+			}
+		}
+	}
+
+	void UpdateScreen(Rect r)
+	{
+		UpdateScreen(); // TODO
+	}
+
+	void CreateBitmap(u32 w, u32 h, Bitmap** bmp)
+	{
+		(*bmp) = (Bitmap*)new u8[sizeof(Bitmap) + w * h * sizeof(Color)];
+		(*bmp)->width = w;
+		(*bmp)->height = h;
+
+		for(unsigned a = 0; a < w * h; a++)
+			(*bmp)->pixels[a] = Color(255, 255, 255, 255);
+	}
+
+	void LoadBitmap(u8* path, Bitmap** bmp)
+	{
+
+	}
+
+	void FreeBitmap(Bitmap* bmp)
+	{
+		if(!bmp)
+			return;
+
+		delete[] bmp;
+	}
+
+	void PutPixel(Bitmap* bmp, Point p, Color c)
+	{
+		bmp->pixels[p.y * bmp->width + p.x] = c;
+	}
+
+	void DrawLine(Bitmap* bmp, Point p1, Point p2, Color c)
+	{
+
+	}
+
+	void DrawRect(Bitmap* bmp, Rect r, Color c)
 	{
 		Mode m = currentDriver->GetMode();
 
@@ -81,14 +150,11 @@ namespace Video
 			r.h = m.height - r.y;
 
 		Print("Drawing rect: %dx%d - %dx%d\n", r.x, r.y, r.w, r.h);
-
-		auto f = currentDriver->SetPixel;
-
 		for(unsigned y = r.y; y < r.y + r.h; y++)
 		{
 			for(unsigned x = r.x; x < r.x + r.w; x++)
 			{
-				f(x, y, c);
+				bmp->pixels[y * bmp->width + x] = c;
 			}
 		}
 	}

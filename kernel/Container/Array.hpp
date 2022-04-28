@@ -8,6 +8,7 @@ namespace Container
 	template<class T>
 	class Array : public IContainer<T>
 	{
+	protected:
 		T* objs;
 		u32 capacity;
 		u32 size;
@@ -20,7 +21,7 @@ namespace Container
 			public:
 				Iterator(T* ptr) : ptr(ptr)
 				{
-					
+
 				}
 
 				virtual T& operator*() override
@@ -93,6 +94,13 @@ namespace Container
 
 		}
 
+		Array(const Array<T>& args) : capacity(args.capacity), size(args.size)
+		{
+			objs = (T*)new u8[capacity * sizeof(T)];
+			for(unsigned a = 0; a < size; a++)
+				objs[a] = args.objs[a];
+		}
+
 		Array(u32 capacity) : capacity(capacity), size(0)
 		{
 			objs = (T*)new u8[capacity * sizeof(T)];
@@ -100,10 +108,7 @@ namespace Container
 
 		~Array()
 		{
-			// Check if destructors are called
-			// TODO: fix
-			// delete[] objs;
-			//Clear();
+			Clear();
 		}
 
 		u32 Size()
@@ -129,7 +134,7 @@ namespace Container
 			}
 		}
 
-		T& operator[](u32 index)
+		T& operator[](u32 index) const
 		{
 			ASSERT(index < size, "Array[] invalid index");
 
@@ -198,9 +203,11 @@ namespace Container
 			return v;
 		}
 
-		void RemoteAt(u32 index)
+		void RemoveAt(u32 index)
 		{
 			ASSERT(index < size, "RemoveAt invalid index");
+			if(index >= size)
+				return;
 
 			memcpy(objs + index, objs + index + 1, (size - index - 1) * sizeof(T));
 			size--;

@@ -4,12 +4,13 @@
 
 class Path
 {
-protected:
+public:
 	Container::LinkedList<char*> paths;
 public:
 	static const u32 MaxLength = 255;
 
 	Path();
+	explicit Path(const char* path);
 	~Path();
 
 	void Add(char* dir);
