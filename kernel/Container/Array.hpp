@@ -203,9 +203,11 @@ namespace Container
 			return v;
 		}
 
-		void RemoteAt(u32 index)
+		void RemoveAt(u32 index)
 		{
 			ASSERT(index < size, "RemoveAt invalid index");
+			if(index >= size)
+				return;
 
 			memcpy(objs + index, objs + index + 1, (size - index - 1) * sizeof(T));
 			size--;

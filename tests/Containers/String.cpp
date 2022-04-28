@@ -46,7 +46,7 @@ TEST(String, ConstructFromOtherString)
 	EXPECT_EQ(str2.Length(), strlen(testStr));
 }
 
-/****************************** Operators = ******************************/
+/****************************** Assignments ******************************/
 
 TEST(String, AssignCharArray)
 {
@@ -70,7 +70,62 @@ TEST(String, AssignOtherString)
 	EXPECT_EQ(str1.Length(), str2.Length());
 }
 
-/****************************** Compare ******************************/
+/****************************** Add operators ******************************/
+
+TEST(String, AddChar)
+{
+	String str = String("abc") + 'd' + 'e' + 'f';
+
+	EXPECT_EQ(str.Length(), 6);
+	EXPECT_EQ(str, "abcdef");
+}
+
+TEST(String, AddCharArray)
+{
+	String str = String("abc") + "def";
+
+	EXPECT_EQ(str.Length(), 6);
+	EXPECT_EQ(str, "abcdef");
+}
+
+TEST(String, AddString)
+{
+	String str = String("abc") + String("def");
+
+	EXPECT_EQ(str.Length(), 6);
+	EXPECT_EQ(str, "abcdef");
+}
+
+TEST(String, AddAssignChar)
+{
+	String str("abc");
+	str += 'd';
+	str += 'e';
+	str += 'f';
+
+	EXPECT_EQ(str.Length(), 6);
+	EXPECT_EQ(str, "abcdef");
+}
+
+TEST(String, AddAssignCharArray)
+{
+	String str("abc");
+	str += "def";
+
+	EXPECT_EQ(str.Length(), 6);
+	EXPECT_EQ(str, "abcdef");
+}
+
+TEST(String, AddAssignString)
+{
+	String str("abc");
+	str += String("def");
+
+	EXPECT_EQ(str.Length(), 6);
+	EXPECT_EQ(str, "abcdef");
+}
+
+/****************************** Comparisons ******************************/
 
 TEST(String, CompareEqualityWithCharArray)
 {
@@ -112,4 +167,120 @@ TEST(String, CompareNonEqualityWithString)
 	EXPECT_FALSE(str1 != str2);
 	EXPECT_TRUE(str1 != strOther1);
 	EXPECT_TRUE(str1 != strOther2);
+}
+
+/****************************** Array operator ******************************/
+
+TEST(String, ArrayOperator)
+{
+	String str(testStr);
+	
+	EXPECT_EQ(str[0], testStr[0]);
+	EXPECT_EQ(str[1], testStr[1]);
+	EXPECT_EQ(str[str.Length()-1], testStr[str.Length()-1]);
+
+	str[0] = 'c';
+	EXPECT_EQ(str[0], 'c');
+	if(testStr[0] != 'c')
+		EXPECT_NE(str[0], testStr[0]);
+
+	str[0] = 'x';
+	EXPECT_EQ(str[0], 'x');
+
+	str[str.Length()-1] = 'x';
+	EXPECT_EQ(str[str.Length()-1], 'x');
+}
+
+TEST(String, ArrayOperatorConst)
+{
+	const String str(testStr);
+	
+	EXPECT_EQ(str[0], testStr[0]);
+	EXPECT_EQ(str[1], testStr[1]);
+	EXPECT_EQ(str[str.Length()-1], testStr[str.Length()-1]);
+
+	EXPECT_EQ(str[0], testStr[0]);
+	EXPECT_EQ(str[1], testStr[1]);
+	EXPECT_EQ(str[str.Length()-1], testStr[str.Length()-1]);
+}
+
+/****************************** Insertion ******************************/
+
+TEST(String, AddAt)
+{
+	String str;
+
+	str.AddAt(0, 'Y');
+	str.AddAt(1, 'o');
+	str.AddAt(2, 'L');
+	str.AddAt(3, 'o');
+
+	EXPECT_EQ(str.Length(), 4);
+	EXPECT_EQ(str, "YoLo");
+
+	str.AddAt(0, '#');
+	EXPECT_EQ(str.Length(), 5);
+	EXPECT_EQ(str, "#YoLo");
+
+	str.AddAt(3, 'X');
+	str.AddAt(4, 'D');
+
+	EXPECT_EQ(str.Length(), 7);
+	EXPECT_EQ(str, "#YoXDLo");
+}
+
+TEST(String, RemoveAt)
+{
+	String str("1234567890");
+
+	str.RemoveAt(0);
+	EXPECT_EQ(str.Length(), 9);
+	EXPECT_EQ(str, "234567890");
+
+	str.RemoveAt(3);
+	EXPECT_EQ(str.Length(), 8);
+	EXPECT_EQ(str, "23467890");
+
+	str.RemoveAt(7);
+	EXPECT_EQ(str.Length(), 7);
+	EXPECT_EQ(str, "2346789");
+
+	// str.RemoveAt(1337);
+	// EXPECT_EQ(str.Length(), 7);
+	// EXPECT_EQ(str, "2346789");
+}
+
+TEST(String, Clear)
+{
+	String str(testStr);
+	auto len = strlen(testStr);
+
+	str.Clear();
+	EXPECT_EQ(str.Length(), 0);
+	EXPECT_EQ(strlen(testStr), len);
+}
+
+TEST(String, Length)
+{
+	String str;
+
+	EXPECT_EQ(str.Length(), 0);
+
+	str = testStr;
+	EXPECT_EQ(str.Length(), strlen(testStr));
+
+	str.Clear();
+	EXPECT_EQ(str.Length(), 0);
+
+	char tmp[123457];
+	for(unsigned a = 1; a <= 123456; a++)
+	{
+		str += 'x';
+		tmp[a - 1] = 'x';
+		ASSERT_EQ(str.Length(), a);
+	}
+
+	tmp[123456] = 0;
+	EXPECT_EQ(str, tmp);
+	EXPECT_EQ(strcmp(str.Data(), tmp), 0);
 }

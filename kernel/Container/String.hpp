@@ -12,8 +12,12 @@ namespace Container
 		String(const char* text);
 		~String();
 
-		String operator+(const String& arg) const;
 		String& operator=(const String& arg);
+		String operator+(char arg) const;
+		String operator+(const char* arg) const;
+		String operator+(const String& arg) const;
+		String& operator+=(char arg);
+		String& operator+=(const char* arg);
 		String& operator+=(const String& arg);
 
 		bool operator==(const char* arg) const;
@@ -22,6 +26,7 @@ namespace Container
 		bool operator!=(const String& arg) const;
 
 		char operator[](u32 index) const;
+		char& operator[](u32 index);
 		void AddAt(u32 index, char c);
 		void RemoveAt(u32 index);
 		void Clear();

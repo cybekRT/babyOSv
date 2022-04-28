@@ -24,6 +24,23 @@ namespace Container
 		Clear();
 	}
 
+	String& String::operator=(const String& arg)
+	{
+		Array::operator=(arg);
+		return *this;
+	}
+
+	String String::operator+(char arg) const
+	{
+		char tmp[2] = { arg, 0 };
+		return *this + String(tmp);
+	}
+
+	String String::operator+(const char* arg) const
+	{
+		return *this + String(arg);
+	}
+
 	String String::operator+(const String& arg) const
 	{
 		u32 len = Length() + arg.Length();
@@ -42,15 +59,23 @@ namespace Container
 		return ret;
 	}
 
-	String& String::operator=(const String& arg)
+	String& String::operator+=(char arg)
 	{
-		Array::operator=(arg);
-		return *this;
+		objs[size - 1] = arg;
+		PushBack(0);
+	}
+
+	String& String::operator+=(const char* arg)
+	{
+		return *this += String(arg);
 	}
 
 	String& String::operator+=(const String& arg)
 	{
-
+		PopBack();
+		for(unsigned a = 0; a < arg.Length(); a++)
+			PushBack(arg[a]);
+		PushBack(0);
 	}
 
 	bool String::operator==(const char* arg) const
@@ -108,14 +133,19 @@ namespace Container
 		return Array::operator[](index);
 	}
 
+	char& String::operator[](u32 index)
+	{
+		return Array::operator[](index);
+	}
+
 	void String::AddAt(u32 index, char c)
 	{
-		Array::Insert(Array::begin(), c);
+		Array::Insert(Array::begin() + index, c);
 	}
 
 	void String::RemoveAt(u32 index)
 	{
-		Array::RemoteAt(index);
+		Array::RemoveAt(index);
 	}
 
 	void String::Clear()
