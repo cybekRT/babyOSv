@@ -2,7 +2,30 @@
 
 Path::Path()
 {
-	
+
+}
+
+Path::Path(const char* pathOrg)
+{
+	u32 len = strlen(pathOrg);
+	char path[len + 1];
+	strcpy(path, pathOrg);
+
+	ASSERT(path[0] == '/' && len > 2, "Invalid path");
+
+	u32 lastIndex = 1;
+	for(unsigned a = 2; a < len; a++)
+	{
+		if(path[a] == '/')
+		{
+			path[a] = 0;
+			Add(path + lastIndex);
+			lastIndex = a + 1;
+		}
+	}
+
+	if(path[len - 1] != '/')
+		Add(path + lastIndex);
 }
 
 Path::~Path()

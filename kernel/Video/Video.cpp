@@ -1,4 +1,5 @@
 #include"Video.hpp"
+#include"FS/VFS.hpp"
 
 namespace Video
 {
@@ -94,6 +95,11 @@ namespace Video
 			(*bmp)->pixels[a] = Color(255, 255, 255, 255);
 	}
 
+	void LoadBitmap(u8* path, Bitmap** bmp)
+	{
+
+	}
+
 	void FreeBitmap(Bitmap* bmp)
 	{
 		if(!bmp)
@@ -104,7 +110,7 @@ namespace Video
 
 	void PutPixel(Bitmap* bmp, Point p, Color c)
 	{
-
+		bmp->pixels[p.y * bmp->width + p.x] = c;
 	}
 
 	void DrawLine(Bitmap* bmp, Point p1, Point p2, Color c)
@@ -144,14 +150,10 @@ namespace Video
 			r.h = m.height - r.y;
 
 		Print("Drawing rect: %dx%d - %dx%d\n", r.x, r.y, r.w, r.h);
-
-		//auto f = currentDriver->SetPixel;
-
 		for(unsigned y = r.y; y < r.y + r.h; y++)
 		{
 			for(unsigned x = r.x; x < r.x + r.w; x++)
 			{
-				//f(x, y, c);
 				bmp->pixels[y * bmp->width + x] = c;
 			}
 		}

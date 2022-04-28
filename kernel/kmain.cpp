@@ -282,6 +282,10 @@ extern "C" void kmain()
 	}
 #endif
 
+	FS::File* logoFile;
+	VFS::FileOpen("/fdd0/images/logo.bmp", &logoFile);
+
+if(0)
 {
 	Video::SetDriver(&Video::vgaDriver);
 

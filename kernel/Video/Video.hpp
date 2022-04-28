@@ -81,6 +81,7 @@ namespace Video
 	void UpdateScreen(Rect r);
 
 	void CreateBitmap(u32 w, u32 h, Bitmap** bmp);
+	void LoadBitmap(u8* path, Bitmap** bmp);
 	void FreeBitmap(Bitmap* bmp);
 
 	void PutPixel(Bitmap* bmp, Point p, Color c);
