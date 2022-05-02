@@ -141,7 +141,7 @@ test-objs: $(TESTS_OBJS)
 test-exe: test-objs #deps/libgtest.a
 	g++ $(GCC_FLAGS) $(TESTS_OBJS) -Ldeps/googletest/googletest/build/lib -Ldeps/googletest/build/lib -Ideps/googletest/googletest/include -Ideps/googletest/include -o out_tests/run_tests -lgtest_main -lgtest $(GTEST_FLAGS)
 test-run: test-exe
-	out_tests/run_tests
+	out_tests/run_tests --gtest_output=json:yolo.txt
 
 out_tests/%.o: tests/%.cpp
 	mkdir -p $(dir $@)

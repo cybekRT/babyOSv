@@ -108,7 +108,8 @@ namespace Container
 
 		~Array()
 		{
-			Clear();
+			// FIXME: crash
+			// Clear();
 		}
 
 		u32 Size()
@@ -201,6 +202,16 @@ namespace Container
 			objs[size - 1].~T();
 			size--;
 			return v;
+		}
+
+		T& Back()
+		{
+			return objs[size - 1];
+		}
+
+		T& Front()
+		{
+			return objs[0];
 		}
 
 		void RemoveAt(u32 index)

@@ -1,20 +1,22 @@
 #pragma once
 
-#include"Container/LinkedList.hpp"
+#include"Container/Array.hpp"
+#include"Container/String.hpp"
 
 class Path
 {
 public:
-	Container::LinkedList<char*> paths;
+	Container::Array<Container::String> paths;
 public:
 	static const u32 MaxLength = 255;
 
 	Path();
-	explicit Path(const char* path);
+	explicit Path(const Container::String& path);
 	~Path();
 
-	void Add(char* dir);
+	void Add(const char* dir);
 	void GoUp();
 
 	void ToString(char* buf);
+	Container::String ToString();
 };

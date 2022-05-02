@@ -5,27 +5,25 @@ Path::Path()
 
 }
 
-Path::Path(const char* pathOrg)
+Path::Path(const Container::String& _path)
 {
-	u32 len = strlen(pathOrg);
-	char path[len + 1];
-	strcpy(path, pathOrg);
+	auto path = _path;
 
-	ASSERT(path[0] == '/' && len > 2, "Invalid path");
+	ASSERT(path[0] == '/' && path.Length() > 2, "Invalid path");
 
 	u32 lastIndex = 1;
-	for(unsigned a = 2; a < len; a++)
+	for(unsigned a = 2; a < path.Length(); a++)
 	{
 		if(path[a] == '/')
 		{
 			path[a] = 0;
-			Add(path + lastIndex);
+			Add(path.Data() + lastIndex);
 			lastIndex = a + 1;
 		}
 	}
 
-	if(path[len - 1] != '/')
-		Add(path + lastIndex);
+	if(path[path.Length() - 1] != '/')
+		Add(path.Data() + lastIndex);
 }
 
 Path::~Path()
@@ -33,7 +31,7 @@ Path::~Path()
 
 }
 
-void Path::Add(char* dir)
+void Path::Add(const char* dir)
 {
 	u32 len = strlen(dir);
 	//char* tmp = (char*)Memory::Alloc(len + 1);
@@ -52,16 +50,24 @@ void Path::GoUp()
 
 void Path::ToString(char* buf)
 {
+	Container::String str = ToString();
+	strcpy(buf, str.Data());
+}
+
+Container::String Path::ToString()
+{
+	Container::String str;
+
 	if(paths.IsEmpty())
 	{
-		strcpy(buf, "/");
-		return;
+		return "/";
 	}
 
-	buf[0] = 0;
 	for(auto itr : paths)
 	{
-		strcat(buf, "/");
-		strcat(buf, itr);
+		str += "/";
+		str += itr;
 	}
+
+	return str;
 }
