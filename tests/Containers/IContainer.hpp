@@ -154,7 +154,7 @@ class MemTest
 		}
 };
 
-TEST(TestSuite, MemoryLeak) 
+TEST(TestSuite, MemoryLeak)
 {
 	TestedContainer<MemTest> test;
 
@@ -166,7 +166,7 @@ TEST(TestSuite, MemoryLeak)
 	}
 
 	EXPECT_EQ(constructorCalled, maxItems);
-	EXPECT_EQ(destructorCalled, maxItems);
+	EXPECT_EQ(destructorCalled, constructorCalled);
 	EXPECT_EQ(copyOperatorCalled, maxItems);
 
 	test.Clear();

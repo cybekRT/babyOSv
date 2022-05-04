@@ -284,6 +284,7 @@ extern "C" void kmain()
 
 	FS::File* logoFile;
 	VFS::FileOpen("/fdd0/images/logo.bmp", &logoFile);
+	Print("<><><><><><>\n");
 
 if(0)
 {

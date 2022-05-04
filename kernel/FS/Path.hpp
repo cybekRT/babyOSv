@@ -11,8 +11,11 @@ public:
 	static const u32 MaxLength = 255;
 
 	Path();
+	Path(const Path& arg);
 	explicit Path(const Container::String& path);
 	~Path();
+
+	Path& operator=(const Path& arg);
 
 	void Add(const char* dir);
 	void GoUp();

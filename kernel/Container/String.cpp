@@ -21,6 +21,7 @@ namespace Container
 
 	String::~String()
 	{
+		Print("~String - %p\n", this);
 		Clear();
 	}
 

@@ -108,8 +108,11 @@ namespace Container
 
 		~Array()
 		{
+			Print("~Array - %p\n", this);
 			// FIXME: crash
-			// Clear();
+			Clear();
+			// delete[] (u8*)objs;
+			// objs = nullptr;
 		}
 
 		u32 Size()
@@ -129,10 +132,19 @@ namespace Container
 
 		void Clear()
 		{
-			while(!IsEmpty())
+			if(!objs || !size)
+				return;
+
+			Print("Clearing array:\n");
+			for(unsigned a = 0; a < size; a++)
 			{
-				PopBack();
+				Print("+ %p", objs + a);
+				objs[a].~T();
+				Print(" +\n");
 			}
+
+			Print("+++ Finished~!\n");
+			size = 0;
 		}
 
 		T& operator[](u32 index) const
@@ -141,6 +153,17 @@ namespace Container
 
 			return objs[index];
 		}
+
+		// Array& operator=(const Array& arg)
+		// {
+		// 	this->size = arg.size;
+		// 	this->capacity = arg.capacity;
+		// 	this->objs = (T*)new u8[capacity * sizeof(T)];
+		// 	for(unsigned a = 0; a < size; a++)
+		// 		this->objs[a] = arg.objs[a];
+
+		// 	return *this;
+		// }
 
 		Iterator begin()
 		{

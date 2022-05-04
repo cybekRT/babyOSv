@@ -355,16 +355,20 @@ namespace VFS
 	{
 		Path paths(pathStr);
 
+		Print("Paths: %d\n", paths.paths.Size());
+
 		FS::Directory* dir;
 		DirectoryOpenRoot(&dir);
 
-		paths.paths.Back();
+		Print("Path: %p\n", paths.paths.Back().Data());
+		auto filename = paths.paths[2];
 
 		for(auto path : paths.paths)
 		{
-			Print("Directory: %s\n", path);
+			Print("Directory: %s\n", path.Data());
 		}
 
+		Print("Success~!\n");
 		return Status::Success;
 	}
 

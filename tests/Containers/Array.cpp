@@ -4,7 +4,7 @@
 #define ContainerType Array
 #include"IContainer.hpp"
 
-TEST(TestSuite, OperatorArray) 
+TEST(TestSuite, OperatorArray)
 {
 	TestedContainer<int> test;
 
@@ -32,11 +32,12 @@ TEST(Array, Clear)
 	{
 		public:
 			Agent() { constructors++; }
+			Agent(const Agent&) { constructors++; }
 			~Agent() { destructors++; }
 			Agent& operator=(const Agent& arg) { opEq++; }
 	};
 
-	Container::Array<Agent> agents;
+	Container::Array<Agent> agents(8);
 
 	agents.PushBack(Agent());
 	agents.PushBack(Agent());
@@ -47,7 +48,7 @@ TEST(Array, Clear)
 	EXPECT_EQ(agents.Size(), 0);
 	EXPECT_EQ(constructors, 3);
 	EXPECT_EQ(opEq, 3);
-	EXPECT_EQ(destructors, 3);
+	EXPECT_EQ(destructors, 6);
 
 	// std::vector<Agent> agents;
 
