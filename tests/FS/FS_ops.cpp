@@ -154,118 +154,118 @@ int CountEntries(FS::Directory* dir)
 // 	EXPECT_EQ(s, Status::Success);
 // }
 
-TEST_F(FS_ops, FAT_CreateFiles)
-{
-	Status s;
+// TEST_F(FS_ops, FAT_CreateFiles)
+// {
+// 	Status s;
 
-	FS::Directory* dir;
-	s = fs->DirectoryOpenRoot(fsPriv, &dir);
-	EXPECT_EQ(s, Status::Success);
-	EXPECT_NE(dir, nullptr);
+// 	FS::Directory* dir;
+// 	s = fs->DirectoryOpenRoot(fsPriv, &dir);
+// 	EXPECT_EQ(s, Status::Success);
+// 	EXPECT_NE(dir, nullptr);
 
-	for(auto file_name : files_names)
-	{
-		s = fs->FileCreate(fsPriv, dir, file_name);
-		EXPECT_EQ(s, Status::Success);
-	}
+// 	for(auto file_name : files_names)
+// 	{
+// 		s = fs->FileCreate(fsPriv, dir, file_name);
+// 		EXPECT_EQ(s, Status::Success);
+// 	}
 
-	FS::DirEntry entry;
-	int count = 0;
-	s = fs->DirectoryRewind(fsPriv, dir);
-	EXPECT_EQ(s, Status::Success);
+// 	FS::DirEntry entry;
+// 	int count = 0;
+// 	s = fs->DirectoryRewind(fsPriv, dir);
+// 	EXPECT_EQ(s, Status::Success);
 
-	while(fs->DirectoryRead(fsPriv, dir, &entry) == Status::Success)
-	{
-		if(entry.isDirectory)
-			continue;
+// 	while(fs->DirectoryRead(fsPriv, dir, &entry) == Status::Success)
+// 	{
+// 		if(entry.isDirectory)
+// 			continue;
 
-		EXPECT_TRUE(strcmp((char*)entry.name, files_names[count]) == 0);
+// 		EXPECT_TRUE(strcmp((char*)entry.name, files_names[count]) == 0);
 
-		count++;
-	}
+// 		count++;
+// 	}
 
-	EXPECT_EQ(count, sizeof(files_names) / sizeof(*files_names));
-}
+// 	EXPECT_EQ(count, sizeof(files_names) / sizeof(*files_names));
+// }
 
-TEST_F(FS_ops, FAT_WriteFile)
-{
-	Status s;
+// TEST_F(FS_ops, FAT_WriteFile)
+// {
+// 	Status s;
 
-	FS::Directory* dir;
-	s = fs->DirectoryOpenRoot(fsPriv, &dir);
+// 	FS::Directory* dir;
+// 	s = fs->DirectoryOpenRoot(fsPriv, &dir);
 
-	FS::File* file;
-	ReadDirUntil(dir, files_names[0]);
-	s = fs->FileOpen(fsPriv, dir,  &file);
-	EXPECT_EQ(s, Status::Success);
+// 	FS::File* file;
+// 	ReadDirUntil(dir, files_names[0]);
+// 	s = fs->FileOpen(fsPriv, dir,  &file);
+// 	EXPECT_EQ(s, Status::Success);
 
-	const unsigned bufferSize = 8192;
-	char* buffer = new char[bufferSize];
-	for(unsigned a = 0; a < bufferSize; a++)
-	{
-		buffer[a] = a / 128;
-	}
+// 	const unsigned bufferSize = 8192;
+// 	char* buffer = new char[bufferSize];
+// 	for(unsigned a = 0; a < bufferSize; a++)
+// 	{
+// 		buffer[a] = a / 128;
+// 	}
 
-	u32 writtenCount = 0;;
-	s = fs->FileWrite(fsPriv, file, (u8*)buffer, bufferSize, &writtenCount);
-	EXPECT_EQ(s, Status::Success);
-	EXPECT_EQ(writtenCount, bufferSize);
+// 	u32 writtenCount = 0;;
+// 	s = fs->FileWrite(fsPriv, file, (u8*)buffer, bufferSize, &writtenCount);
+// 	EXPECT_EQ(s, Status::Success);
+// 	EXPECT_EQ(writtenCount, bufferSize);
 
-	s = fs->FileClose(fsPriv, &file);
-	EXPECT_EQ(s, Status::Success);
+// 	s = fs->FileClose(fsPriv, &file);
+// 	EXPECT_EQ(s, Status::Success);
 
-	fs->DirectoryClose(fsPriv, &dir);
-}
+// 	fs->DirectoryClose(fsPriv, &dir);
+// }
 
-TEST_F(FS_ops, FAT_ReadFile)
-{
-	Status s;
+// TEST_F(FS_ops, FAT_ReadFile)
+// {
+// 	Status s;
 
-	FS::Directory* dir;
-	s = fs->DirectoryOpenRoot(fsPriv, &dir);
+// 	FS::Directory* dir;
+// 	s = fs->DirectoryOpenRoot(fsPriv, &dir);
 
-	FS::File* file;
-	ReadDirUntil(dir, files_names[0]);
-	s = fs->FileOpen(fsPriv, dir,  &file);
-	EXPECT_EQ(s, Status::Success);
+// 	FS::File* file;
+// 	ReadDirUntil(dir, files_names[0]);
+// 	s = fs->FileOpen(fsPriv, dir,  &file);
+// 	EXPECT_EQ(s, Status::Success);
 
-	// s = fs->FileSetPointer(fsPriv, file, -1);
-	// EXPECT_EQ(s, Status::Success);
+// 	// s = fs->FileSetPointer(fsPriv, file, -1);
+// 	// EXPECT_EQ(s, Status::Success);
 
-	u32 bufferSize = 8192;
-	u32 readCount;
-	// s = fs->FileGetPointer(fsPriv, file, &bufferSize);
-	// EXPECT_EQ(s, Status::Success);
+// 	u32 bufferSize = 8192;
+// 	u32 readCount;
+// 	// s = fs->FileGetPointer(fsPriv, file, &bufferSize);
+// 	// EXPECT_EQ(s, Status::Success);
 
-	// s = fs->FileSetPointer(fsPriv, file, 0);
-	// EXPECT_EQ(s, Status::Success);
+// 	// s = fs->FileSetPointer(fsPriv, file, 0);
+// 	// EXPECT_EQ(s, Status::Success);
 
-	char* buffer = new char[bufferSize * 2];
-	s = fs->FileRead(fsPriv, file, (u8*)buffer, bufferSize * 2, &readCount);
-	EXPECT_EQ(s, Status::Success);
-	EXPECT_EQ(readCount, bufferSize);
+// 	char* buffer = new char[bufferSize * 2];
+// 	s = fs->FileRead(fsPriv, file, (u8*)buffer, bufferSize * 2, &readCount);
+// 	EXPECT_EQ(s, Status::Success);
+// 	EXPECT_EQ(readCount, bufferSize);
 
-	printf("===== read =====\n");
-	for(unsigned a = 0; a < readCount; a++)
-	{
-		printf("%02x", buffer[a]);
-	}
-	printf("\n===== /read =====\n");
+// 	printf("===== read =====\n");
+// 	for(unsigned a = 0; a < readCount; a++)
+// 	{
+// 		printf("%02x", buffer[a]);
+// 	}
+// 	printf("\n===== /read =====\n");
 
-	bool bufferIsOk = true;
-	for(unsigned a = 0; a < bufferSize; a++)
-	{
-		if(buffer[a] != a / 128)
-		{
-			bufferIsOk = false;
-			break;
-		}
-	}
+// 	bool bufferIsOk = true;
+// 	for(unsigned a = 0; a < bufferSize; a++)
+// 	{
+// 		if(buffer[a] != a / 128)
+// 		{
+// 			bufferIsOk = false;
+// 			break;
+// 		}
+// 	}
 
-	EXPECT_TRUE(bufferIsOk);
+// 	EXPECT_TRUE(bufferIsOk);
 
-	s = fs->FileClose(fsPriv, &file);
-	EXPECT_EQ(s, Status::Success);
+// 	s = fs->FileClose(fsPriv, &file);
+// 	EXPECT_EQ(s, Status::Success);
 
-	fs->DirectoryClose(fsPriv, &dir);
-}
+// 	fs->DirectoryClose(fsPriv, &dir);
+// }

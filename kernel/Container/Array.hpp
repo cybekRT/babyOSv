@@ -135,15 +135,15 @@ namespace Container
 			if(!objs || !size)
 				return;
 
-			Print("Clearing array:\n");
+			// Print("Clearing array:\n");
 			for(unsigned a = 0; a < size; a++)
 			{
-				Print("+ %p", objs + a);
+				// Print("+ %p", objs + a);
 				objs[a].~T();
-				Print(" +\n");
+				// Print(" +\n");
 			}
 
-			Print("+++ Finished~!\n");
+			// Print("+++ Finished~!\n");
 			size = 0;
 		}
 
