@@ -10,6 +10,120 @@ protected:
 	u32 capacity;
 
 public:
+	class Iterator
+	{
+	protected:
+		T* ptr;
+
+	public:
+		Iterator(T* ptr) : ptr(ptr)
+		{
+
+		}
+
+		Iterator(const Iterator& arg) : ptr(arg.ptr)
+		{
+
+		}
+
+		T& operator*()
+		{
+			return *ptr;
+		}
+
+		T& operator->()
+		{
+			return *ptr;
+		}
+
+		bool operator==(const Iterator& arg) const
+		{
+			return ptr == arg.ptr;
+		}
+
+		bool operator!=(const Iterator& arg) const
+		{
+			return ptr != arg.ptr;
+		}
+
+		Iterator operator+(int arg) const
+		{
+			return  Iterator(ptr + arg);
+		}
+
+		Iterator& operator++()
+		{
+			Next();
+		}
+
+		Iterator operator++(int)
+		{
+			auto itr = *this;
+			Next();
+			return itr;
+		}
+
+		const Iterator& operator+=(int arg)
+		{
+			if(arg >= 0)
+			{
+				for(int a = 0; a < arg; a++)
+					Next();
+			}
+			else
+			{
+				for(int a = 0; a > arg; a--)
+					Prev();
+			}
+
+			return *this;
+		}
+
+		Iterator operator-(int arg) const
+		{
+			return Iterator(ptr - arg);
+		}
+
+		Iterator& operator--()
+		{
+			Prev();
+		}
+
+		Iterator operator--(int)
+		{
+			auto itr = *this;
+			Prev();
+			return itr;
+		}
+
+		const Iterator& operator-=(int arg)
+		{
+			if(arg >= 0)
+			{
+				for(int a = 0; a < arg; a++)
+					Prev();
+			}
+			else
+			{
+				for(int a = 0; a > arg; a--)
+					Next();
+			}
+
+			return *this;
+		}
+
+	protected:
+		void Next()
+		{
+			ptr++;
+		}
+
+		void Prev()
+		{
+			ptr--;
+		}
+	};
+
 	Array() : data(nullptr), size(0), capacity(0)
 	{
 
@@ -86,7 +200,17 @@ public:
 		return capacity;
 	}
 
-	void Insert(u32 index, const T& arg)
+	Iterator begin()
+	{
+		return Iterator(data);
+	}
+
+	Iterator end()
+	{
+		return Iterator(data + size);
+	}
+
+	void InsertAt(u32 index, const T& arg)
 	{
 		if(index > size + 1)
 		{
@@ -113,9 +237,16 @@ public:
 		size++;
 	}
 
-	// void Insert(Iterator itr, const T& arg);
+	Iterator InsertAt(Iterator itr, const T& arg)
+	{
+		T* ptr = &(*itr);
+		auto index = ptr - data;
+		InsertAt(index, arg);
 
-	void Remove(u32 index)
+		return Iterator(data + index);
+	}
+
+	void RemoveAt(u32 index)
 	{
 		if(index > size)
 		{
@@ -133,14 +264,21 @@ public:
 		}
 	}
 
-	// void Remove(Iterator itr);
+	Iterator RemoveAt(Iterator itr)
+	{
+		T* ptr = &(*itr);
+		auto index = ptr - data;
+		RemoveAt(index);
+
+		return Iterator(data + index);
+	}
 
 	void Remove(const T& arg)
 	{
 		for(unsigned a = 0; a < size; )
 		{
 			if(data[a] == arg)
-				Remove(a);
+				RemoveAt(a);
 			else
 				a++;
 		}
@@ -150,17 +288,19 @@ public:
 	{
 		for(unsigned a = 0; a < size; a++)
 			data[a].~T();
+
+		size = 0;
 	}
 
 	void PushFront(const T& arg)
 	{
-		Insert(0, arg);
+		InsertAt(0, arg);
 	}
 
 	T PopFront()
 	{
 		T obj = data[0];
-		Remove(0);
+		RemoveAt(0);
 		return obj;
 	}
 
@@ -178,13 +318,13 @@ public:
 
 	void PushBack(const T& arg)
 	{
-		Insert(size, arg);
+		InsertAt(size, arg);
 	}
 
 	T PopBack()
 	{
 		T obj = data[size - 1];
-		Remove(size - 1);
+		RemoveAt(size - 1);
 		return obj;
 	}
 
@@ -369,13 +509,74 @@ TEST_F(ArrayTest, OperatorArray)
 	EXPECT_EQ(test[3], 2);
 }
 
+TEST_F(ArrayTest, ForeachIterator_Empty)
+{
+	Array<int> test;
+
+	EXPECT_EQ(test.begin(), Array<int>::Iterator(nullptr));
+	EXPECT_EQ(test.end(), Array<int>::Iterator(nullptr));
+}
+
+TEST_F(ArrayTest, ForeachIterator_BeginEndEqual)
+{
+	Array<int> test;
+	test.PushBack(5);
+
+	EXPECT_NE(test.begin(), Array<int>::Iterator(nullptr));
+	EXPECT_NE(test.end(), Array<int>::Iterator(nullptr));
+	EXPECT_EQ(test.begin() + 1, test.end());
+	EXPECT_EQ(test.begin(), test.end() - 1);
+}
+
+TEST_F(ArrayTest, ForeachIterator_Remove)
+{
+	Array<int> test;
+	test.PushBack(5);
+	test.PushBack(1);
+	test.PushBack(3);
+	test.PushBack(9);
+
+	int a = 0;
+	for(auto itr = test.begin(); itr != test.end(); )
+	{
+		itr = test.RemoveAt(itr);
+
+		a++;
+		EXPECT_EQ(test.Size(), 4 - a);
+	}
+
+	EXPECT_EQ(a, 4);
+	EXPECT_EQ(test.Size(), 0);
+}
+
+TEST_F(ArrayTest, ForeachIterator_Iterate)
+{
+	Array<int> test;
+	int vals[] = { 5, 1, 3, 9 };
+
+	for(auto val : vals)
+	{
+		test.PushBack(val);
+	}
+
+	int a = 0;
+	for(auto itr : test)
+	{
+		EXPECT_EQ(itr, vals[a]);
+
+		a++;
+	}
+
+	EXPECT_EQ(a, 4);
+}
+
 TEST_F(ArrayTest, InsertIndexBegin)
 {
 	Array<int> test;
 
-	test.Insert(0, 1);
-	test.Insert(0, 5);
-	test.Insert(0, 9);
+	test.InsertAt(0, 1);
+	test.InsertAt(0, 5);
+	test.InsertAt(0, 9);
 
 	EXPECT_EQ(test.Size(), 3);
 	EXPECT_EQ(test[2], 1);
@@ -387,13 +588,13 @@ TEST_F(ArrayTest, InsertIndexMiddle)
 {
 	Array<int> test;
 
-	test.Insert(0, 0);
-	test.Insert(0, 0);
-	test.Insert(0, 0);
-	test.Insert(0, 0);
-	test.Insert(0, 0);
+	test.InsertAt(0, 0);
+	test.InsertAt(0, 0);
+	test.InsertAt(0, 0);
+	test.InsertAt(0, 0);
+	test.InsertAt(0, 0);
 
-	test.Insert(2, 5);
+	test.InsertAt(2, 5);
 
 	EXPECT_EQ(test.Size(), 6);
 	EXPECT_EQ(test[1], 0);
@@ -405,13 +606,13 @@ TEST_F(ArrayTest, InsertIndexEnd)
 {
 	Array<int> test(8);
 
-	test.Insert(0, 0);
-	test.Insert(0, 0);
-	test.Insert(0, 0);
-	test.Insert(0, 0);
-	test.Insert(0, 0);
+	test.InsertAt(0, 0);
+	test.InsertAt(0, 0);
+	test.InsertAt(0, 0);
+	test.InsertAt(0, 0);
+	test.InsertAt(0, 0);
 
-	test.Insert(5, 5);
+	test.InsertAt(5, 5);
 
 	EXPECT_EQ(test.Size(), 6);
 	EXPECT_EQ(test[4], 0);
@@ -422,22 +623,306 @@ TEST_F(ArrayTest, InsertIndexOutside)
 {
 	Array<int> test;
 
-	test.Insert(10, 1);
-	test.Insert(10, 5);
-	test.Insert(10, 9);
+	test.InsertAt(10, 1);
+	test.InsertAt(10, 5);
+	test.InsertAt(10, 9);
 
 	EXPECT_EQ(test.Size(), 0);
 }
 
-// void Insert(u32 index, const T& arg)
-// // void Insert(Iterator itr, const T& arg);
-// void Remove(u32 index)
+TEST_F(ArrayTest, RemoveIteratorBegin)
+{
+	Array<int> test;
+
+	test.PushBack(1);
+	test.PushBack(1);
+	test.PushBack(5);
+	test.PushBack(9);
+	test.PushBack(9);
+
+	test.RemoveAt(test.begin());
+	EXPECT_EQ(test[0], 1);
+	EXPECT_EQ(test[1], 5);
+
+	EXPECT_EQ(test.Size(), 4);
+}
+
+TEST_F(ArrayTest, RemoveIteratorMiddle)
+{
+	Array<int> test;
+
+	test.PushBack(1);
+	test.PushBack(1);
+	test.PushBack(5);
+	test.PushBack(9);
+	test.PushBack(9);
+
+	test.RemoveAt(test.begin() + 2);
+	EXPECT_EQ(test[1], 1);
+	EXPECT_EQ(test[2], 9);
+
+	EXPECT_EQ(test.Size(), 4);
+}
+
+TEST_F(ArrayTest, RemoveIteratorEnd)
+{
+	Array<int> test;
+
+	test.PushBack(1);
+	test.PushBack(1);
+	test.PushBack(5);
+	test.PushBack(9);
+	test.PushBack(9);
+
+	test.RemoveAt(test.begin() + 4);
+	EXPECT_EQ(test[2], 5);
+	EXPECT_EQ(test[3], 9);
+
+	EXPECT_EQ(test.Size(), 4);
+}
+
+TEST_F(ArrayTest, RemoveIteratorEnd2)
+{
+	Array<int> test;
+
+	test.PushBack(1);
+	test.PushBack(1);
+	test.PushBack(5);
+	test.PushBack(9);
+	test.PushBack(9);
+
+	test.RemoveAt(test.end() - 1);
+	EXPECT_EQ(test[2], 5);
+	EXPECT_EQ(test[3], 9);
+
+	EXPECT_EQ(test.Size(), 4);
+}
+
+TEST_F(ArrayTest, RemoveIndexBegin)
+{
+	Array<int> test;
+
+	test.PushBack(1);
+	test.PushBack(5);
+	test.PushBack(9);
+
+	test.RemoveAt(0);
+	EXPECT_EQ(test[0], 5);
+	EXPECT_EQ(test[1], 9);
+
+	EXPECT_EQ(test.Size(), 2);
+}
+
+TEST_F(ArrayTest, RemoveIndexMiddle)
+{
+	Array<int> test;
+
+	test.PushBack(1);
+	test.PushBack(5);
+	test.PushBack(9);
+
+	test.RemoveAt(1);
+	EXPECT_EQ(test[0], 1);
+	EXPECT_EQ(test[1], 9);
+
+	EXPECT_EQ(test.Size(), 2);
+}
+
+TEST_F(ArrayTest, RemoveIndexEnd)
+{
+	Array<int> test;
+
+	test.PushBack(1);
+	test.PushBack(5);
+	test.PushBack(9);
+
+	test.RemoveAt(2);
+	EXPECT_EQ(test[0], 1);
+	EXPECT_EQ(test[1], 5);
+
+	EXPECT_EQ(test.Size(), 2);
+}
+
+TEST_F(ArrayTest, RemoveIndexOutside)
+{
+	Array<int> test;
+
+	test.PushBack(1);
+	test.PushBack(5);
+	test.PushBack(9);
+
+	test.RemoveAt(12345);
+	EXPECT_EQ(test[0], 1);
+	EXPECT_EQ(test[1], 5);
+	EXPECT_EQ(test[2], 9);
+
+	EXPECT_EQ(test.Size(), 3);
+}
+
 // // void Remove(Iterator itr);
-// void Remove(const T& arg)
-// void Clear()
-// void PushFront(const T& arg)
-// T PopFront()
-// T& Front()
-// void PushBack(const T& arg)
-// T PopBack()
-// T& Back()
+
+TEST_F(ArrayTest, RemoveObject_Hit)
+{
+	Array<int> test;
+
+	test.PushBack(1);
+	test.PushBack(5);
+	test.PushBack(9);
+	test.PushBack(1);
+	test.PushBack(5);
+	test.PushBack(9);
+	test.PushBack(1);
+	test.PushBack(5);
+	test.PushBack(9);
+
+	test.Remove(1);
+	EXPECT_NE(test[0], 1);
+	EXPECT_NE(test[3], 1);
+
+	EXPECT_EQ(test.Size(), 6);
+}
+
+TEST_F(ArrayTest, RemoveObject_Miss)
+{
+	Array<int> test;
+
+	test.PushBack(1);
+	test.PushBack(5);
+	test.PushBack(9);
+	test.PushBack(1);
+	test.PushBack(5);
+	test.PushBack(9);
+	test.PushBack(1);
+	test.PushBack(5);
+	test.PushBack(9);
+
+	test.Remove(7);
+	EXPECT_EQ(test[0], 1);
+	EXPECT_EQ(test[1], 5);
+	EXPECT_EQ(test[2], 9);
+	EXPECT_EQ(test[3], 1);
+
+	EXPECT_EQ(test.Size(), 9);
+}
+
+TEST_F(ArrayTest, Clear)
+{
+	Array<TestSubject> test;
+	test.PushBack(TestSubject());
+	test.PushBack(TestSubject());
+	test.PushBack(TestSubject());
+
+	EXPECT_NE(test.Data(), nullptr);
+	EXPECT_EQ(test.Size(), 3);
+
+	EXPECT_EQ(TestSubject::constructorCalls, 3);
+	EXPECT_EQ(TestSubject::constructorCopyCalls, 0);
+	EXPECT_EQ(TestSubject::assignCalls, 3);
+	EXPECT_EQ(TestSubject::destructorCalls, 3);
+
+	test.Clear();
+
+	EXPECT_NE(test.Data(), nullptr);
+	EXPECT_EQ(test.Size(), 0);
+
+	EXPECT_EQ(TestSubject::constructorCalls, 3);
+	EXPECT_EQ(TestSubject::constructorCopyCalls, 0);
+	EXPECT_EQ(TestSubject::assignCalls, 3);
+	EXPECT_EQ(TestSubject::destructorCalls, 6);
+}
+
+TEST_F(ArrayTest, PushFront)
+{
+	Array<int> test;
+
+	test.PushFront(1);
+	test.PushFront(5);
+	test.PushFront(9);
+
+	EXPECT_EQ(test.Size(), 3);
+	EXPECT_EQ(test[0], 9);
+	EXPECT_EQ(test[1], 5);
+	EXPECT_EQ(test[2], 1);
+}
+
+TEST_F(ArrayTest, PopFront)
+{
+	Array<int> test;
+
+	test.PushFront(1);
+	test.PushFront(5);
+	test.PushFront(9);
+
+	EXPECT_EQ(test.Size(), 3);
+	EXPECT_EQ(test.PopFront(), 9);
+	EXPECT_EQ(test.PopFront(), 5);
+	EXPECT_EQ(test.PopFront(), 1);
+	EXPECT_EQ(test.Size(), 0);
+}
+
+TEST_F(ArrayTest, Front)
+{
+	Array<int> test;
+
+	test.PushFront(1);
+	EXPECT_EQ(test.Size(), 1);
+	EXPECT_EQ(test.Front(), 1);
+
+	test.PushFront(5);
+	EXPECT_EQ(test.Size(), 2);
+	EXPECT_EQ(test.Front(), 5);
+
+	test.PushFront(9);
+	EXPECT_EQ(test.Size(), 3);
+	EXPECT_EQ(test.Front(), 9);
+
+	EXPECT_EQ(test.Size(), 3);
+}
+
+TEST_F(ArrayTest, PushBack)
+{
+	Array<int> test;
+
+	test.PushBack(1);
+	test.PushBack(5);
+	test.PushBack(9);
+
+	EXPECT_EQ(test.Size(), 3);
+	EXPECT_EQ(test[0], 1);
+	EXPECT_EQ(test[1], 5);
+	EXPECT_EQ(test[2], 9);
+}
+
+TEST_F(ArrayTest, PopBack)
+{
+	Array<int> test;
+
+	test.PushBack(1);
+	test.PushBack(5);
+	test.PushBack(9);
+
+	EXPECT_EQ(test.Size(), 3);
+	EXPECT_EQ(test.PopBack(), 9);
+	EXPECT_EQ(test.PopBack(), 5);
+	EXPECT_EQ(test.PopBack(), 1);
+	EXPECT_EQ(test.Size(), 0);
+}
+
+TEST_F(ArrayTest, Back)
+{
+	Array<int> test;
+
+	test.PushBack(1);
+	EXPECT_EQ(test.Size(), 1);
+	EXPECT_EQ(test.Back(), 1);
+
+	test.PushBack(5);
+	EXPECT_EQ(test.Size(), 2);
+	EXPECT_EQ(test.Back(), 5);
+
+	test.PushBack(9);
+	EXPECT_EQ(test.Size(), 3);
+	EXPECT_EQ(test.Back(), 9);
+
+	EXPECT_EQ(test.Size(), 3);
+}
