@@ -1,6 +1,142 @@
 #include<cstdlib>
 #include<cstring>
 
+template<class T, class X>
+class IteratorBase
+{
+protected:
+	T* ptr;
+
+public:
+	IteratorBase(T* ptr) : ptr(ptr)
+	{
+
+	}
+
+	IteratorBase(const IteratorBase& arg) : ptr(arg.ptr)
+	{
+
+	}
+
+	T& operator*() const
+	{
+		return *ptr;
+	}
+
+	T& operator->() const
+	{
+		return *ptr;
+	}
+
+	bool operator==(const X& arg) const
+	{
+		return ptr == arg.ptr;
+	}
+
+	bool operator!=(const X& arg) const
+	{
+		return ptr != arg.ptr;
+	}
+
+	X operator+(int arg) const
+	{
+		auto tmp = X(ptr);
+		tmp += arg;
+		return tmp;
+	}
+
+	X& operator++()
+	{
+		Next();
+		return *(X*)this;
+	}
+
+	X operator++(int)
+	{
+		X itr = *(X*)this;
+		Next();
+		return itr;
+	}
+
+	const X& operator+=(int arg)
+	{
+		if(arg >= 0)
+		{
+			for(int a = 0; a < arg; a++)
+				Next();
+		}
+		else
+		{
+			for(int a = 0; a > arg; a--)
+				Prev();
+		}
+
+		return *(X*)this;
+	}
+
+	X operator-(int arg) const
+	{
+		auto tmp = X(ptr);
+		tmp -= arg;
+		return tmp;
+	}
+
+	X& operator--()
+	{
+		Prev();
+		return *(X*)this;
+	}
+
+	X operator--(int)
+	{
+		X itr = *(X*)this;
+		Prev();
+		return itr;
+	}
+
+	const X& operator-=(int arg)
+	{
+		if(arg >= 0)
+		{
+			for(int a = 0; a < arg; a++)
+				Prev();
+		}
+		else
+		{
+			for(int a = 0; a > arg; a--)
+				Next();
+		}
+
+		return *(X*)this;
+	}
+
+protected:
+	virtual void Next() = 0;
+
+	virtual void Prev() = 0;
+};
+
+// template<class T, class X>
+// class ContainerBase
+// {
+// 	// virtual ~Array();
+// 	virtual u32 Size() = 0;
+// 	virtual X begin() = 0;
+// 	virtual X end() = 0;
+// 	virtual void InsertAt(u32 index, const T& arg) = 0;
+// 	virtual X InsertAt(X itr, const T& arg) = 0;
+// 	virtual void RemoveAt(u32 index) = 0;
+// 	virtual X RemoveAt(X itr) = 0;
+// 	virtual void Remove(const T& arg) = 0;
+// 	virtual void Clear() = 0;
+// 	virtual void PushFront(const T& arg) = 0;
+// 	virtual T PopFront() = 0;
+// 	virtual T& Front() = 0;
+// 	virtual void PushBack(const T& arg) = 0;
+// 	virtual T PopBack() = 0;
+// 	virtual T& Back() = 0;
+// };
+
 template<class T>
 class Array
 {
@@ -10,117 +146,43 @@ protected:
 	u32 capacity;
 
 public:
-	class Iterator
+	class Iterator : public IteratorBase<T, Iterator>
 	{
-	protected:
-		T* ptr;
-
 	public:
-		Iterator(T* ptr) : ptr(ptr)
+		Iterator(T* ptr) : IteratorBase<T, Iterator>(ptr)
 		{
 
 		}
 
-		Iterator(const Iterator& arg) : ptr(arg.ptr)
+		Iterator(const Iterator& arg) : IteratorBase<T, Iterator>(arg)
 		{
 
 		}
 
-		T& operator*()
+		Iterator& operator=(const Iterator& arg)
 		{
-			return *ptr;
-		}
-
-		T& operator->()
-		{
-			return *ptr;
-		}
-
-		bool operator==(const Iterator& arg) const
-		{
-			return ptr == arg.ptr;
-		}
-
-		bool operator!=(const Iterator& arg) const
-		{
-			return ptr != arg.ptr;
-		}
-
-		Iterator operator+(int arg) const
-		{
-			return  Iterator(ptr + arg);
-		}
-
-		Iterator& operator++()
-		{
-			Next();
-		}
-
-		Iterator operator++(int)
-		{
-			auto itr = *this;
-			Next();
-			return itr;
-		}
-
-		const Iterator& operator+=(int arg)
-		{
-			if(arg >= 0)
-			{
-				for(int a = 0; a < arg; a++)
-					Next();
-			}
-			else
-			{
-				for(int a = 0; a > arg; a--)
-					Prev();
-			}
-
+			this->ptr = arg.ptr;
 			return *this;
 		}
 
-		Iterator operator-(int arg) const
-		{
-			return Iterator(ptr - arg);
-		}
+		// T& operator*()
+		// {
+		// 	return *this->ptr;
+		// }
 
-		Iterator& operator--()
-		{
-			Prev();
-		}
-
-		Iterator operator--(int)
-		{
-			auto itr = *this;
-			Prev();
-			return itr;
-		}
-
-		const Iterator& operator-=(int arg)
-		{
-			if(arg >= 0)
-			{
-				for(int a = 0; a < arg; a++)
-					Prev();
-			}
-			else
-			{
-				for(int a = 0; a > arg; a--)
-					Next();
-			}
-
-			return *this;
-		}
-
+		// T& operator->()
+		// {
+		// 	return *this->ptr;
+		// }
 	protected:
-		void Next()
+		void Next() override
 		{
-			ptr++;
+			this->ptr++;
 		}
 
-		void Prev()
+		void Prev() override
 		{
-			ptr--;
+			this->ptr--;
 		}
 	};
 
@@ -348,7 +410,7 @@ protected:
 		if(!newData)
 			return false;
 
-		memcpy(newData, data, capacity * sizeof(T));
+		memcpy((void*)newData, (void*)data, capacity * sizeof(T));
 		delete[] (u8*)data;
 
 		data = newData;
@@ -416,27 +478,38 @@ TEST_F(ArrayTest, Constructor)
 	Array<TestSubject> test;
 
 	EXPECT_EQ(test.Data(), nullptr);
-	EXPECT_EQ(test.Size(), 0);
-	EXPECT_EQ(test.Capacity(), 0);
+	EXPECT_EQ(test.Size(), 0u);
+	EXPECT_EQ(test.Capacity(), 0u);
 
-	EXPECT_EQ(TestSubject::constructorCalls, 0);
-	EXPECT_EQ(TestSubject::constructorCopyCalls, 0);
-	EXPECT_EQ(TestSubject::destructorCalls, 0);
-	EXPECT_EQ(TestSubject::assignCalls, 0);
+	EXPECT_EQ(TestSubject::constructorCalls, 0u);
+	EXPECT_EQ(TestSubject::constructorCopyCalls, 0u);
+	EXPECT_EQ(TestSubject::destructorCalls, 0u);
+	EXPECT_EQ(TestSubject::assignCalls, 0u);
 }
 
 TEST_F(ArrayTest, ConstructorCapacity)
 {
 	Array<TestSubject> test(17);
+	Array<TestSubject> test2(12345);
 
 	EXPECT_NE(test.Data(), nullptr);
-	EXPECT_EQ(test.Size(), 0);
-	EXPECT_EQ(test.Capacity(), 17);
+	EXPECT_EQ(test.Size(), 0u);
+	EXPECT_EQ(test.Capacity(), 17u);
 
-	EXPECT_EQ(TestSubject::constructorCalls, 0);
-	EXPECT_EQ(TestSubject::constructorCopyCalls, 0);
-	EXPECT_EQ(TestSubject::destructorCalls, 0);
-	EXPECT_EQ(TestSubject::assignCalls, 0);
+	// This will NOT change the capacity, is it really a good design? :|
+	// test = test2;
+	// EXPECT_NE(test.Data(), nullptr);
+	// EXPECT_EQ(test.Size(), 0u);
+	// EXPECT_EQ(test.Capacity(), 12345u);
+
+	EXPECT_NE(test2.Data(), nullptr);
+	EXPECT_EQ(test2.Size(), 0u);
+	EXPECT_EQ(test2.Capacity(), 12345u);
+
+	EXPECT_EQ(TestSubject::constructorCalls, 0u);
+	EXPECT_EQ(TestSubject::constructorCopyCalls, 0u);
+	EXPECT_EQ(TestSubject::destructorCalls, 0u);
+	EXPECT_EQ(TestSubject::assignCalls, 0u);
 }
 
 TEST_F(ArrayTest, ConstructorCopy)
@@ -448,15 +521,15 @@ TEST_F(ArrayTest, ConstructorCopy)
 	Array<TestSubject> test2(test1);
 
 	EXPECT_NE(test1.Data(), nullptr);
-	EXPECT_EQ(test1.Size(), 3);
+	EXPECT_EQ(test1.Size(), 3u);
 
 	EXPECT_NE(test1.Data(), test2.Data());
 	EXPECT_NE(test2.Data(), nullptr);
 	EXPECT_EQ(test1.Size(), test2.Size());
 
-	EXPECT_EQ(TestSubject::constructorCalls, 3);
-	EXPECT_EQ(TestSubject::constructorCopyCalls, 0);
-	EXPECT_EQ(TestSubject::assignCalls, 6);
+	EXPECT_EQ(TestSubject::constructorCalls, 3u);
+	EXPECT_EQ(TestSubject::constructorCopyCalls, 0u);
+	EXPECT_EQ(TestSubject::assignCalls, 6u);
 }
 
 TEST_F(ArrayTest, Destructor)
@@ -468,7 +541,7 @@ TEST_F(ArrayTest, Destructor)
 		test.PushBack(TestSubject());
 	}
 
-	EXPECT_EQ(TestSubject::destructorCalls, 6);
+	EXPECT_EQ(TestSubject::destructorCalls, 6u);
 }
 
 TEST_F(ArrayTest, OperatorAssignment)
@@ -482,15 +555,15 @@ TEST_F(ArrayTest, OperatorAssignment)
 	test2 = test1;
 
 	EXPECT_NE(test1.Data(), nullptr);
-	EXPECT_EQ(test1.Size(), 3);
+	EXPECT_EQ(test1.Size(), 3u);
 
 	EXPECT_NE(test1.Data(), test2.Data());
 	EXPECT_NE(test2.Data(), nullptr);
 	EXPECT_EQ(test1.Size(), test2.Size());
 
-	EXPECT_EQ(TestSubject::constructorCalls, 3);
-	EXPECT_EQ(TestSubject::constructorCopyCalls, 0);
-	EXPECT_EQ(TestSubject::assignCalls, 6);
+	EXPECT_EQ(TestSubject::constructorCalls, 3u);
+	EXPECT_EQ(TestSubject::constructorCopyCalls, 0u);
+	EXPECT_EQ(TestSubject::assignCalls, 6u);
 }
 
 TEST_F(ArrayTest, OperatorArray)
@@ -536,17 +609,17 @@ TEST_F(ArrayTest, ForeachIterator_Remove)
 	test.PushBack(3);
 	test.PushBack(9);
 
-	int a = 0;
+	unsigned a = 0;
 	for(auto itr = test.begin(); itr != test.end(); )
 	{
 		itr = test.RemoveAt(itr);
 
 		a++;
-		EXPECT_EQ(test.Size(), 4 - a);
+		EXPECT_EQ(test.Size(), 4u - a);
 	}
 
-	EXPECT_EQ(a, 4);
-	EXPECT_EQ(test.Size(), 0);
+	EXPECT_EQ(a, 4u);
+	EXPECT_EQ(test.Size(), 0u);
 }
 
 TEST_F(ArrayTest, ForeachIterator_Iterate)
@@ -559,7 +632,7 @@ TEST_F(ArrayTest, ForeachIterator_Iterate)
 		test.PushBack(val);
 	}
 
-	int a = 0;
+	unsigned a = 0;
 	for(auto itr : test)
 	{
 		EXPECT_EQ(itr, vals[a]);
@@ -567,7 +640,7 @@ TEST_F(ArrayTest, ForeachIterator_Iterate)
 		a++;
 	}
 
-	EXPECT_EQ(a, 4);
+	EXPECT_EQ(a, 4u);
 }
 
 TEST_F(ArrayTest, InsertIndexBegin)
@@ -578,7 +651,7 @@ TEST_F(ArrayTest, InsertIndexBegin)
 	test.InsertAt(0, 5);
 	test.InsertAt(0, 9);
 
-	EXPECT_EQ(test.Size(), 3);
+	EXPECT_EQ(test.Size(), 3u);
 	EXPECT_EQ(test[2], 1);
 	EXPECT_EQ(test[1], 5);
 	EXPECT_EQ(test[0], 9);
@@ -596,7 +669,7 @@ TEST_F(ArrayTest, InsertIndexMiddle)
 
 	test.InsertAt(2, 5);
 
-	EXPECT_EQ(test.Size(), 6);
+	EXPECT_EQ(test.Size(), 6u);
 	EXPECT_EQ(test[1], 0);
 	EXPECT_EQ(test[2], 5);
 	EXPECT_EQ(test[3], 0);
@@ -614,7 +687,7 @@ TEST_F(ArrayTest, InsertIndexEnd)
 
 	test.InsertAt(5, 5);
 
-	EXPECT_EQ(test.Size(), 6);
+	EXPECT_EQ(test.Size(), 6u);
 	EXPECT_EQ(test[4], 0);
 	EXPECT_EQ(test[5], 5);
 }
@@ -627,7 +700,7 @@ TEST_F(ArrayTest, InsertIndexOutside)
 	test.InsertAt(10, 5);
 	test.InsertAt(10, 9);
 
-	EXPECT_EQ(test.Size(), 0);
+	EXPECT_EQ(test.Size(), 0u);
 }
 
 TEST_F(ArrayTest, RemoveIteratorBegin)
@@ -644,7 +717,7 @@ TEST_F(ArrayTest, RemoveIteratorBegin)
 	EXPECT_EQ(test[0], 1);
 	EXPECT_EQ(test[1], 5);
 
-	EXPECT_EQ(test.Size(), 4);
+	EXPECT_EQ(test.Size(), 4u);
 }
 
 TEST_F(ArrayTest, RemoveIteratorMiddle)
@@ -661,7 +734,7 @@ TEST_F(ArrayTest, RemoveIteratorMiddle)
 	EXPECT_EQ(test[1], 1);
 	EXPECT_EQ(test[2], 9);
 
-	EXPECT_EQ(test.Size(), 4);
+	EXPECT_EQ(test.Size(), 4u);
 }
 
 TEST_F(ArrayTest, RemoveIteratorEnd)
@@ -678,7 +751,7 @@ TEST_F(ArrayTest, RemoveIteratorEnd)
 	EXPECT_EQ(test[2], 5);
 	EXPECT_EQ(test[3], 9);
 
-	EXPECT_EQ(test.Size(), 4);
+	EXPECT_EQ(test.Size(), 4u);
 }
 
 TEST_F(ArrayTest, RemoveIteratorEnd2)
@@ -695,7 +768,7 @@ TEST_F(ArrayTest, RemoveIteratorEnd2)
 	EXPECT_EQ(test[2], 5);
 	EXPECT_EQ(test[3], 9);
 
-	EXPECT_EQ(test.Size(), 4);
+	EXPECT_EQ(test.Size(), 4u);
 }
 
 TEST_F(ArrayTest, RemoveIndexBegin)
@@ -710,7 +783,7 @@ TEST_F(ArrayTest, RemoveIndexBegin)
 	EXPECT_EQ(test[0], 5);
 	EXPECT_EQ(test[1], 9);
 
-	EXPECT_EQ(test.Size(), 2);
+	EXPECT_EQ(test.Size(), 2u);
 }
 
 TEST_F(ArrayTest, RemoveIndexMiddle)
@@ -725,7 +798,7 @@ TEST_F(ArrayTest, RemoveIndexMiddle)
 	EXPECT_EQ(test[0], 1);
 	EXPECT_EQ(test[1], 9);
 
-	EXPECT_EQ(test.Size(), 2);
+	EXPECT_EQ(test.Size(), 2u);
 }
 
 TEST_F(ArrayTest, RemoveIndexEnd)
@@ -740,7 +813,7 @@ TEST_F(ArrayTest, RemoveIndexEnd)
 	EXPECT_EQ(test[0], 1);
 	EXPECT_EQ(test[1], 5);
 
-	EXPECT_EQ(test.Size(), 2);
+	EXPECT_EQ(test.Size(), 2u);
 }
 
 TEST_F(ArrayTest, RemoveIndexOutside)
@@ -756,10 +829,8 @@ TEST_F(ArrayTest, RemoveIndexOutside)
 	EXPECT_EQ(test[1], 5);
 	EXPECT_EQ(test[2], 9);
 
-	EXPECT_EQ(test.Size(), 3);
+	EXPECT_EQ(test.Size(), 3u);
 }
-
-// // void Remove(Iterator itr);
 
 TEST_F(ArrayTest, RemoveObject_Hit)
 {
@@ -779,7 +850,7 @@ TEST_F(ArrayTest, RemoveObject_Hit)
 	EXPECT_NE(test[0], 1);
 	EXPECT_NE(test[3], 1);
 
-	EXPECT_EQ(test.Size(), 6);
+	EXPECT_EQ(test.Size(), 6u);
 }
 
 TEST_F(ArrayTest, RemoveObject_Miss)
@@ -802,7 +873,7 @@ TEST_F(ArrayTest, RemoveObject_Miss)
 	EXPECT_EQ(test[2], 9);
 	EXPECT_EQ(test[3], 1);
 
-	EXPECT_EQ(test.Size(), 9);
+	EXPECT_EQ(test.Size(), 9u);
 }
 
 TEST_F(ArrayTest, Clear)
@@ -813,22 +884,22 @@ TEST_F(ArrayTest, Clear)
 	test.PushBack(TestSubject());
 
 	EXPECT_NE(test.Data(), nullptr);
-	EXPECT_EQ(test.Size(), 3);
+	EXPECT_EQ(test.Size(), 3u);
 
-	EXPECT_EQ(TestSubject::constructorCalls, 3);
-	EXPECT_EQ(TestSubject::constructorCopyCalls, 0);
-	EXPECT_EQ(TestSubject::assignCalls, 3);
-	EXPECT_EQ(TestSubject::destructorCalls, 3);
+	EXPECT_EQ(TestSubject::constructorCalls, 3u);
+	EXPECT_EQ(TestSubject::constructorCopyCalls, 0u);
+	EXPECT_EQ(TestSubject::assignCalls, 3u);
+	EXPECT_EQ(TestSubject::destructorCalls, 3u);
 
 	test.Clear();
 
 	EXPECT_NE(test.Data(), nullptr);
-	EXPECT_EQ(test.Size(), 0);
+	EXPECT_EQ(test.Size(), 0u);
 
-	EXPECT_EQ(TestSubject::constructorCalls, 3);
-	EXPECT_EQ(TestSubject::constructorCopyCalls, 0);
-	EXPECT_EQ(TestSubject::assignCalls, 3);
-	EXPECT_EQ(TestSubject::destructorCalls, 6);
+	EXPECT_EQ(TestSubject::constructorCalls, 3u);
+	EXPECT_EQ(TestSubject::constructorCopyCalls, 0u);
+	EXPECT_EQ(TestSubject::assignCalls, 3u);
+	EXPECT_EQ(TestSubject::destructorCalls, 6u);
 }
 
 TEST_F(ArrayTest, PushFront)
@@ -839,7 +910,7 @@ TEST_F(ArrayTest, PushFront)
 	test.PushFront(5);
 	test.PushFront(9);
 
-	EXPECT_EQ(test.Size(), 3);
+	EXPECT_EQ(test.Size(), 3u);
 	EXPECT_EQ(test[0], 9);
 	EXPECT_EQ(test[1], 5);
 	EXPECT_EQ(test[2], 1);
@@ -853,11 +924,11 @@ TEST_F(ArrayTest, PopFront)
 	test.PushFront(5);
 	test.PushFront(9);
 
-	EXPECT_EQ(test.Size(), 3);
+	EXPECT_EQ(test.Size(), 3u);
 	EXPECT_EQ(test.PopFront(), 9);
 	EXPECT_EQ(test.PopFront(), 5);
 	EXPECT_EQ(test.PopFront(), 1);
-	EXPECT_EQ(test.Size(), 0);
+	EXPECT_EQ(test.Size(), 0u);
 }
 
 TEST_F(ArrayTest, Front)
@@ -865,18 +936,18 @@ TEST_F(ArrayTest, Front)
 	Array<int> test;
 
 	test.PushFront(1);
-	EXPECT_EQ(test.Size(), 1);
+	EXPECT_EQ(test.Size(), 1u);
 	EXPECT_EQ(test.Front(), 1);
 
 	test.PushFront(5);
-	EXPECT_EQ(test.Size(), 2);
+	EXPECT_EQ(test.Size(), 2u);
 	EXPECT_EQ(test.Front(), 5);
 
 	test.PushFront(9);
-	EXPECT_EQ(test.Size(), 3);
+	EXPECT_EQ(test.Size(), 3u);
 	EXPECT_EQ(test.Front(), 9);
 
-	EXPECT_EQ(test.Size(), 3);
+	EXPECT_EQ(test.Size(), 3u);
 }
 
 TEST_F(ArrayTest, PushBack)
@@ -887,7 +958,7 @@ TEST_F(ArrayTest, PushBack)
 	test.PushBack(5);
 	test.PushBack(9);
 
-	EXPECT_EQ(test.Size(), 3);
+	EXPECT_EQ(test.Size(), 3u);
 	EXPECT_EQ(test[0], 1);
 	EXPECT_EQ(test[1], 5);
 	EXPECT_EQ(test[2], 9);
@@ -901,11 +972,11 @@ TEST_F(ArrayTest, PopBack)
 	test.PushBack(5);
 	test.PushBack(9);
 
-	EXPECT_EQ(test.Size(), 3);
+	EXPECT_EQ(test.Size(), 3u);
 	EXPECT_EQ(test.PopBack(), 9);
 	EXPECT_EQ(test.PopBack(), 5);
 	EXPECT_EQ(test.PopBack(), 1);
-	EXPECT_EQ(test.Size(), 0);
+	EXPECT_EQ(test.Size(), 0u);
 }
 
 TEST_F(ArrayTest, Back)
@@ -913,16 +984,16 @@ TEST_F(ArrayTest, Back)
 	Array<int> test;
 
 	test.PushBack(1);
-	EXPECT_EQ(test.Size(), 1);
+	EXPECT_EQ(test.Size(), 1u);
 	EXPECT_EQ(test.Back(), 1);
 
 	test.PushBack(5);
-	EXPECT_EQ(test.Size(), 2);
+	EXPECT_EQ(test.Size(), 2u);
 	EXPECT_EQ(test.Back(), 5);
 
 	test.PushBack(9);
-	EXPECT_EQ(test.Size(), 3);
+	EXPECT_EQ(test.Size(), 3u);
 	EXPECT_EQ(test.Back(), 9);
 
-	EXPECT_EQ(test.Size(), 3);
+	EXPECT_EQ(test.Size(), 3u);
 }
