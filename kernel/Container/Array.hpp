@@ -1,287 +1,286 @@
 #pragma once
 
-#include"Iterator.hpp"
-#include"IContainer.hpp"
+#include"IteratorBase.hpp"
 
-namespace Container
+template<class T>
+class Array
 {
-	template<class T>
-	class Array : public IContainer<T>
+protected:
+	T* data;
+	u32 size;
+	u32 capacity;
+
+public:
+	class Iterator : public IteratorBase<T, Iterator>
 	{
-	protected:
-		T* objs;
-		u32 capacity;
-		u32 size;
-
-		class Iterator : public TwoWayIterator<T>
-		{
-			private:
-				T* ptr;
-
-			public:
-				Iterator(T* ptr) : ptr(ptr)
-				{
-
-				}
-
-				virtual T& operator*() override
-				{
-					return *ptr;
-				}
-
-				virtual const Iterator operator+(int v) const
-				{
-					return Iterator(ptr + v);
-				}
-
-				virtual Iterator& operator++() override
-				{
-					ptr++;
-					return *this;
-				}
-
-				virtual const Iterator operator++(int)
-				{
-					Iterator prev = *this;
-					ptr++;
-					return prev;
-				}
-
-				virtual Iterator& operator+=(int v) override
-				{
-					ptr += v;
-					return *this;
-				}
-
-				virtual const Iterator operator-(int v) const
-				{
-					return Iterator(ptr - v);
-				}
-
-				virtual Iterator& operator--() override
-				{
-					ptr--;
-					return *this;
-				}
-
-				virtual const Iterator operator--(int)
-				{
-					Iterator prev = *this;
-					ptr--;
-					return prev;
-				}
-
-				virtual Iterator& operator-=(int v) override
-				{
-					ptr -= v;
-					return *this;
-				}
-
-				virtual bool operator==(const OneWayIterator<T> &arg) override
-				{
-					return (ptr == static_cast<const Iterator*>(&arg)->ptr);
-				}
-
-				virtual bool operator!=(const OneWayIterator<T> &arg) override
-				{
-					return (ptr != static_cast<const Iterator*>(&arg)->ptr);
-				}
-		};
-
 	public:
-		Array() : objs(nullptr), capacity(0), size(0)
+		Iterator(T* ptr) : IteratorBase<T, Iterator>(ptr)
 		{
 
 		}
 
-		Array(const Array<T>& args) : capacity(args.capacity), size(args.size)
+		Iterator(const Iterator& arg) : IteratorBase<T, Iterator>(arg)
 		{
-			objs = (T*)new u8[capacity * sizeof(T)];
-			for(unsigned a = 0; a < size; a++)
-				objs[a] = args.objs[a];
+
 		}
 
-		Array(u32 capacity) : capacity(capacity), size(0)
+		Iterator& operator=(const Iterator& arg)
 		{
-			objs = (T*)new u8[capacity * sizeof(T)];
-		}
-
-		~Array()
-		{
-			Print("~Array - %p\n", this);
-			// FIXME: crash
-			Clear();
-			// delete[] (u8*)objs;
-			// objs = nullptr;
-		}
-
-		u32 Size()
-		{
-			return size;
-		}
-
-		u32 Capacity()
-		{
-			return capacity;
-		}
-
-		bool IsEmpty()
-		{
-			return Size() == 0;
-		}
-
-		void Clear()
-		{
-			if(!objs || !size)
-				return;
-
-			// Print("Clearing array:\n");
-			for(unsigned a = 0; a < size; a++)
-			{
-				// Print("+ %p", objs + a);
-				objs[a].~T();
-				// Print(" +\n");
-			}
-
-			// Print("+++ Finished~!\n");
-			size = 0;
-		}
-
-		T& operator[](u32 index) const
-		{
-			ASSERT(index < size, "Array[] invalid index");
-
-			return objs[index];
-		}
-
-		// Array& operator=(const Array& arg)
-		// {
-		// 	this->size = arg.size;
-		// 	this->capacity = arg.capacity;
-		// 	this->objs = (T*)new u8[capacity * sizeof(T)];
-		// 	for(unsigned a = 0; a < size; a++)
-		// 		this->objs[a] = arg.objs[a];
-
-		// 	return *this;
-		// }
-
-		Iterator begin()
-		{
-			return Iterator(objs);
-		}
-
-		Iterator end()
-		{
-			return Iterator(objs + size);
-		}
-
-		void Insert(Iterator itr, const T& v)
-		{
-			u32 pos = (u32)((&(*itr)) - (&(*begin())));
-
-			if(size + 1 > capacity)
-				Realloc();
-
-			if(size > 0)
-			{
-				for(unsigned a = size; a > pos; a--)
-				{
-					objs[a] = objs[a - 1];
-					if(a == 0)
-						break;
-				}
-			}
-
-			objs[pos] = v;
-			//new(objs + pos) T(v);
-			size++;
-		}
-
-		void PushFront(const T& v)
-		{
-			Insert(begin(), v);
-		}
-
-		T PopFront()
-		{
-			ASSERT(size > 0, "Pop from empty array");
-
-			T v = objs[0];
-			memcpy(objs + 0, objs + 1, (size - 1) * sizeof(T));
-			size--;
-			return v;
-		}
-
-		void PushBack(const T& v)
-		{
-			Insert(end(), v);
-		}
-
-		T PopBack()
-		{
-			ASSERT(size > 0, "Pop from empty array");
-
-			T v = objs[size - 1];
-			objs[size - 1].~T();
-			size--;
-			return v;
-		}
-
-		T& Back()
-		{
-			return objs[size - 1];
-		}
-
-		T& Front()
-		{
-			return objs[0];
-		}
-
-		void RemoveAt(u32 index)
-		{
-			ASSERT(index < size, "RemoveAt invalid index");
-			if(index >= size)
-				return;
-
-			memcpy(objs + index, objs + index + 1, (size - index - 1) * sizeof(T));
-			size--;
-		}
-
-		Array<T>& operator=(const Array<T>& arg)
-		{
-			if(objs)
-				delete[] objs;
-
-			capacity = arg.capacity;
-			size = arg.size;
-			objs = (T*)new u8[capacity * sizeof(T)];
-
-			for(unsigned a = 0; a < size; a++)
-				objs[a] = arg.objs[a];
-
+			this->ptr = arg.ptr;
 			return *this;
 		}
 
-	private:
-		void Realloc()
+		// T& operator*()
+		// {
+		// 	return *this->ptr;
+		// }
+
+		// T& operator->()
+		// {
+		// 	return *this->ptr;
+		// }
+	protected:
+		void Next() override
 		{
-			Print("Realloc...\n");
-			if(capacity < 8)
-				capacity = 8;
-			else
-				capacity *= 2;
+			this->ptr++;
+		}
 
-			T* newObjs = (T*)new u8[capacity * sizeof(T)];// (T*)Memory::Alloc(capacity * sizeof(T));
-			ASSERT(newObjs != nullptr, "Can't alloc array");
-
-			if(objs)
-			{
-				memcpy(newObjs, objs, size * sizeof(T));
-				//Memory::Free(objs);
-				delete[] objs;
-			}
-
-			objs = newObjs;
+		void Prev() override
+		{
+			this->ptr--;
 		}
 	};
-}
+
+	Array() : data(nullptr), size(0), capacity(0)
+	{
+
+	}
+
+	Array(u32 capacity) : size(0), capacity(capacity)
+	{
+		data = (T*)new u8[sizeof(T) * capacity];
+	}
+
+	Array(const Array& arg) : size(arg.size), capacity(arg.capacity)
+	{
+		data = (T*)new u8[sizeof(T) * capacity];
+
+		for(unsigned a = 0; a < size; a++)
+			data[a] = arg.data[a];
+	}
+
+	~Array()
+	{
+		Clear();
+		delete[] (u8*)data;
+	}
+
+	Array& operator=(const Array& arg)
+	{
+		if(data)
+		{
+			Clear();
+			if(capacity < arg.size)
+			{
+				delete[] (u8*)data;
+				data = nullptr;
+
+				capacity = arg.capacity;
+			}
+		}
+
+		if(!data)
+			data = (T*)new u8[sizeof(T) * capacity];
+
+		size = arg.size;
+
+		for(unsigned a = 0; a < size; a++)
+			data[a] = arg.data[a];
+
+		return *this;
+	}
+
+	T& operator[](u32 index)
+	{
+		if(index >= size)
+		{
+			// TODO: assert
+			T* ptr = nullptr;
+			return *ptr;
+		}
+
+		return data[index];
+	}
+
+	T* Data()
+	{
+		return data;
+	}
+
+	u32 Size()
+	{
+		return size;
+	}
+
+	u32 Capacity()
+	{
+		return capacity;
+	}
+
+	Iterator begin()
+	{
+		return Iterator(data);
+	}
+
+	Iterator end()
+	{
+		return Iterator(data + size);
+	}
+
+	void InsertAt(u32 index, const T& arg)
+	{
+		if(index > size + 1)
+		{
+			// TODO: assert
+			return;
+		}
+
+		if(size + 1 > capacity)
+		{
+			if(!Resize())
+			{
+				// TODO: assert
+				return;
+			}
+		}
+
+		for(unsigned a = size; a > index; a--)
+		{
+			memcpy((void*)(&data[a]), (void*)(&data[a - 1]), sizeof(T));
+			// data[a] = data[a - 1];
+		}
+
+		data[index] = arg;
+		size++;
+	}
+
+	Iterator InsertAt(Iterator itr, const T& arg)
+	{
+		T* ptr = &(*itr);
+		auto index = ptr - data;
+		InsertAt(index, arg);
+
+		return Iterator(data + index);
+	}
+
+	void RemoveAt(u32 index)
+	{
+		if(index > size)
+		{
+			// TODO: assert
+			return;
+		}
+
+		data[index].~T();
+		size--;
+
+		for(unsigned a = index; a < size; a++)
+		{
+			memcpy((void*)(&data[a]), (void*)(&data[a + 1]), sizeof(T));
+			// data[a] = data[a + 1];
+		}
+	}
+
+	Iterator RemoveAt(Iterator itr)
+	{
+		T* ptr = &(*itr);
+		auto index = ptr - data;
+		RemoveAt(index);
+
+		return Iterator(data + index);
+	}
+
+	void Remove(const T& arg)
+	{
+		for(unsigned a = 0; a < size; )
+		{
+			if(data[a] == arg)
+				RemoveAt(a);
+			else
+				a++;
+		}
+	}
+
+	void Clear()
+	{
+		for(unsigned a = 0; a < size; a++)
+			data[a].~T();
+
+		size = 0;
+	}
+
+	void PushFront(const T& arg)
+	{
+		InsertAt(0, arg);
+	}
+
+	T PopFront()
+	{
+		T obj = data[0];
+		RemoveAt(0);
+		return obj;
+	}
+
+	T& Front()
+	{
+		if(!size)
+		{
+			// TODO: assert
+			T* ptr = nullptr;
+			return *ptr;
+		}
+
+		return data[0];
+	}
+
+	void PushBack(const T& arg)
+	{
+		InsertAt(size, arg);
+	}
+
+	T PopBack()
+	{
+		T obj = data[size - 1];
+		RemoveAt(size - 1);
+		return obj;
+	}
+
+	T& Back()
+	{
+		if(!size)
+		{
+			// TODO: assert
+			T* ptr = nullptr;
+			return *ptr;
+		}
+
+		return data[size - 1];
+	}
+
+protected:
+	bool Resize()
+	{
+		u32 newCapacity = (capacity > 0) ? capacity * 2 : 8;
+		T* newData = (T*)new u8[sizeof(T) * newCapacity];
+		if(!newData)
+			return false;
+
+		memcpy((void*)newData, (void*)data, capacity * sizeof(T));
+		delete[] (u8*)data;
+
+		data = newData;
+		capacity = newCapacity;
+
+		return true;
+	}
+};

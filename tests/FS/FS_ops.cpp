@@ -1,69 +1,69 @@
-#include<gtest/gtest.h>
-#include"FS/FAT.hpp"
-#include"FS_mock.hpp"
+// #include<gtest/gtest.h>
+// #include"FS/FAT.hpp"
+// #include"FS_mock.hpp"
 
-// char* rootdirs_names[] = { "dir_1", "dir_2", "dir_3" };
-// char* dir2_subdirs_names[] = { "dir_2_1", "dir_2_2", "dir_2_3" };
-char* files_names[] = { "file_1", "file_2", "file_3" };
+// // char* rootdirs_names[] = { "dir_1", "dir_2", "dir_3" };
+// // char* dir2_subdirs_names[] = { "dir_2_1", "dir_2_2", "dir_2_3" };
+// char* files_names[] = { "file_1", "file_2", "file_3" };
 
-class FS_ops : public testing::Test {
-public:
-	static void SetUpTestSuite()
-	{
-		Status s;
+// class FS_ops : public testing::Test {
+// public:
+// 	static void SetUpTestSuite()
+// 	{
+// 		Status s;
 
-		DummyPartitionOpen();
-		DummyPartitionClear();
-		FAT::Init();
+// 		DummyPartitionOpen();
+// 		DummyPartitionClear();
+// 		FAT::Init();
 
-		s = fs->Format(&dummyPartition, nullptr);
-		EXPECT_EQ(s, Status::Success);
+// 		s = fs->Format(&dummyPartition, nullptr);
+// 		EXPECT_EQ(s, Status::Success);
 
-		s = fs->Probe(&dummyPartition);
-		EXPECT_EQ(s, Status::Success);
+// 		s = fs->Probe(&dummyPartition);
+// 		EXPECT_EQ(s, Status::Success);
 
-		s = fs->Mount(&dummyPartition, &fsPriv);
-		EXPECT_EQ(s, Status::Success);
-	}
+// 		s = fs->Mount(&dummyPartition, &fsPriv);
+// 		EXPECT_EQ(s, Status::Success);
+// 	}
 
-	static void TearDownTestSuite()
-	{
-		DummyPartitionClose();
-	}
-};
+// 	static void TearDownTestSuite()
+// 	{
+// 		DummyPartitionClose();
+// 	}
+// };
 
-Status ReadDirUntil(FS::Directory* dir, char* name)
-{
-	Status s;
+// Status ReadDirUntil(FS::Directory* dir, char* name)
+// {
+// 	Status s;
 
-	FS::DirEntry entry;
-	fs->DirectoryRewind(fsPriv, dir);
+// 	FS::DirEntry entry;
+// 	fs->DirectoryRewind(fsPriv, dir);
 
-	while((s = fs->DirectoryRead(fsPriv, dir, &entry)) == Status::Success)
-	{
-		if(strcmp((char*)entry.name, name) == 0)
-			break;
-	}
+// 	while((s = fs->DirectoryRead(fsPriv, dir, &entry)) == Status::Success)
+// 	{
+// 		if(strcmp((char*)entry.name, name) == 0)
+// 			break;
+// 	}
 
-	return s;
-}
+// 	return s;
+// }
 
-int CountEntries(FS::Directory* dir)
-{
-	Status s;
-	int count = 0;
+// int CountEntries(FS::Directory* dir)
+// {
+// 	Status s;
+// 	int count = 0;
 
-	FS::DirEntry entry;
-	s = fs->DirectoryRewind(fsPriv, dir);
-	EXPECT_EQ(s, Status::Success);
+// 	FS::DirEntry entry;
+// 	s = fs->DirectoryRewind(fsPriv, dir);
+// 	EXPECT_EQ(s, Status::Success);
 
-	while(fs->DirectoryRead(fsPriv, dir, &entry) == Status::Success)
-	{
-		count++;
-	}
+// 	while(fs->DirectoryRead(fsPriv, dir, &entry) == Status::Success)
+// 	{
+// 		count++;
+// 	}
 
-	return count;
-}
+// 	return count;
+// }
 
 // TEST_F(FS_ops, FAT_CreateDirectories)
 // {
