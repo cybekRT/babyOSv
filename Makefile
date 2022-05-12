@@ -15,7 +15,7 @@ ifeq ($(OS),Windows_NT)
 	CFS					:= ../cFS/cFS-cli/cFS-cli
 	QEMU_DOS_IMG		:= -hda D:/Drop/dos.img
 	QEMU_DOSEXT_IMG		:=
-	GTEST_FLAGS			:= 
+	GTEST_FLAGS			:=
 ####################
 #
 #	MacOS configuration
@@ -136,17 +136,32 @@ TESTS_OBJS	:= $(TESTS_SRCS:tests/%.cpp=out_tests/%.o)
 TESTS_DEPS	:= $(TESTS_OBJS:%.o=%.d)
 
 tests: test-run
+tests-open:
+	make tests && open out_tests/html/index.html
 
 test-objs: $(TESTS_OBJS)
 test-exe: test-objs #deps/libgtest.a
-	g++ $(GCC_FLAGS) $(TESTS_OBJS) -Ldeps/googletest/googletest/build/lib -Ldeps/googletest/build/lib -Ideps/googletest/googletest/include -Ideps/googletest/include -o out_tests/run_tests -lgtest_main -lgtest $(GTEST_FLAGS)
+	g++ -g3 -O0 $(TESTS_OBJS) -Ldeps/googletest/build/lib -Ideps/googletest/googletest/include -Ideps/googletest/include \
+	-fprofile-arcs -ftest-coverage --coverage -fno-inline -fno-inline-small-functions -fno-default-inline \
+	-fprofile-instr-generate -fcoverage-mapping \
+	-o out_tests/run_tests -lgtest_main -lgtest $(GTEST_FLAGS)
 test-run: test-exe
+	lcov -c -i -b . -d out_tests -o out_tests/Coverage.baseline > /dev/null 2>&1
 	out_tests/run_tests --gtest_output=json:out_tests/output.json
+	lcov -c -b . -d out_tests -o out_tests/Coverage.out > /dev/null 2>&1
+	lcov -a out_tests/Coverage.baseline -a out_tests/Coverage.out -o out_tests/Coverage.merged > /dev/null 2>&1
+	genhtml out_tests/Coverage.merged --output-directory out_tests/html > /dev/null 2>&1
 
+	#gcov out_tests/*.gcno -o out_tests > /dev/null
+	#lcov --capture --directory out_tests --output-file out_tests/results.info > /dev/null 2>&1
+	#genhtml out_tests/results.info --output-directory out_tests/html > /dev/null
 
 out_tests/%.o: tests/%.cpp
 	mkdir -p $(dir $@)
-	g++ $(GCC_FLAGS) -DTESTS=1 -c $< -o $@ -Ideps/googletest/googletest/include -Ikernel -Ikernel/Core
+	g++ $(GCC_FLAGS) -DTESTS=1 -g -O0 -fprofile-arcs -ftest-coverage \
+	-fprofile-arcs -ftest-coverage --coverage -fno-inline -fno-inline-small-functions -fno-default-inline \
+	-fprofile-instr-generate -fcoverage-mapping \
+	-c $< -o $@ -Ideps/googletest/googletest/include -Ikernel -Ikernel/Core
 
 out_tests/%.d: tests/%.cpp
 	$(GCC) $(GCC_FLAGS) -DTESTS=1 -MM -MT $(@:%.d=%.o) -MF $@ $<

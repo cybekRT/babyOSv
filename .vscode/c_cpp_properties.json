@@ -18,11 +18,11 @@
             "cStandard": "c11",
             "cppStandard": "gnu++14",
             "compilerArgs": [
-				"-include kernel/global.hpp",
-				"-std=gnu++1z",
-				"-mgeneral-regs-only",
-				"-fno-isolate-erroneous-paths-attribute",
-				"-fno-asynchronous-unwind-tables"
+                "-include kernel/global.hpp",
+                "-std=gnu++1z",
+                "-mgeneral-regs-only",
+                "-fno-isolate-erroneous-paths-attribute",
+                "-fno-asynchronous-unwind-tables"
             ]
         }
     ],

@@ -3,41 +3,7 @@
 #include<gtest/gtest.h>
 
 #include"Container/Array.hpp"
-
-class TestSubject
-{
-public:
-	static unsigned constructorCalls;
-	static unsigned constructorCopyCalls;
-	static unsigned destructorCalls;
-	static unsigned assignCalls;
-
-	TestSubject()
-	{
-		constructorCalls++;
-	}
-
-	TestSubject(const TestSubject& arg)
-	{
-		constructorCopyCalls++;
-	}
-
-	~TestSubject()
-	{
-		destructorCalls++;
-	}
-
-	TestSubject& operator=(const TestSubject& arg)
-	{
-		assignCalls++;
-		return *this;
-	}
-};
-
-unsigned TestSubject::constructorCalls = 0;
-unsigned TestSubject::constructorCopyCalls = 0;
-unsigned TestSubject::destructorCalls = 0;
-unsigned TestSubject::assignCalls = 0;
+#include"TestSubject.hpp"
 
 class ArrayTest : public testing::Test {
 public:

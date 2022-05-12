@@ -13,7 +13,7 @@ protected:
 		Item* prev;
 		Item* next;
 
-		Item(const T& arg) : data(arg), prev(nullptr), next(nullptr)
+		explicit Item(const T& arg) : data(arg), prev(nullptr), next(nullptr)
 		{
 
 		}
@@ -26,7 +26,7 @@ public:
 	class Iterator : public IteratorBase<Item, Iterator>
 	{
 	public:
-		Iterator(Item* ptr) : IteratorBase<Item, Iterator>(ptr)
+		explicit Iterator(Item* ptr) : IteratorBase<Item, Iterator>(ptr)
 		{
 
 		}
@@ -42,12 +42,12 @@ public:
 			return *this;
 		}
 
-		Item& operator*()
+		T& operator*()
 		{
 			return this->ptr->data;
 		}
 
-		Item& operator->()
+		T& operator->()
 		{
 			return this->ptr->data;
 		}
@@ -79,7 +79,7 @@ public:
 		Clear();
 	}
 
-	List& operator=(const Array& arg)
+	List& operator=(const List& arg)
 	{
 		Clear();
 
@@ -89,17 +89,26 @@ public:
 		return *this;
 	}
 
+	T& operator[](u32 index)
+	{
+		Item* ptr = head;
+		for(unsigned a = 0; a < index; a++)
+			ptr = ptr->next;
+
+		return ptr->data;
+	}
+
 	u32 Size()
 	{
 		return size;
 	}
 
-	Iterator begin()
+	Iterator begin() const
 	{
 		return Iterator(head);
 	}
 
-	Iterator end()
+	Iterator end() const
 	{
 		return Iterator(nullptr);
 	}
@@ -131,14 +140,32 @@ public:
 	// 	size++;
 	// }
 
-	// Iterator InsertAt(Iterator itr, const T& arg)
-	// {
-	// 	T* ptr = &(*itr);
-	// 	auto index = ptr - data;
-	// 	InsertAt(index, arg);
+	Iterator InsertAt(Iterator itr, const T& arg)
+	{
+		if(&head->data == itr)
+		{
+			Item* item = new Item(arg);
+			item->next = head;
+			if(head)
+				head->prev = item;
+			head = item;
 
-	// 	return Iterator(data + index);
-	// }
+			return Iterator(head);
+		}
+		else
+		{
+			Item* ptr = head;
+			while(&ptr->next->data != itr)
+				ptr = ptr->next;
+
+			Item* item = new Item(arg);
+			item->prev = ptr;
+			item->next = ptr->next;
+			ptr->next = item;
+
+			return Iterator(item);
+		}
+	}
 
 	// void RemoveAt(u32 index)
 	// {
@@ -180,23 +207,34 @@ public:
 
 	void Clear()
 	{
-		// for(unsigned a = 0; a < size; a++)
-		// 	data[a].~T();
+		while(head)
+		{
+			Item* ptr = head->next;
+			delete head;
+			head = ptr;
+		}
 
 		size = 0;
-		head = nullptr;
+		// head = nullptr;
 	}
 
 	void PushFront(const T& arg)
 	{
 		Item* item = new Item(arg);
-		// InsertAt(0, arg);
+		item->next = head;
+		item->prev = nullptr;
+		head = item;
+
+		size++;
 	}
 
 	T PopFront()
 	{
-		T obj = data[0];
-		RemoveAt(0);
+		T obj = head->data;
+		Item* item = head;
+		head = head->next;
+		delete item;
+		size--;
 		return obj;
 	}
 
@@ -205,22 +243,47 @@ public:
 		if(!size)
 		{
 			// TODO: assert
-			T* ptr = nullptr;
-			return *ptr;
+			// T* ptr = nullptr;
+			// return *ptr;
 		}
 
-		return data[0];
+		return head->data;
 	}
 
 	void PushBack(const T& arg)
 	{
-		InsertAt(size, arg);
+		Item* item = new Item(arg);
+
+		if(head == nullptr)
+		{
+			head = item;
+		}
+		else
+		{
+			Item* ptr = head;
+			while(ptr->next != nullptr)
+				ptr = ptr->next;
+			ptr->next = item;
+			item->prev = ptr;
+		}
+
+		size++;
 	}
 
 	T PopBack()
 	{
-		T obj = data[size - 1];
-		RemoveAt(size - 1);
+		Item* ptr = head;
+		while(ptr->next != nullptr)
+			ptr = ptr->next;
+
+		if(ptr->prev != nullptr)
+			ptr->prev->next = nullptr;
+		else if(head == ptr)
+			head = nullptr;
+		size--;
+
+		T obj = ptr->data;
+		delete ptr;
 		return obj;
 	}
 
@@ -229,10 +292,14 @@ public:
 		if(!size)
 		{
 			// TODO: assert
-			T* ptr = nullptr;
-			return *ptr;
+			// T* ptr = nullptr;
+			// return *ptr;
 		}
 
-		return data[size - 1];
+		Item* ptr = head;
+		while(ptr->next != nullptr)
+			ptr = ptr->next;
+
+		return ptr->data;
 	}
 };
