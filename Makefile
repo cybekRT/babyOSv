@@ -136,14 +136,17 @@ TESTS_OBJS	:= $(TESTS_SRCS:tests/%.cpp=out_tests/%.o)
 TESTS_DEPS	:= $(TESTS_OBJS:%.o=%.d)
 
 tests: test-run
+
 tests-open:
-	make tests && open out_tests/html/index.html
+	make tests && (open out_tests/html/index.html 2>/dev/null || xdg-open out_tests/html/index.html)
+
+test-debug: test-run-debug
+tests-debug: test-run-debug
 
 test-objs: $(TESTS_OBJS)
 test-exe: test-objs #deps/libgtest.a
 	g++ -g3 -O0 $(TESTS_OBJS) -Ldeps/googletest/build/lib -Ideps/googletest/googletest/include -Ideps/googletest/include \
 	-fprofile-arcs -ftest-coverage --coverage -fno-inline -fno-inline-small-functions -fno-default-inline \
-	-fprofile-instr-generate -fcoverage-mapping \
 	-o out_tests/run_tests -lgtest_main -lgtest $(GTEST_FLAGS)
 test-run: test-exe
 	lcov -c -i -b . -d out_tests -o out_tests/Coverage.baseline > /dev/null 2>&1
@@ -152,16 +155,20 @@ test-run: test-exe
 	lcov -a out_tests/Coverage.baseline -a out_tests/Coverage.out -o out_tests/Coverage.merged > /dev/null 2>&1
 	genhtml out_tests/Coverage.merged --output-directory out_tests/html > /dev/null 2>&1
 
-	#gcov out_tests/*.gcno -o out_tests > /dev/null
-	#lcov --capture --directory out_tests --output-file out_tests/results.info > /dev/null 2>&1
-	#genhtml out_tests/results.info --output-directory out_tests/html > /dev/null
+#gcov out_tests/*.gcno -o out_tests > /dev/null
+#lcov --capture --directory out_tests --output-file out_tests/results.info > /dev/null 2>&1
+#genhtml out_tests/results.info --output-directory out_tests/html > /dev/null
+
+test-run-debug: test-exe
+	gdb out_tests/run_tests
 
 out_tests/%.o: tests/%.cpp
 	mkdir -p $(dir $@)
 	g++ $(GCC_FLAGS) -DTESTS=1 -g -O0 -fprofile-arcs -ftest-coverage \
 	-fprofile-arcs -ftest-coverage --coverage -fno-inline -fno-inline-small-functions -fno-default-inline \
-	-fprofile-instr-generate -fcoverage-mapping \
 	-c $< -o $@ -Ideps/googletest/googletest/include -Ikernel -Ikernel/Core
+
+#-fprofile-instr-generate -fcoverage-mapping
 
 out_tests/%.d: tests/%.cpp
 	$(GCC) $(GCC_FLAGS) -DTESTS=1 -MM -MT $(@:%.d=%.o) -MF $@ $<
