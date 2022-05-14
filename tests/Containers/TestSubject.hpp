@@ -7,6 +7,7 @@ public:
 	static unsigned constructorCopyCalls;
 	static unsigned destructorCalls;
 	static unsigned assignCalls;
+	static unsigned constructorCopyOrAssignment;
 
 	TestSubject()
 	{
@@ -16,6 +17,7 @@ public:
 	TestSubject(const TestSubject& arg)
 	{
 		constructorCopyCalls++;
+		constructorCopyOrAssignment++;
 	}
 
 	~TestSubject()
@@ -26,6 +28,12 @@ public:
 	TestSubject& operator=(const TestSubject& arg)
 	{
 		assignCalls++;
+		constructorCopyOrAssignment++;
 		return *this;
+	}
+
+	bool operator==(const TestSubject& arg) const
+	{
+		return this == &arg;
 	}
 };

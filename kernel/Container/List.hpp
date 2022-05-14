@@ -20,6 +20,7 @@ protected:
 	};
 
 	Item* head;
+	Item* tail;
 	unsigned size;
 
 public:
@@ -63,7 +64,7 @@ public:
 		}
 	};
 
-	List() : head(nullptr), size(0)
+	List() : head(nullptr), tail(nullptr), size(0)
 	{
 
 	}
@@ -89,14 +90,14 @@ public:
 		return *this;
 	}
 
-	T& operator[](u32 index)
-	{
-		Item* ptr = head;
-		for(unsigned a = 0; a < index; a++)
-			ptr = ptr->next;
+	// T& operator[](u32 index)
+	// {
+	// 	Item* ptr = head;
+	// 	for(unsigned a = 0; a < index; a++)
+	// 		ptr = ptr->next;
 
-		return ptr->data;
-	}
+	// 	return ptr->data;
+	// }
 
 	u32 Size()
 	{
@@ -142,7 +143,7 @@ public:
 
 	Iterator InsertAt(Iterator itr, const T& arg)
 	{
-		if(&head->data == itr)
+		if(itr == head)
 		{
 			Item* item = new Item(arg);
 			item->next = head;
@@ -150,18 +151,28 @@ public:
 				head->prev = item;
 			head = item;
 
+			if(tail == item->prev)
+				tail = item;
+
+			size++;
+
 			return Iterator(head);
 		}
 		else
 		{
 			Item* ptr = head;
-			while(&ptr->next->data != itr)
+			while(itr != ptr->next && ptr->next)
 				ptr = ptr->next;
 
 			Item* item = new Item(arg);
 			item->prev = ptr;
 			item->next = ptr->next;
 			ptr->next = item;
+
+			if(tail == item->prev)
+				tail = item;
+
+			size++;
 
 			return Iterator(item);
 		}
@@ -185,25 +196,64 @@ public:
 	// 	}
 	// }
 
-	// Iterator RemoveAt(Iterator itr)
-	// {
-	// 	T* ptr = &(*itr);
-	// 	auto index = ptr - data;
-	// 	RemoveAt(index);
+	Iterator RemoveAt(Iterator itr)
+	{
+		if(itr == head)
+		{
+			printf("Removing head~!\n");
+			Item* item = head;
+			if(tail == head)
+				tail = nullptr;
+			head = head->next;
 
-	// 	return Iterator(data + index);
-	// }
+			delete item;
+			size--;
 
-	// void Remove(const T& arg)
-	// {
-	// 	for(unsigned a = 0; a < size; )
-	// 	{
-	// 		if(data[a] == arg)
-	// 			RemoveAt(a);
-	// 		else
-	// 			a++;
-	// 	}
-	// }
+			return Iterator(head);
+		}
+		else if(itr == tail)
+		{
+			auto prev = tail->prev;
+			prev->next = nullptr;
+
+			delete tail;
+			tail = prev;
+			size--;
+
+			return Iterator(nullptr);
+		}
+		else
+		{
+			printf("Removing non-head~!\n");
+			Item* ptr = head;
+			while(itr != ptr)
+				ptr = ptr->next;
+
+			auto next = ptr->next;
+			ptr->prev->next = next;
+			if(next)
+				next->prev = ptr->prev;
+
+			delete ptr;
+			size--;
+
+			return Iterator(next);
+		}
+	}
+
+	void Remove(const T& arg)
+	{
+		auto itr = Iterator(head);
+		while(itr != nullptr)
+		{
+			if(*itr == arg)
+			{
+				itr = RemoveAt(itr);
+			}
+			else
+				itr++;
+		}
+	}
 
 	void Clear()
 	{
@@ -216,6 +266,7 @@ public:
 
 		size = 0;
 		// head = nullptr;
+		tail = nullptr;
 	}
 
 	void PushFront(const T& arg)
@@ -224,6 +275,8 @@ public:
 		item->next = head;
 		item->prev = nullptr;
 		head = item;
+		if(tail == nullptr)
+			tail = item;
 
 		size++;
 	}
@@ -233,6 +286,8 @@ public:
 		T obj = head->data;
 		Item* item = head;
 		head = head->next;
+		if(tail == item)
+			tail = nullptr;
 		delete item;
 		size--;
 		return obj;
@@ -243,8 +298,9 @@ public:
 		if(!size)
 		{
 			// TODO: assert
-			// T* ptr = nullptr;
-			// return *ptr;
+			T* ptr = nullptr;
+			// cppcheck-suppress nullPointer
+			return *ptr;
 		}
 
 		return head->data;
@@ -257,14 +313,13 @@ public:
 		if(head == nullptr)
 		{
 			head = item;
+			tail = item;
 		}
 		else
 		{
-			Item* ptr = head;
-			while(ptr->next != nullptr)
-				ptr = ptr->next;
-			ptr->next = item;
-			item->prev = ptr;
+			tail->next = item;
+			item->prev = tail;
+			tail = item;
 		}
 
 		size++;
@@ -272,15 +327,15 @@ public:
 
 	T PopBack()
 	{
-		Item* ptr = head;
-		while(ptr->next != nullptr)
-			ptr = ptr->next;
+		Item* ptr = tail;
 
 		if(ptr->prev != nullptr)
 			ptr->prev->next = nullptr;
 		else if(head == ptr)
 			head = nullptr;
 		size--;
+
+		tail = tail->prev;
 
 		T obj = ptr->data;
 		delete ptr;
@@ -292,14 +347,11 @@ public:
 		if(!size)
 		{
 			// TODO: assert
-			// T* ptr = nullptr;
-			// return *ptr;
+			T* ptr = nullptr;
+			// cppcheck-suppress nullPointer
+			return *ptr;
 		}
 
-		Item* ptr = head;
-		while(ptr->next != nullptr)
-			ptr = ptr->next;
-
-		return ptr->data;
+		return tail->data;
 	}
 };

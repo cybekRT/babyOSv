@@ -114,6 +114,67 @@ TEST_F(ArrayTest, OperatorAssignment)
 	EXPECT_EQ(TestSubject::assignCalls, 6u);
 }
 
+TEST_F(ArrayTest, OperatorAssignmentOnArrayWithElements)
+{
+	Array<TestSubject> test1(4);
+	test1.PushBack(TestSubject());
+	test1.PushBack(TestSubject());
+	test1.PushBack(TestSubject());
+	Array<TestSubject> test2(32);
+	test2.PushBack(TestSubject());
+	test2.PushBack(TestSubject());
+	test2.PushBack(TestSubject());
+
+	TestSubject::constructorCalls = 0;
+	TestSubject::destructorCalls = 0;
+	TestSubject::constructorCopyOrAssignment = 0;
+
+	auto oldData = test2.Data();
+	test2 = test1;
+	EXPECT_EQ(TestSubject::constructorCalls, 0u);
+	EXPECT_EQ(TestSubject::constructorCopyOrAssignment, 3u);
+	EXPECT_EQ(TestSubject::destructorCalls, 3u);
+
+	EXPECT_NE(test1.Data(), test2.Data());
+	EXPECT_NE(test2.Data(), nullptr);
+	EXPECT_EQ(test2.Data(), oldData);
+	EXPECT_EQ(test1.Size(), test2.Size());
+
+	EXPECT_NE(test1.Capacity(), test2.Capacity());
+}
+
+TEST_F(ArrayTest, OperatorAssignmentOnArrayWithElementsLowCapacity)
+{
+	Array<TestSubject> test1(4);
+	test1.PushBack(TestSubject());
+	test1.PushBack(TestSubject());
+	test1.PushBack(TestSubject());
+	test1.PushBack(TestSubject());
+	test1.PushBack(TestSubject());
+	test1.PushBack(TestSubject());
+	Array<TestSubject> test2(4);
+	test2.PushBack(TestSubject());
+	test2.PushBack(TestSubject());
+	test2.PushBack(TestSubject());
+
+	TestSubject::constructorCalls = 0;
+	TestSubject::destructorCalls = 0;
+	TestSubject::constructorCopyOrAssignment = 0;
+
+	auto oldData = test2.Data();
+	test2 = test1;
+	EXPECT_EQ(TestSubject::constructorCalls, 0u);
+	EXPECT_EQ(TestSubject::constructorCopyOrAssignment, 6u);
+	EXPECT_EQ(TestSubject::destructorCalls, 3u);
+
+	EXPECT_NE(test1.Data(), test2.Data());
+	EXPECT_NE(test2.Data(), nullptr);
+	// EXPECT_NE(test2.Data(), oldData); // Malloc may return the same address :F
+	EXPECT_EQ(test1.Size(), test2.Size());
+
+	EXPECT_EQ(test1.Capacity(), test2.Capacity());
+}
+
 TEST_F(ArrayTest, OperatorArray)
 {
 	Array<int> test;
@@ -128,6 +189,16 @@ TEST_F(ArrayTest, OperatorArray)
 	EXPECT_EQ(test[1], 5);
 	EXPECT_EQ(test[2], 9);
 	EXPECT_EQ(test[3], 2);
+}
+
+TEST_F(ArrayTest, OperatorArrayOutsideRange)
+{
+	Array<int> test;
+
+	test.PushBack(1);
+
+	EXPECT_EQ(test.Size(), 1u);
+	EXPECT_EQ(&test[5], nullptr);
 }
 
 TEST_F(ArrayTest, ForeachIterator_Empty)
@@ -248,75 +319,70 @@ TEST_F(ArrayTest, InsertIndexOutside)
 	test.InsertAt(10, 5);
 	test.InsertAt(10, 9);
 
-	EXPECT_EQ(test.Size(), 0u);
+	EXPECT_EQ(test.Size(), 3u);
 }
 
-TEST_F(ArrayTest, RemoveIteratorBegin)
+TEST_F(ArrayTest, InsertIteratorBegin)
 {
 	Array<int> test;
 
-	test.PushBack(1);
-	test.PushBack(1);
-	test.PushBack(5);
-	test.PushBack(9);
-	test.PushBack(9);
+	test.InsertAt(test.begin(), 1);
+	test.InsertAt(test.begin(), 5);
+	test.InsertAt(test.begin(), 9);
 
-	test.RemoveAt(test.begin());
+	EXPECT_EQ(test.Size(), 3u);
+	EXPECT_EQ(test[2], 1);
+	EXPECT_EQ(test[1], 5);
+	EXPECT_EQ(test[0], 9);
+}
+
+TEST_F(ArrayTest, InsertIteratorMiddle)
+{
+	Array<int> test;
+
+	test.InsertAt(test.begin(), 0);
+	test.InsertAt(test.begin(), 0);
+	test.InsertAt(test.begin(), 0);
+	test.InsertAt(test.begin(), 0);
+	test.InsertAt(test.begin(), 0);
+
+	test.InsertAt(test.begin() + 2, 5);
+
+	ASSERT_EQ(test.Size(), 6u);
+	EXPECT_EQ(test[1], 0);
+	EXPECT_EQ(test[2], 5);
+	EXPECT_EQ(test[3], 0);
+}
+
+TEST_F(ArrayTest, InsertIteratorEnd)
+{
+	Array<int> test(8);
+
+	test.InsertAt(test.begin(), 0);
+	test.InsertAt(test.begin(), 0);
+	test.InsertAt(test.begin(), 0);
+	test.InsertAt(test.begin(), 0);
+	test.InsertAt(test.begin(), 0);
+
+	test.InsertAt(test.end(), 5);
+
+	ASSERT_EQ(test.Size(), 6u);
+	EXPECT_EQ(test[4], 0);
+	EXPECT_EQ(test[5], 5);
+}
+
+TEST_F(ArrayTest, InsertIteratorOutside)
+{
+	Array<int> test;
+
+	test.InsertAt(test.begin() + 10, 1);
+	test.InsertAt(test.begin() + 10, 5);
+	test.InsertAt(test.begin() + 10, 9);
+
+	ASSERT_EQ(test.Size(), 3u);
 	EXPECT_EQ(test[0], 1);
 	EXPECT_EQ(test[1], 5);
-
-	EXPECT_EQ(test.Size(), 4u);
-}
-
-TEST_F(ArrayTest, RemoveIteratorMiddle)
-{
-	Array<int> test;
-
-	test.PushBack(1);
-	test.PushBack(1);
-	test.PushBack(5);
-	test.PushBack(9);
-	test.PushBack(9);
-
-	test.RemoveAt(test.begin() + 2);
-	EXPECT_EQ(test[1], 1);
 	EXPECT_EQ(test[2], 9);
-
-	EXPECT_EQ(test.Size(), 4u);
-}
-
-TEST_F(ArrayTest, RemoveIteratorEnd)
-{
-	Array<int> test;
-
-	test.PushBack(1);
-	test.PushBack(1);
-	test.PushBack(5);
-	test.PushBack(9);
-	test.PushBack(9);
-
-	test.RemoveAt(test.begin() + 4);
-	EXPECT_EQ(test[2], 5);
-	EXPECT_EQ(test[3], 9);
-
-	EXPECT_EQ(test.Size(), 4u);
-}
-
-TEST_F(ArrayTest, RemoveIteratorEnd2)
-{
-	Array<int> test;
-
-	test.PushBack(1);
-	test.PushBack(1);
-	test.PushBack(5);
-	test.PushBack(9);
-	test.PushBack(9);
-
-	test.RemoveAt(test.end() - 1);
-	EXPECT_EQ(test[2], 5);
-	EXPECT_EQ(test[3], 9);
-
-	EXPECT_EQ(test.Size(), 4u);
 }
 
 TEST_F(ArrayTest, RemoveIndexBegin)
@@ -373,11 +439,96 @@ TEST_F(ArrayTest, RemoveIndexOutside)
 	test.PushBack(9);
 
 	test.RemoveAt(12345);
+
+	ASSERT_EQ(test.Size(), 3u);
 	EXPECT_EQ(test[0], 1);
 	EXPECT_EQ(test[1], 5);
 	EXPECT_EQ(test[2], 9);
+}
 
-	EXPECT_EQ(test.Size(), 3u);
+TEST_F(ArrayTest, RemoveIteratorBegin)
+{
+	Array<int> test;
+
+	test.PushBack(1);
+	test.PushBack(1);
+	test.PushBack(5);
+	test.PushBack(9);
+	test.PushBack(9);
+
+	test.RemoveAt(test.begin());
+
+	ASSERT_EQ(test.Size(), 4u);
+	EXPECT_EQ(test[0], 1);
+	EXPECT_EQ(test[1], 5);
+}
+
+TEST_F(ArrayTest, RemoveIteratorMiddle)
+{
+	Array<int> test;
+
+	test.PushBack(1);
+	test.PushBack(1);
+	test.PushBack(5);
+	test.PushBack(9);
+	test.PushBack(9);
+
+	test.RemoveAt(test.begin() + 2);
+
+	ASSERT_EQ(test.Size(), 4u);
+	EXPECT_EQ(test[1], 1);
+	EXPECT_EQ(test[2], 9);
+}
+
+TEST_F(ArrayTest, RemoveIteratorBeginEnd)
+{
+	Array<int> test;
+
+	test.PushBack(1);
+	test.PushBack(1);
+	test.PushBack(5);
+	test.PushBack(9);
+	test.PushBack(9);
+
+	test.RemoveAt(test.begin() + 4);
+
+	ASSERT_EQ(test.Size(), 4u);
+	EXPECT_EQ(test[2], 5);
+	EXPECT_EQ(test[3], 9);
+}
+
+TEST_F(ArrayTest, RemoveIteratorEnd)
+{
+	Array<int> test;
+
+	test.PushBack(1);
+	test.PushBack(1);
+	test.PushBack(5);
+	test.PushBack(9);
+	test.PushBack(9);
+
+	test.RemoveAt(test.end() - 1);
+	EXPECT_EQ(test[2], 5);
+	EXPECT_EQ(test[3], 9);
+
+	EXPECT_EQ(test.Size(), 4u);
+}
+
+TEST_F(ArrayTest, RemoveIteratorOutside)
+{
+	Array<int> test;
+
+	test.PushBack(1);
+	test.PushBack(1);
+	test.PushBack(5);
+	test.PushBack(9);
+	test.PushBack(9);
+
+	test.RemoveAt(test.end() + 10);
+
+	ASSERT_EQ(test.Size(), 5u);
+	EXPECT_EQ(test[2], 5);
+	EXPECT_EQ(test[3], 9);
 }
 
 TEST_F(ArrayTest, RemoveObject_Hit)
@@ -498,6 +649,14 @@ TEST_F(ArrayTest, Front)
 	EXPECT_EQ(test.Size(), 3u);
 }
 
+TEST_F(ArrayTest, FrontEmpty)
+{
+	Array<int> test;
+
+	EXPECT_EQ(test.Size(), 0u);
+	EXPECT_EQ(&test.Front(), nullptr);
+}
+
 TEST_F(ArrayTest, PushBack)
 {
 	Array<int> test;
@@ -544,4 +703,119 @@ TEST_F(ArrayTest, Back)
 	EXPECT_EQ(test.Back(), 9);
 
 	EXPECT_EQ(test.Size(), 3u);
+}
+
+TEST_F(ArrayTest, BackEmpty)
+{
+	Array<int> test;
+
+	EXPECT_EQ(test.Size(), 0u);
+	EXPECT_EQ(&test.Back(), nullptr);
+}
+
+/********** Iterators **********/
+
+TEST_F(ArrayTest, IteratorOperatorDot)
+{
+	Array<TestSubject> test;
+	test.PushBack(TestSubject());
+	test.PushBack(TestSubject());
+
+	EXPECT_EQ(*test.begin(), test[0]);
+}
+
+TEST_F(ArrayTest, IteratorOperatorArrow)
+{
+	Array<TestSubject*> test;
+	test.PushBack(new TestSubject());
+	test.PushBack(new TestSubject());
+
+	EXPECT_EQ(test.begin()->destructorCalls, 0);
+
+	delete test.Back();
+	test.PopBack();
+	EXPECT_EQ(test.begin()->destructorCalls, 1);
+
+	delete test.Back();
+	test.PopBack();
+
+	EXPECT_EQ(TestSubject::destructorCalls, 2);
+}
+
+TEST_F(ArrayTest, IteratorOperatorAddSubtract)
+{
+	Array<TestSubject> test;
+	test.PushBack(TestSubject());
+	test.PushBack(TestSubject());
+
+	auto itr = test.begin();
+	itr += 2;
+	EXPECT_EQ(itr, test.end());
+
+	itr -= 2;
+	EXPECT_EQ(itr, test.begin());
+
+	itr -= -2;
+	EXPECT_EQ(itr, test.end());
+	itr += -2;
+	EXPECT_EQ(itr, test.begin());
+}
+
+TEST_F(ArrayTest, IteratorOperatorEquals)
+{
+	Array<TestSubject> test;
+	test.PushBack(TestSubject());
+	test.PushBack(TestSubject());
+
+	auto itr = test.begin();
+	EXPECT_TRUE(itr == test.begin());
+
+	itr = test.end();
+	EXPECT_TRUE(itr == test.end());
+}
+
+TEST_F(ArrayTest, IteratorOperatorPreIncrement)
+{
+	Array<TestSubject> test;
+	test.PushBack(TestSubject());
+	test.PushBack(TestSubject());
+
+	auto itr1 = test.begin();
+	auto itr2 = ++itr1;
+	EXPECT_EQ(itr1, itr2);
+}
+
+TEST_F(ArrayTest, IteratorOperatorPostIncrement)
+{
+	Array<TestSubject> test;
+	test.PushBack(TestSubject());
+	test.PushBack(TestSubject());
+
+	auto itr1 = test.begin();
+	auto itr2 = itr1++;
+	EXPECT_NE(itr1, itr2);
+	EXPECT_EQ(itr1, itr2 + 1);
+}
+
+TEST_F(ArrayTest, IteratorOperatorPreDecrement)
+{
+	Array<TestSubject> test;
+	test.PushBack(TestSubject());
+	test.PushBack(TestSubject());
+
+	auto itr1 = test.end();
+	auto itr2 = --itr1;
+	EXPECT_EQ(itr1, itr2);
+}
+
+TEST_F(ArrayTest, IteratorOperatorPostDecrement)
+{
+	Array<TestSubject> test;
+	test.PushBack(TestSubject());
+	test.PushBack(TestSubject());
+
+	auto itr1 = test.end();
+	auto itr2 = itr1--;
+	EXPECT_NE(itr1, itr2);
+	EXPECT_EQ(itr1, itr2 - 1);
 }

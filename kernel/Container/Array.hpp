@@ -14,7 +14,7 @@ public:
 	class Iterator : public IteratorBase<T, Iterator>
 	{
 	public:
-		Iterator(T* ptr) : IteratorBase<T, Iterator>(ptr)
+		explicit Iterator(T* ptr) : IteratorBase<T, Iterator>(ptr)
 		{
 
 		}
@@ -30,15 +30,6 @@ public:
 			return *this;
 		}
 
-		// T& operator*()
-		// {
-		// 	return *this->ptr;
-		// }
-
-		// T& operator->()
-		// {
-		// 	return *this->ptr;
-		// }
 	protected:
 		void Next() override
 		{
@@ -56,7 +47,7 @@ public:
 
 	}
 
-	Array(u32 capacity) : size(0), capacity(capacity)
+	explicit Array(u32 capacity) : size(0), capacity(capacity)
 	{
 		data = (T*)new u8[sizeof(T) * capacity];
 	}
@@ -139,11 +130,8 @@ public:
 
 	void InsertAt(u32 index, const T& arg)
 	{
-		if(index > size + 1)
-		{
-			// TODO: assert
-			return;
-		}
+		if(index > size)
+			index = size;
 
 		if(size + 1 > capacity)
 		{

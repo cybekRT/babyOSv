@@ -64,7 +64,7 @@ LD			:= $(GCC_PREFIX)ld
 GCC_FLAGS	:= -include kernel/global.hpp -Ikernel/ -Ikernel/Core -I$(AUTOGEN_OUT)/
 GCC_FLAGS	+= -Wall -Wextra -Wno-unused-parameter -g3 -O0 -std=gnu++1z
 GCC_FLAGS	+= -fno-exceptions
-ifneq ($(MAKECMDGOALS), tests)
+ifeq (,$(findstring test, $(MAKECMDGOALS)))
 GCC_FLAGS	+= -m32 -march=i486
 GCC_FLAGS	+= -mgeneral-regs-only -fno-isolate-erroneous-paths-attribute -fno-asynchronous-unwind-tables
 GCC_FLAGS	+= -fno-rtti -fno-omit-frame-pointer -fno-use-cxa-atexit -fno-stack-protector
@@ -137,6 +137,15 @@ TESTS_DEPS	:= $(TESTS_OBJS:%.o=%.d)
 
 tests: test-run
 
+tests-cov:
+	rm -rf out_tests || true
+	make test-objs
+	lcov -c -i -b . -d out_tests -o out_tests/Coverage.baseline > /dev/null 2>&1
+	make test-run || true
+	lcov -c -b . -d out_tests -o out_tests/Coverage.out > /dev/null 2>&1
+	lcov -a out_tests/Coverage.baseline -a out_tests/Coverage.out -o out_tests/Coverage.merged > /dev/null 2>&1
+	genhtml out_tests/Coverage.merged --output-directory out_tests/html > /dev/null 2>&1
+
 tests-open:
 	make tests && (open out_tests/html/index.html 2>/dev/null || xdg-open out_tests/html/index.html)
 
@@ -149,11 +158,7 @@ test-exe: test-objs #deps/libgtest.a
 	-fprofile-arcs -ftest-coverage --coverage -fno-inline -fno-inline-small-functions -fno-default-inline \
 	-o out_tests/run_tests -lgtest_main -lgtest $(GTEST_FLAGS)
 test-run: test-exe
-	lcov -c -i -b . -d out_tests -o out_tests/Coverage.baseline > /dev/null 2>&1
-	out_tests/run_tests --gtest_output=json:out_tests/output.json
-	lcov -c -b . -d out_tests -o out_tests/Coverage.out > /dev/null 2>&1
-	lcov -a out_tests/Coverage.baseline -a out_tests/Coverage.out -o out_tests/Coverage.merged > /dev/null 2>&1
-	genhtml out_tests/Coverage.merged --output-directory out_tests/html > /dev/null 2>&1
+	out_tests/run_tests --gtest_output=json:out_tests/output.json 2>/dev/null
 
 #gcov out_tests/*.gcno -o out_tests > /dev/null
 #lcov --capture --directory out_tests --output-file out_tests/results.info > /dev/null 2>&1
@@ -192,8 +197,13 @@ $(AUTOGEN_OUT)/Keyboard_map.hpp: kernel/Input/Keyboard_map.inc kernel/Input/Keyb
 ####################
 
 ifneq ($(MAKECMDGOALS), clean)
+
+ifeq (,$(findstring test, $(MAKECMDGOALS)))
 -include $(DEPS)
+else
 -include $(TESTS_DEPS)
+endif
+
 endif
 
 ####################

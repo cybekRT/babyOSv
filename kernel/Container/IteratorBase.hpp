@@ -7,7 +7,7 @@ protected:
 	T* ptr;
 
 public:
-	IteratorBase(T* ptr) : ptr(ptr)
+	explicit IteratorBase(T* ptr) : ptr(ptr)
 	{
 
 	}
@@ -32,9 +32,19 @@ public:
 		return ptr == arg.ptr;
 	}
 
+	bool operator==(const T* arg) const
+	{
+		return ptr == arg;
+	}
+
 	bool operator!=(const X& arg) const
 	{
 		return ptr != arg.ptr;
+	}
+
+	bool operator!=(const T* arg) const
+	{
+		return ptr != arg;
 	}
 
 	X operator+(int arg) const
