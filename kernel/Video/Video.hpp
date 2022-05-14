@@ -1,6 +1,6 @@
 #pragma once
 
-#include"Container/LinkedList.hpp"
+#include"Containers/List.hpp"
 
 namespace Video
 {
@@ -55,7 +55,7 @@ namespace Video
 
 	struct Driver
 	{
-		void (*GetAvailableModes)(Container::LinkedList<Mode>& modes);
+		void (*GetAvailableModes)(List<Mode>& modes);
 		Mode (*GetMode)();
 		bool (*SetMode)(Mode mode);
 
@@ -68,7 +68,7 @@ namespace Video
 
 	// Direct API wrapper
 	bool SetDriver(Driver* drv);
-	void GetAvailableModes(Container::LinkedList<Mode>& modes);
+	void GetAvailableModes(List<Mode>& modes);
 	Mode GetMode();
 	bool SetMode(Mode mode);
 	void Clear();

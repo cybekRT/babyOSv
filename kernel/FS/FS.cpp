@@ -2,7 +2,7 @@
 
 namespace FS
 {
-	Container::LinkedList<FSInfo*> filesystems;
+	List<FSInfo*> filesystems;
 
 	bool Init()
 	{

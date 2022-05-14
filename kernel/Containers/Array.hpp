@@ -113,6 +113,11 @@ public:
 		return size;
 	}
 
+	bool IsEmpty()
+	{
+		return size == 0;
+	}
+
 	u32 Capacity()
 	{
 		return capacity;

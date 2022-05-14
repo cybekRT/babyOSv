@@ -17,7 +17,7 @@ namespace Video
 		return true;
 	}
 
-	void GetAvailableModes(Container::LinkedList<Mode>& modes)
+	void GetAvailableModes(List<Mode>& modes)
 	{
 		currentDriver->GetAvailableModes(modes);
 	}

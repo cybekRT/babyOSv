@@ -1,5 +1,5 @@
 #include"VFS.hpp"
-#include"Container/LinkedList.hpp"
+#include"Containers/List.hpp"
 #include"Path.hpp"
 
 namespace FS
@@ -31,7 +31,7 @@ namespace VFS
 		void*		fsPriv;
 	};
 
-	Container::Array<MountPoint> mountPoints;
+	Array<MountPoint> mountPoints;
 
 	Status Init()
 	{
@@ -353,7 +353,7 @@ namespace VFS
 
 	Status FileOpen(char* pathStr, FS::File** file)
 	{
-		Path paths(pathStr);
+		Path paths = Path(String(pathStr));
 
 		Print("Paths: %d\n", paths.paths.Size());
 

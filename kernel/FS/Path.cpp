@@ -10,7 +10,7 @@ Path::Path(const Path& arg) : paths(arg.paths)
 
 }
 
-Path::Path(const Container::String& _path)
+Path::Path(const String& _path)
 {
 	Print("Creating path from string~!\n");
 	auto path = _path;
@@ -50,7 +50,7 @@ void Path::Add(const char* dir)
 	//char* tmp = (char*)Memory::Alloc(len + 1);
 	char* tmp = new char[len + 1];
 	strcpy(tmp, dir);
-	paths.PushBack(tmp);
+	paths.PushBack(String(tmp));
 }
 
 void Path::GoUp()
@@ -63,17 +63,17 @@ void Path::GoUp()
 
 void Path::ToString(char* buf)
 {
-	Container::String str = ToString();
+	String str = ToString();
 	strcpy(buf, str.Data());
 }
 
-Container::String Path::ToString()
+String Path::ToString()
 {
-	Container::String str;
+	String str;
 
 	if(paths.IsEmpty())
 	{
-		return "/";
+		return String("/");
 	}
 
 	for(auto itr : paths)

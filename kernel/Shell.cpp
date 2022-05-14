@@ -3,8 +3,8 @@
 #include"Thread.hpp"
 #include"FS/VFS.hpp"
 #include"Video/VGA.hpp"
-#include"Container/Array.hpp"
-#include"Container/LinkedList.hpp"
+#include"Containers/Array.hpp"
+#include"Containers/List.hpp"
 
 namespace Shell
 {
@@ -17,7 +17,7 @@ namespace Shell
 		HandlerPtr handler;
 		const char* description;
 	};
-	Container::LinkedList<HandlerDef> handlers;
+	List<HandlerDef> handlers;
 
 	class RegHandler
 	{
@@ -213,9 +213,9 @@ namespace Shell
 		}
 	}
 
-	Container::Array<char*> SplitParameters(char* buffer, u32 bufferSize)
+	Array<char*> SplitParameters(char* buffer, u32 bufferSize)
 	{
-		Container::Array<char*> params;
+		Array<char*> params;
 
 		bool isWhitespace = true;
 		bool isQuoted = false;
@@ -266,7 +266,7 @@ namespace Shell
 		VFS::DirectoryOpenRoot(&dir);
 
 		Keyboard::KeyEvent keyEvent;
-		Container::Array<char> buffer;
+		Array<char> buffer;
 		Path dirPath;
 
 		bool printPrompt = true;
@@ -303,7 +303,7 @@ namespace Shell
 						continue;
 
 					buffer.PushBack(0); // Terminate string
-					Container::Array<char*> params;
+					Array<char*> params;
 					params = SplitParameters(&buffer[0], buffer.Size());
 
 					if(!params.IsEmpty())

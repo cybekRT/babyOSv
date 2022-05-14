@@ -27,6 +27,11 @@ public:
 		return *ptr;
 	}
 
+	operator bool() const
+	{
+		return ptr != nullptr;
+	}
+
 	bool operator==(const X& arg) const
 	{
 		return ptr == arg.ptr;

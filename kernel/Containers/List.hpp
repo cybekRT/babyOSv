@@ -48,9 +48,9 @@ public:
 			return this->ptr->data;
 		}
 
-		T& operator->()
+		T* operator->()
 		{
-			return this->ptr->data;
+			return &this->ptr->data;
 		}
 	protected:
 		void Next() override
@@ -102,6 +102,11 @@ public:
 	u32 Size()
 	{
 		return size;
+	}
+
+	bool IsEmpty()
+	{
+		return size == 0;
 	}
 
 	Iterator begin() const
@@ -200,7 +205,6 @@ public:
 	{
 		if(itr == head)
 		{
-			printf("Removing head~!\n");
 			Item* item = head;
 			if(tail == head)
 				tail = nullptr;
@@ -224,7 +228,6 @@ public:
 		}
 		else
 		{
-			printf("Removing non-head~!\n");
 			Item* ptr = head;
 			while(itr != ptr)
 				ptr = ptr->next;

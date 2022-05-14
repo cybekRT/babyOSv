@@ -1,7 +1,7 @@
 #pragma once
 
 #include"Block/Block.hpp"
-#include"Container/LinkedList.hpp"
+#include"Containers/List.hpp"
 #include"Status.hpp"
 
 namespace FS
@@ -57,7 +57,7 @@ namespace FS
 		Status (*FileGetPointer)(void* fs, File* file, u32* offset);
 	};
 
-	extern Container::LinkedList<FSInfo*> filesystems;
+	extern List<FSInfo*> filesystems;
 
 	bool Init();
 

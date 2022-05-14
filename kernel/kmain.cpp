@@ -290,7 +290,7 @@ if(0)
 {
 	Video::SetDriver(&Video::vgaDriver);
 
-	Container::LinkedList<Video::Mode> modes;
+	List<Video::Mode> modes;
 	Video::GetAvailableModes(modes);
 
 	Print("Available modes:\n");

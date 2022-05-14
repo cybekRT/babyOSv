@@ -1,5 +1,5 @@
 #include"Block.hpp"
-#include"Container/LinkedList.hpp"
+#include"Containers/List.hpp"
 
 //int strcpy(const char* src, char* dst);
 
@@ -7,8 +7,8 @@
 
 namespace Block
 {
-	Container::Array<BlockDevice*> devices;
-	Container::Array<BlockPartition*> partitions;
+	Array<BlockDevice*> devices;
+	Array<BlockPartition*> partitions;
 
 	uint8 devicesTypesCount[(unsigned)DeviceType::Count] = { 0 };
 	const char* deviceTypeName[] = { "unk", "fdd", "hdd", "cd" };
@@ -119,12 +119,12 @@ namespace Block
 		partitions.PushBack(part);
 	}
 
-	Container::Array<BlockDevice*> GetDevices()
+	Array<BlockDevice*> GetDevices()
 	{
 		return devices;
 	}
 
-	Container::Array<BlockPartition*> GetPartitions()
+	Array<BlockPartition*> GetPartitions()
 	{
 		return partitions;
 	}

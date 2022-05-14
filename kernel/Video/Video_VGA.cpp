@@ -22,7 +22,7 @@ static u8* buffer = (u8*)0x800a0000;
 
 static Mode currentMode = modeText;
 
-static void GetAvailableModes(Container::LinkedList<Mode>& modes)
+static void GetAvailableModes(List<Mode>& modes)
 {
 	modes.Clear();
 	modes.PushBack(modeText);

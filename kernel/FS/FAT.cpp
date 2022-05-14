@@ -129,7 +129,7 @@ namespace FAT
 		u32 firstDataSector;
 		u8* fat;
 
-		Container::LinkedList<Cache*> cacheObjects;
+		List<Cache*> cacheObjects;
 	};
 
 	/*

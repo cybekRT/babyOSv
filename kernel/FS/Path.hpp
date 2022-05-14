@@ -1,18 +1,18 @@
 #pragma once
 
-#include"Container/Array.hpp"
-#include"Container/String.hpp"
+#include"Containers/Array.hpp"
+#include"Containers/String.hpp"
 
 class Path
 {
 public:
-	Container::Array<Container::String> paths;
+	Array<String> paths;
 public:
 	static const u32 MaxLength = 255;
 
 	Path();
 	Path(const Path& arg);
-	explicit Path(const Container::String& path);
+	explicit Path(const String& path);
 	~Path();
 
 	Path& operator=(const Path& arg);
@@ -21,5 +21,5 @@ public:
 	void GoUp();
 
 	void ToString(char* buf);
-	Container::String ToString();
+	String ToString();
 };

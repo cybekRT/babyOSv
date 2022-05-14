@@ -1,7 +1,7 @@
 #include"Thread.hpp"
 #include"Memory.hpp"
-#include"Container/Array.hpp"
-#include"Container/LinkedList.hpp"
+#include"Containers/Array.hpp"
+#include"Containers/List.hpp"
 #include"Interrupt.hpp"
 #include"Timer.hpp"
 #include"preinit.hpp"
@@ -27,9 +27,9 @@ namespace Thread
 	Thread* currentThread = nullptr;
 
 	Thread* idleThread = nullptr;
-	Container::Array<Thread*> threads;
-	Container::LinkedList<Thread2Signal> waitingThreads;
-	Container::LinkedList<SignalInfo> raisedSignals;
+	Array<Thread*> threads;
+	List<Thread2Signal> waitingThreads;
+	List<SignalInfo> raisedSignals;
 	u32 lastThreadId = 0;
 
 	__attribute((naked, noreturn)) void _NextThread(void*);
@@ -88,48 +88,48 @@ namespace Thread
 				SignalInfo sigInfo = raisedSignals.PopFront();
 				Signal sig = sigInfo.signal;
 
-				auto t2s = waitingThreads.data;
+				auto t2s = waitingThreads.begin();
 				while(t2s)
 				{
-					bool sigMatch = t2s->value.signal->type == sig.type && t2s->value.signal->addr == sig.addr;
-					bool timeout = (t2s->value.timeout != (Timer::Time)-1) && (Timer::GetTicks() >= t2s->value.sleepTime + t2s->value.timeout);
+					bool sigMatch = t2s->signal->type == sig.type && t2s->signal->addr == sig.addr;
+					bool timeout = (t2s->timeout != (Timer::Time)-1) && (Timer::GetTicks() >= t2s->sleepTime + t2s->timeout);
 
 					if(sigMatch || timeout)
 					{
 						if(sigMatch)
-							(*t2s->value.signal) = sig;
+							(*t2s->signal) = sig;
 						else if(timeout)
-							(*t2s->value.signal) = Signal { .type = Signal::Type::Timeout, .addr = 0 };
+							(*t2s->signal) = Signal { .type = Signal::Type::Timeout, .addr = 0 };
 
-						t2s->value.thread->state = State::Running;
-						threads.PushBack(t2s->value.thread);
+						t2s->thread->state = State::Running;
+						threads.PushBack(t2s->thread);
 
-						auto item = t2s;
-						t2s = t2s->next;
-						waitingThreads.Remove(item);
+						//auto item = t2s;
+						//t2s = t2s->next;
+						t2s = waitingThreads.RemoveAt(t2s);
 					}
 					else
-						t2s = t2s->next;
+						t2s++;
 				}
 			}
 
-			auto t2s = waitingThreads.data;
+			auto t2s = waitingThreads.begin();
 			while(t2s)
 			{
-				bool timeout = (t2s->value.timeout != (Timer::Time)-1) && (Timer::GetTicks() >= t2s->value.sleepTime + t2s->value.timeout);
+				bool timeout = (t2s->timeout != (Timer::Time)-1) && (Timer::GetTicks() >= t2s->sleepTime + t2s->timeout);
 				if(timeout)
 				{
-					(*t2s->value.signal) = Signal { .type = Signal::Type::Timeout, .addr = 0 };
+					(*t2s->signal) = Signal { .type = Signal::Type::Timeout, .addr = 0 };
 
-					t2s->value.thread->state = State::Running;
-					threads.PushBack(t2s->value.thread);
+					t2s->thread->state = State::Running;
+					threads.PushBack(t2s->thread);
 
-					auto item = t2s;
-					t2s = t2s->next;
-					waitingThreads.Remove(item);
+					// auto item = t2s;
+					// t2s = t2s->next;
+					t2s = waitingThreads.RemoveAt(t2s);
 				}
 				else
-					t2s = t2s->next;
+					t2s++;
 			}
 
 			Interrupt::Enable();
@@ -220,7 +220,8 @@ namespace Thread
 		Interrupt::Enable();
 	}
 
-	__attribute((naked, noreturn)) void _NextThread(void*)
+	__attribute((naked, noreturn))
+	void _NextThread(void*)
 	{
 		__asm("cli");
 

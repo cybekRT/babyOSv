@@ -8,6 +8,7 @@ ifeq ($(OS),Windows_NT)
 	BOCHS				:= D:/Programs/Bochs/bochsdbg-p4-smp.exe -f bochs-win.cfg
 	OUT					:= $(PWD)/out
 	GCC_PREFIX			:= i386-elf-
+	GDB_PREFIX			:=
 	QEMU				:= D:/Programs/Qemu/qemu-system-i386.exe
 	DD					:= D:/Programs/Cygwin/bin/dd
 	PCEM				:= D:/Programs/PCem/PCem.exe
@@ -23,9 +24,10 @@ ifeq ($(OS),Windows_NT)
 ####################
 else
 	NASM				:= nasm
-	BOCHS				:= /home/mb/Workspace/bochs-2.7/bin/bin/bochs -f bochs.cfg
+	BOCHS				:= bochs -f bochs.cfg
 	OUT					:= $(PWD)/out
 	GCC_PREFIX			:= /usr/local/osdev/bin/i386-elf-
+	GDB_PREFIX			:= /usr/local/osdev/bin/i386-elf-
 	QEMU				:= qemu-system-i386
 	DD					:= dd
 	PCEM				:= fail
@@ -221,7 +223,8 @@ qemu: out/floppy.img
 	#-d int -no-reboot -no-shutdown
 
 qemu-dbg: out/floppy.img
-	$(QEMU) -fda $< -s -S 2> /dev/null
+	$(QEMU) -fda $< -s -S 2> /dev/null &
+	$(GDB_PREFIX)gdb out/kernel.elf
 
 qemu-dos: out/floppy.img
 	$(QEMU) -fda $< $(QEMU_FLAGS) -boot c 2> /dev/null
