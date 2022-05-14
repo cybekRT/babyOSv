@@ -381,7 +381,7 @@ namespace Memory
 
 			if(ptr == nullptr)
 			{
-				Print("Prev: %p, Ptr: %p, Hdr: %p, Hdr->next: %p\n", prevPtr, ptr, hdr, hdr->next);
+				// Print("Prev: %p, Ptr: %p, Hdr: %p, Hdr->next: %p\n", prevPtr, ptr, hdr, hdr->next);
 				prevPtr->next = hdr;
 				//hdr->next = nullptr;
 			}

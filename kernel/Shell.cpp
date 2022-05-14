@@ -93,7 +93,6 @@ namespace Shell
 	HANDLER(dir, "List current directory")
 	{
 		FS::DirEntry entry;
-		Print("Dir: %p\n", dir);
 		VFS::DirectoryRewind(dir);
 
 		Print("Directory content:\n");
@@ -151,9 +150,7 @@ namespace Shell
 			}
 		}
 
-		if(file)
-			Print("Found file: %s\n", path);
-		else
+		if(!file)
 		{
 			Print("File \"%s\" not found!\n", path);
 			return 1;
@@ -166,7 +163,6 @@ namespace Shell
 		//bd->drv->Lock(bd->dev);
 		while((s = VFS::FileRead(file, buf, bufSize, &readCount)) == Status::Success)
 		{
-			Print("=== read count - %d ===\n", readCount);
 			for(unsigned a = 0; a < readCount; a++)
 			{
 				Print("%c", buf[a]);

@@ -43,8 +43,10 @@ namespace VFS
 		auto parts = Block::GetPartitions();
 		Block::BlockPartition* part = nullptr;
 
+		Print("Partitions:\n");
 		for(auto itr : parts)
 		{
+			Print("- %s\n", itr->name);
 			if(!strcmp((char*)itr->name, partName))
 			{
 				part = itr;
@@ -114,9 +116,7 @@ namespace VFS
 
 		//for(;;);
 		//(*dir) = (FS::Directory*)Memory::Alloc(sizeof(FS::Directory));
-		Print("Opening root...\n");
 		(*dir) = new FS::Directory();
-		Print("Opened root: %p\n", (*dir));
 		//new( (*dir)) FS::Directory();
 		(*dir)->index = -1;
 
@@ -214,10 +214,8 @@ namespace VFS
 			status = Status::EndOfFile;
 			dir->fsInfo->DirectoryRewind(dir->fsPriv, dir->fsDir);
 			FS::DirEntry entry;
-			Print("Reading directory...\n");
 			while(dir->fsInfo->DirectoryRead(dir->fsPriv, dir->fsDir, &entry) == Status::Success)
 			{
-				Print(">");
 				if(!entry.isValid)
 					continue;
 
@@ -229,7 +227,6 @@ namespace VFS
 					{
 						if(strcmp((char*)entry.name, ".."))
 						{
-							Print("Adding path: %s\n", entry.name);
 							dir->path.Add((char*)entry.name);
 						}
 						else
@@ -251,7 +248,6 @@ namespace VFS
 				return Status::Success;
 			}
 
-			Print("Result %x: %s:%d\n", status, __FILE__, __LINE__);
 			return status;
 		}
 		else
@@ -275,11 +271,9 @@ namespace VFS
 			dir->fsPriv = mp->fsPriv;
 			dir->fsInfo->DirectoryOpenRoot(dir->fsPriv, &dir->fsDir);
 
-			Print("Adding path: %s\n", mp->name);
 			dir->path.Add((char*)mp->name);
 		}
 
-		Print("ChangeDirectory: success~!\n");
 		return Status::Success;
 	}
 
@@ -344,7 +338,6 @@ namespace VFS
 			(*file)->fsPriv = dir->fsPriv;
 
 			auto fsResult = dir->fsInfo->FileOpen(dir->fsPriv, dir->fsDir, &(*file)->fsFile);
-			Print("Result %x: %s:%d\n", fsResult, __FILE__, __LINE__);
 			return fsResult;
 		}
 
@@ -355,14 +348,13 @@ namespace VFS
 	{
 		Path paths = Path(String(pathStr));
 
-		Print("Paths: %d\n", paths.paths.Size());
-
 		FS::Directory* dir;
 		DirectoryOpenRoot(&dir);
 
 		Print("Path: %p\n", paths.paths.Back().Data());
 		auto filename = paths.paths[2];
 
+		// TODO: implement me
 		for(auto path : paths.paths)
 		{
 			Print("Directory: %s\n", path.Data());

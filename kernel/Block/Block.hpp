@@ -58,9 +58,6 @@ namespace Block
 		u8 Write(u32 lba, u8* buffer);
 	};
 
-	//extern Array<BlockDevice> devices;
-	//extern Array<BlockPartition> partitions;
-
 	bool Init();
 
 	void RegisterDevice(DeviceType type, BlockDeviceDriver* drv, void* drvPriv);

@@ -12,7 +12,6 @@ Path::Path(const Path& arg) : paths(arg.paths)
 
 Path::Path(const String& _path)
 {
-	Print("Creating path from string~!\n");
 	auto path = _path;
 
 	ASSERT(path[0] == '/' && path.Length() > 2, "Invalid path");
@@ -34,7 +33,7 @@ Path::Path(const String& _path)
 
 Path::~Path()
 {
-	Print("~Path - %p\n", this);
+
 }
 
 Path& Path::operator=(const Path& arg)
@@ -45,7 +44,6 @@ Path& Path::operator=(const Path& arg)
 
 void Path::Add(const char* dir)
 {
-	Print("- %s\n", dir);
 	u32 len = strlen(dir);
 	//char* tmp = (char*)Memory::Alloc(len + 1);
 	char* tmp = new char[len + 1];

@@ -227,8 +227,6 @@ namespace FAT
 			else
 				nextCluster = nextCluster & 0xfff;
 
-			Print("Cluster chain: %d -> %d\n", cluster, nextCluster);
-
 			if(nextCluster >= 0xFF8) // Last one...
 				nextCluster = 0;
 		}
@@ -289,8 +287,6 @@ namespace FAT
 			*value = (*value & 0x000f) | (nextCluster << 4);
 		else
 			*value = (*value & 0xf000) | (nextCluster);
-
-		//printf("New value: %04x (%d, %d)\n", *value, cluster, nextCluster);
 
 		// TODO mark sector as dirty
 		/*BPB* bpb = &h->bpb;
@@ -1139,14 +1135,14 @@ namespace FAT
 		if(!fs)
 			return Status::Undefined;
 
-		Print("# Flushing file\n");
+		// Print("# Flushing file\n");
 		// (*file)->Flush((Info*)fs);
 
 		Info* info = (Info*)fs;
 
 		FreeCache(info, (*file)->cache);
 
-		Print("# Closing file\n");
+		// Print("# Closing file\n");
 		delete (*file);
 		(*file) = nullptr;
 
@@ -1165,7 +1161,6 @@ namespace FAT
 
 		if(file->totalOffset >= file->totalSize)
 		{
-			Print("EoF\n");
 			return Status::EndOfFile;
 		}
 
@@ -1180,7 +1175,6 @@ namespace FAT
 				//if(file->currentCluster == 0)
 				if(nextCluster == 0)
 				{
-					Print("Last cluster\n");
 					return Status::EndOfFile;
 				}
 
@@ -1211,7 +1205,6 @@ namespace FAT
 				u32 curSize = (bufferSize - (*readCount) > file->cache->bufferSize ? file->cache->bufferSize : bufferSize - (*readCount));
 
 				status = FileRead(fs, file, buffer + (*readCount), curSize, &subread);
-				Print("Read: %u\n", subread);
 				a += subread;
 				(*readCount) += subread;
 
@@ -1246,7 +1239,6 @@ namespace FAT
 
 		if((*readCount) == 0)
 		{
-			Print("_EoF_\n");
 			return Status::EndOfFile;
 		}
 
@@ -1282,18 +1274,14 @@ namespace FAT
 		}
 		else if(file->totalOffset > 0 && file->totalOffset % file->cache->bufferSize == 0)
 		{
-			Print("End of cluster, needs extending...\n");
 			// Print("#  ReadNextCluster: %d - %d,%d\n", file->totalDataOffset, file->firstCluster, file->currentCluster);
 			u32 nextCluster = GetNextCluster(info, file->cache->cluster);
 			if(nextCluster == 0)
 			{
 				s = AddCluster(info, file->cache->cluster, &nextCluster);
-				Print("Adding cluster: %d -> %d\n", file->cache->cluster, nextCluster);
 				if(s != Status::Success)
 					return s;
 			}
-			else
-				Print("Not extended, cluster is: %d\n", nextCluster);
 
 			FreeCache(info, file->cache);
 			file->cache = GetCache(info, nextCluster);
@@ -1331,7 +1319,6 @@ namespace FAT
 			return Status::Undefined;
 
 		Status s;
-		Print("# Write file: %d\n", bufferSize);
 
 		(*writeCount) = 0;
 		for(unsigned a = 0; a < bufferSize; a++)

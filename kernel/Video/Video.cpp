@@ -122,8 +122,6 @@ namespace Video
 	{
 		Mode m = currentDriver->GetMode();
 
-		Print("Mode size: %dx%d\n", m.width, m.height);
-
 		if(r.x < -r.w || r.y < -r.h || r.x >= m.width || r.y >= m.height)
 		{
 			Print("Oopsie... %dx%d, %dx%d (%d %d %d %d)\n", r.x, r.y, r.w, r.h,
@@ -149,7 +147,6 @@ namespace Video
 		if(r.y + r.h > m.height)
 			r.h = m.height - r.y;
 
-		Print("Drawing rect: %dx%d - %dx%d\n", r.x, r.y, r.w, r.h);
 		for(unsigned y = r.y; y < r.y + r.h; y++)
 		{
 			for(unsigned x = r.x; x < r.x + r.w; x++)

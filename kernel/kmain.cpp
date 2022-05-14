@@ -233,6 +233,8 @@ extern "C" void kmain()
 #if 1
 	VFS::Init();
 
+	// FIXME: memory allocator is crashing... :F
+
 	if(VFS::Mount("fdd0r1", "fdd") != Status::Success)
 	{
 		Print("No floppy :<\n");
@@ -282,9 +284,9 @@ extern "C" void kmain()
 	}
 #endif
 
-	FS::File* logoFile;
-	VFS::FileOpen("/fdd0/images/logo.bmp", &logoFile);
-	Print("<><><><><><>\n");
+	// FS::File* logoFile;
+	// VFS::FileOpen("/fdd0/images/logo.bmp", &logoFile);
+	// Print("<><><><><><>\n");
 
 if(0)
 {

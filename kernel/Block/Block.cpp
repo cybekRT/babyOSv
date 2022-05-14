@@ -18,7 +18,7 @@ namespace Block
 	{
 		if(lba >= lbaCount)
 		{
-			Print("Try to read LBA %d/%d\n", lba, lbaCount);
+			Print("Trying to read LBA %d/%d\n", lba, lbaCount);
 			FAIL("Invalid LBA");
 			return 1;
 		}
@@ -30,7 +30,8 @@ namespace Block
 	{
 		if(lba >= lbaCount)
 		{
-			Print("Try to write LBA %d/%d\n", lba, lbaCount);
+			Print("Trying to write LBA %d/%d\n", lba, lbaCount);
+			FAIL("Invalid LBA");
 			return 1;
 		}
 
@@ -41,21 +42,6 @@ namespace Block
 	{
 		return true;
 	}
-
-	/*void Register(Type type, BlockDriver* drv, void* dev)
-	{
-		BlockDevice* bd = (BlockDevice*)Memory::Alloc(sizeof(BlockDevice));
-		bd->type = type;
-		bd->drv = drv;
-		bd->drvPriv = dev;
-
-		auto nameLen = strcpy(typeName[(unsigned)type], (char*)bd->name);
-		bd->name[nameLen] = '0' + devicesTypesCount[(unsigned)type]++;
-		bd->name[nameLen+1] = 0;
-
-		Print("Registering device: %s\n", bd->name);
-		devices.PushBack(*bd);
-	}*/
 
 	void ScanMBR(BlockDevice* dev)
 	{
