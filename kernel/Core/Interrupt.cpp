@@ -158,7 +158,7 @@ namespace Interrupt
 		{
 			Print("WTF~!\n");
 			for(;;)
-				HALT;
+				HAL::WaitForInterrupt();
 		}
 
 		insidePageFault = true;
@@ -188,7 +188,7 @@ namespace Interrupt
 		}
 
 		for(;;)
-			HALT;
+			HAL::WaitForInterrupt();
 	}
 
 	__attribute__ ((interrupt, noreturn))
@@ -217,7 +217,7 @@ namespace Interrupt
 		regs.eflags = _registers->eflags;
 
 		PutString("\n");
-		Print("===== %s =====\n", Thread::currentThread->name);
+		Print("===== %s =====\n", (Thread::currentThread) ? Thread::currentThread->name : "_no_thread_");
 		PutString("===== General Protection Fault =====");
 		PutString("\n");
 
@@ -238,7 +238,7 @@ namespace Interrupt
 		__asm("cli");
 		for(;;)
 		{
-			HALT;
+			HAL::WaitForInterrupt();
 		}
 	}
 

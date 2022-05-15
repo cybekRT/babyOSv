@@ -4,6 +4,6 @@ namespace Timer
 
 	bool Init();
 
-	u64 GetTicks();
+	Time GetTicks();
 	void Delay(Time ms);
 }

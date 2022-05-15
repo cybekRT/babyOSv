@@ -220,8 +220,7 @@ namespace Thread
 		Interrupt::Enable();
 	}
 
-	__attribute((naked, noreturn))
-	void _NextThread(void*)
+	__attribute((naked, noreturn)) void _NextThread(void*)
 	{
 		__asm("cli");
 

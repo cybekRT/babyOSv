@@ -1,6 +1,11 @@
 extern "C"
 {
 
+void __cxa_pure_virtual()
+{
+	ASSERT(false, "Pure virtual function called :(");
+}
+
 size_t strlen(const char* str)
 {
 	unsigned len = 0;

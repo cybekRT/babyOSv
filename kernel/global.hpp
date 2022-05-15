@@ -40,8 +40,7 @@ typedef u32 size_t;
 
 #ifndef TESTS
 
-#define BREAKPOINT {__asm("xchg %%bx, %%bx" : : : "bx");}
-#define HALT { __asm("hlt"); }
+#define DEBUG_BREAK {__asm("xchg %%bx, %%bx" : : : "bx");}
 #define FAIL(msg) { Print("\n\nAssert failed: %s:%d (%s) - %s\n\n", __FILE__, __LINE__, __FUNCTION__, msg); __asm("int $0xfe"); }
 
 #endif

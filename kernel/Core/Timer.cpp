@@ -23,8 +23,8 @@ const u8 PIT_COMMAND_OPMODE_2		= 0b11 << 1 ;// (rate generator)
 const u8 PIT_COMMAND_OPMODE_3		= 0b11 << 1 ;// (square wave generator)
 const u8 PIT_COMMAND_OPMODE_4		= 0b11 << 1 ;// (software triggered strobe)
 const u8 PIT_COMMAND_OPMODE_5		= 0b11 << 1 ;// (hardware triggered strobe)
-const u8 PIT_COMMAND_OPMODE_2_ALT	= 0b11 << 1 ;// 
-const u8 PIT_COMMAND_OPMODE_3_ALT	= 0b11 << 1 ;// 
+const u8 PIT_COMMAND_OPMODE_2_ALT	= 0b11 << 1 ;//
+const u8 PIT_COMMAND_OPMODE_3_ALT	= 0b11 << 1 ;//
 
 const u8 PIT_COMMAND_BMODE_BINARY	= 0b0 << 0;
 const u8 PIT_COMMAND_BMODE_BCD		= 0b1 << 0;
@@ -41,7 +41,7 @@ namespace Timer
 
 		Interrupt::AckIRQ();
 
-		Thread::NextThread();
+		// Thread::NextThread();
 	}
 
 	ISR(255)
@@ -69,23 +69,23 @@ namespace Timer
 	bool tested = false;
 	void Delay(Time ms)
 	{
-		__asm("pushf\ncli");
-		auto prevState = Thread::GetState(Thread::currentThread);
+		// __asm("pushf\ncli");
+		// auto prevState = Thread::GetState(Thread::currentThread);
 		//Thread::SetState(Thread::currentThread, Thread::State::Waiting);
 
-		Thread::WaitForSignal(Thread::Signal { .type = Thread::Signal::Timeout, .addr = 0 }, ms);
+		// Thread::WaitForSignal(Thread::Signal { .type = Thread::Signal::Timeout, .addr = 0 }, ms);
 
 		// FIXME: call to delay if interrupts are disabled
-		//__asm("pushf");
-		//__asm("sti");
+		__asm("pushf");
+		__asm("sti");
 
-		/*Time time = ticks + ms;
+		static Time time = ticks + ms;
 		while(ticks < time)
 		{
-			__asm("int $0xff");
-		}*/
+			// __asm("int $0xff");
+		}
 
-		Thread::SetState(Thread::currentThread, prevState);
+		// Thread::SetState(Thread::currentThread, prevState);
 		__asm("popf");
 	}
 }

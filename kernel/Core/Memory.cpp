@@ -138,8 +138,6 @@ namespace Memory
 
 	void CreateMemoryMap()
 	{
-		memset((void*)&Physical::memoryMap, 0, sizeof(Physical::memoryMap));
-
 		unsigned memoryMapCount = 0;
 		for(unsigned a = 0; a < memoryEntriesCount; a++)
 		{
@@ -150,8 +148,15 @@ namespace Memory
 			if(memoryEntries[a].base + memoryEntries[a].length > 0xffffffff)
 				memoryEntries[a].length = 0xffffffff - memoryEntries[a].base;
 
-			Physical::memoryMap.address[memoryMapCount] = (void*)memoryEntries[a].base;
-			Physical::memoryMap.length[memoryMapCount] = memoryEntries[a].length;
+			// Physical::memoryMap.address[memoryMapCount] = (void*)memoryEntries[a].base;
+			// Physical::memoryMap.length[memoryMapCount] = memoryEntries[a].length;
+
+			if(memoryEntries[a].base > 0xFFFFFFFF)
+				continue;
+			if(memoryEntries[a].length > 0xFFFFFFFF)
+				memoryEntries[a].length = 0xFFFFFFFF;
+
+			Memory::Physical::AddFreeMemory((void*)memoryEntries[a].base, (u32)memoryEntries[a].length);
 
 			memoryMapCount++;
 		}
@@ -206,6 +211,9 @@ namespace Memory
 	bool Init()
 	{
 		PutString("Memory init...\n");
+
+		Physical::Init();
+		Logical::Init();
 
 		memoryEntries = (MemoryInfo_t*)(((unsigned)_bootloader_info_ptr->memoryEntries) | 0x80000000);
 		memoryEntriesCount = *_bootloader_info_ptr->memoryEntriesCount;
@@ -310,6 +318,7 @@ namespace Memory
 						Memory::Physical::PrintMemoryMap();
 						for(;;)
 						{
+							Print("Not enough memory~!");
 							__asm("hlt");
 						}
 					}

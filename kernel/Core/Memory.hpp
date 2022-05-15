@@ -53,33 +53,34 @@ typedef PageDirectory PageTable;
 
 namespace Memory
 {
+	constexpr u32 PAGE_SIZE = 4096;
+
 	bool Init();
-	
+
 	namespace Physical
 	{
-		struct MemoryMap
-		{
-			void* address[340];
-			u32 length[340];
-			bool used[340];
+		bool Init();
 
-			MemoryMap* next;
-		};
+		void AddFreeMemory(void* address, u32 length);
+		void ReserveMemory(void* address, u32 length);
 
-		extern MemoryMap memoryMap;
-
-		void InsertMemoryMapEntry(void* address, unsigned length);
-		void SortMemoryMap();
-		void MergeMemoryMap();
+		// void InsertMemoryMapEntry(void* address, unsigned length);
+		// void SortMemoryMap();
+		// void MergeMemoryMap();
 		void PrintMemoryMap();
 
 		// Physical allocator
 		void* Alloc(unsigned allocSize);
 		void Free(void* address);
+
+		void* AllocPage();
+		void FreePage(void* addr);
 	}
 
 	namespace Logical
 	{
+		bool Init();
+
 		void DisableFirstMegabyteMapping();
 
 		// Mapper

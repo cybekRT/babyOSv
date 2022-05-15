@@ -2,115 +2,68 @@
 
 namespace Memory::Physical
 {
-	MemoryMap memoryMap;
+	constexpr u32 MAX_MEMORY_SIZE = 32;
+	/**
+	 * 0 - reserved
+	 * 1 - free
+	 */
+	u8 memoryBitmap[MAX_MEMORY_SIZE * 1024 * 1024 / PAGE_SIZE / 8];
+	u32 maxMemoryIndex = 0;
 
-	void InsertMemoryMapEntry(void* address, unsigned length)
+	bool Init()
 	{
-		MemoryMap* currentMap = &memoryMap;
-		while(currentMap != nullptr)
-		{
-			for(unsigned a = 0; a < sizeof(currentMap->used); a++)
-			{
-				if(currentMap->address[a] == 0)
-				{
-					currentMap->address[a] = address;
-					currentMap->length[a] = length;
-					currentMap->used[a] = true;
-
-					return;
-				}
-			}
-
-			currentMap = currentMap->next;
-		}
-
-		// TODO: add allocating and inserting new memory map after last one
-
-		//PrintMemoryMap();
-		PutString("=== Insert memory entry failed! ===");
-		for(;;);
+		for(unsigned a = 0; a < sizeof(memoryBitmap); a++)
+			memoryBitmap[a] = 0;
 	}
 
-	void SortMemoryMap()
+	void AddFreeMemory(void* _address, u32 _length)
 	{
-		// TODO:
-		MemoryMap* currentMap = &memoryMap;
-		while(currentMap != nullptr)
+		if((u32)_address + _length > maxMemoryIndex)
+			maxMemoryIndex = ((u32)_address + _length) / PAGE_SIZE;
+
+		u32 address = (u32)_address;
+		u32 pagesCount = _length / PAGE_SIZE;
+		if(!pagesCount)
+			return;
+		u32 index = address / PAGE_SIZE;
+
+		if(address & (PAGE_SIZE - 1))
 		{
-			bool changed;
+			index++;
+			pagesCount--;
+			if(!pagesCount)
+				return;
+		}
 
-			do
-			{
-				changed = false;
-				for(unsigned a = 1; a < sizeof(currentMap->used); a++)
-				{
-					if(currentMap->address[a] == 0)
-						continue;
+		for(unsigned a = 0; a < pagesCount; a++)
+		{
+			u32 indexCurrent = index + a;
 
-					if(currentMap->address[a] < currentMap->address[a - 1])
-					{
-						auto oldAddr = currentMap->address[a - 1];
-						currentMap->address[a - 1] = currentMap->address[a];
-						currentMap->address[a] = oldAddr;
+			if(indexCurrent / 8 > sizeof(memoryBitmap))
+				break;
 
-						auto oldUsed = currentMap->used[a - 1];
-						currentMap->used[a - 1] = currentMap->used[a];
-						currentMap->used[a] = oldUsed;
-
-						auto oldLen = currentMap->length[a - 1];
-						currentMap->length[a - 1] = currentMap->length[a];
-						currentMap->length[a] = oldLen;
-
-						//Swap(currentMap->address[a - 1]. currentMap->address[a]);
-					}
-				}
-			} while(changed);
-
-			currentMap = currentMap->next;
+			memoryBitmap[indexCurrent / 8] |= (1 << (indexCurrent % 8));
 		}
 	}
 
-	void MergeMemoryMap()
+	void ReserveMemory(void* _address, u32 _length)
 	{
-		SortMemoryMap();
+		if((u32)_address + _length > maxMemoryIndex)
+			maxMemoryIndex = ((u32)_address + _length) / PAGE_SIZE;
 
-		// TODO:
-		MemoryMap* currentMap = &memoryMap;
-		while(currentMap != nullptr)
+		u32 address = (u32)_address;
+		u32 pagesCount = (_length + PAGE_SIZE - 1) / PAGE_SIZE;
+		u32 index = address / PAGE_SIZE;
+
+		for(unsigned a = 0; a < pagesCount; a++)
 		{
-			bool changed;
+			u32 indexCurrent = index + a;
 
-			do
-			{
-				changed = false;
-				for(unsigned a = 1; a < sizeof(currentMap->used); a++)
-				{
-					if(currentMap->address[a - 1] == 0 || currentMap->address[a] == 0)
-						continue;
+			if(indexCurrent / 8 > sizeof(memoryBitmap))
+				break;
 
-					if(!currentMap->used[a - 1] && !currentMap->used[a])
-					{
-						u32 addr1 = (u32)currentMap->address[a - 1];
-						u32 len1 = currentMap->length[a - 1];
-						u32 addr2 = (u32)currentMap->address[a];
-						u32 len2 = currentMap->length[a];
-
-						if(addr1 + len1 == addr2)
-						{
-							changed = true;
-							currentMap->length[a - 1] += len2;
-
-							currentMap->address[a] = 0;
-							currentMap->length[a] = 0;
-						}
-					}
-				}
-			} while(changed);
-
-			currentMap = currentMap->next;
+			memoryBitmap[indexCurrent / 8] &= ~(1 << (indexCurrent % 8));
 		}
-
-		// TODO: move entries from next memory map to previous, if there is enough space!
 	}
 
 	void PrintMemoryMap()
@@ -118,89 +71,164 @@ namespace Memory::Physical
 		PutString("\n");
 		PutString("===== Memory map =====\n");
 
-		unsigned used = 0;
-		unsigned free = 0;
+		unsigned usedCount = 0;
+		unsigned freeCount = 0;
 
-		MemoryMap* currentMap = &memoryMap;
-		while(currentMap != nullptr)
+		u32 lastIndex = 0;
+		u32 lastType = 0;
+		for(unsigned a = 0; a < sizeof(memoryBitmap); a++)
 		{
-			for(unsigned a = 0; a < sizeof(currentMap->used); a++)
+			for(unsigned b = 0; b < 8; b++)
 			{
-				if(currentMap->address[a] == 0)
-					continue;
-				
-				Print("%c %p - %u\n", (currentMap->used[a] ? '-' : '+'), 
-							currentMap->address[a], 
-							currentMap->length[a]);
+				u32 index = a * 8 + b;
+				u32 currentType = !!(memoryBitmap[a] & (1 << b));
 
-				if(currentMap->used[a])
-					used += currentMap->length[a];
+				if(currentType)
+					freeCount++;
 				else
-					free += currentMap->length[a];
+					usedCount++;
+
+				if(currentType != lastType || (a == sizeof(memoryBitmap) - 1 && b == 7) || index == maxMemoryIndex)
+				{
+					Print("%c %p - %u  \n", (lastType ? '+' : '-'),
+								lastIndex * PAGE_SIZE,
+								(index - lastIndex) * PAGE_SIZE);
+
+					lastIndex = index;
+					lastType = currentType;
+				}
+
+				if(index >= maxMemoryIndex)
+					break;
 			}
 
-			currentMap = currentMap->next;
+			if(a * 8 >= maxMemoryIndex)
+				break;
 		}
 
 		PutString("======================\n");
-		Print("Used:  %u bytes\nFree:  %u bytes\nTotal: %u bytes\n", used, free, free + used);
+		Print("Used:  %u bytes\nFree:  %u bytes\nTotal: %u bytes\n",
+			usedCount * PAGE_SIZE, freeCount * PAGE_SIZE, (freeCount + usedCount) * PAGE_SIZE);
 		PutString("======================\n");
 	}
+
+	// void* Alloc(unsigned allocSize)
+	// {
+	// 	allocSize = (allocSize + 0xFFF) & (~0xFFF);
+
+	// 	void* allocatedAddress = nullptr;
+	// 	MemoryMap* currentMap = &memoryMap;
+	// 	while(currentMap != nullptr && !allocatedAddress)
+	// 	{
+	// 		for(unsigned a = 0; a < sizeof(currentMap->used); a++)
+	// 		{
+	// 			if(currentMap->address[a] == 0)
+	// 				continue;
+
+	// 			if(!currentMap->used[a] && currentMap->length[a] >= allocSize)
+	// 			{
+	// 				allocatedAddress = currentMap->address[a];
+
+	// 				currentMap->length[a] -= allocSize;
+	// 				currentMap->address[a] = (void*)((unsigned)currentMap->address[a] + allocSize);
+	// 				if(currentMap->length[a] == 0)
+	// 					currentMap->address[a] = 0;
+	// 				InsertMemoryMapEntry(allocatedAddress, allocSize);
+
+	// 				break;
+	// 			}
+	// 		}
+
+	// 		currentMap = currentMap->next;
+	// 	}
+
+	// 	// TODO: zeroing memory?
+	// 	return allocatedAddress;
+	// }
+
+	// void Free(void* address)
+	// {
+	// 	MemoryMap* currentMap = &memoryMap;
+	// 	while(currentMap != nullptr)
+	// 	{
+	// 		for(unsigned a = 0; a < sizeof(currentMap->used); a++)
+	// 		{
+	// 			if(currentMap->address[a] == address)
+	// 			{
+	// 				currentMap->used[a] = false;
+
+	// 				// TODO: maybe some counter, not to merge everytime
+	// 				MergeMemoryMap();
+
+	// 				return;
+	// 			}
+	// 		}
+	// 	}
+
+	// 	PutString("=== Failed to free phys memory ===");
+	// 	for(;;);
+	// }
 
 	void* Alloc(unsigned allocSize)
 	{
-		allocSize = (allocSize + 0xFFF) & (~0xFFF);
+		auto PAGE_SIZE = Memory::PAGE_SIZE;
+		u32 pagesCount = (allocSize + (PAGE_SIZE - 1)) / PAGE_SIZE;
 
-		void* allocatedAddress = nullptr;
-		MemoryMap* currentMap = &memoryMap;
-		while(currentMap != nullptr && !allocatedAddress)
+		u32 lastIndex = 0;
+		for(unsigned a = 0; a < sizeof(memoryBitmap); a++)
 		{
-			for(unsigned a = 0; a < sizeof(currentMap->used); a++)
+			for(unsigned b = 0; b < 8; b++)
 			{
-				if(currentMap->address[a] == 0)
-					continue;
-
-				if(!currentMap->used[a] && currentMap->length[a] >= allocSize)
+				u32 index = (a * 8 + b);
+				if(memoryBitmap[a] & (1 << b))
 				{
-					allocatedAddress = currentMap->address[a];
-					
-					currentMap->length[a] -= allocSize;
-					currentMap->address[a] = (void*)((unsigned)currentMap->address[a] + allocSize);
-					if(currentMap->length[a] == 0)
-						currentMap->address[a] = 0;
-					InsertMemoryMapEntry(allocatedAddress, allocSize);
+					if(index - lastIndex + 1 >= pagesCount)
+					{
+						for(unsigned c = lastIndex; c <= index; c++)
+							memoryBitmap[c / 8] &= ~(1 << (c % 8));
 
-					break;
+						Print("Physical alloc: %p\n", (index * PAGE_SIZE));
+						return (void*)(index * PAGE_SIZE);
+					}
+				}
+				else
+				{
+					lastIndex = index + 1;
 				}
 			}
-
-			currentMap = currentMap->next;
 		}
 
-		// TODO: zeroing memory?
-		return allocatedAddress;
+		FAIL("No memory...\n");
+		return nullptr;
 	}
 
-	void Free(void* address)
+	void* AllocPage()
 	{
-		MemoryMap* currentMap = &memoryMap;
-		while(currentMap != nullptr)
+		for(unsigned a = 0; a < sizeof(memoryBitmap); a++)
 		{
-			for(unsigned a = 0; a < sizeof(currentMap->used); a++)
+			for(unsigned b = 0; b < 8; b++)
 			{
-				if(currentMap->address[a] == address)
+				if(memoryBitmap[a] & (1 << b))
 				{
-					currentMap->used[a] = false;
+					memoryBitmap[a] &= ~(1 << b);
+					u32 index = (a * 8 + b);
 
-					// TODO: maybe some counter, not to merge everytime
-					MergeMemoryMap();
-
-					return;
+					// Print("Physical alloc-page: %p\n", (index * PAGE_SIZE));
+					return (void*)(index * PAGE_SIZE);
 				}
 			}
 		}
 
-		PutString("=== Failed to free phys memory ===");
-		for(;;);
+		FAIL("No memory...");
+		return nullptr;
+	}
+
+	void FreePage(void* addr)
+	{
+		ASSERT(((u32)addr & (PAGE_SIZE - 1)) == 0, "Page address is not aligned~!");
+
+		u32 index =	((u32)addr) / PAGE_SIZE;
+		// Print("Physical free-page: %p\n", addr);
+		memoryBitmap[index / 8] |= (1 << (index % 8));
 	}
 }

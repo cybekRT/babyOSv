@@ -69,7 +69,7 @@ GCC_FLAGS	+= -fno-exceptions
 ifeq (,$(findstring test, $(MAKECMDGOALS)))
 GCC_FLAGS	+= -m32 -march=i486
 GCC_FLAGS	+= -mgeneral-regs-only -fno-isolate-erroneous-paths-attribute -fno-asynchronous-unwind-tables
-GCC_FLAGS	+= -fno-rtti -fno-omit-frame-pointer -fno-use-cxa-atexit -fno-stack-protector
+GCC_FLAGS	+= -fno-rtti -fno-omit-frame-pointer -fno-use-cxa-atexit -fno-stack-protector -fno-threadsafe-statics
 endif
 NASM_FLAGS	:= -Iboot/
 QEMU_FLAGS	:= $(QEMU_DOS_IMG) $(QEMU_DOSEXT_IMG) -vga std -boot ac -m 8 -d int -monitor stdio -d int -d cpu_reset -d guest_errors
@@ -223,7 +223,7 @@ qemu: out/floppy.img
 	#-d int -no-reboot -no-shutdown
 
 qemu-dbg: out/floppy.img
-	$(QEMU) -fda $< -s -S 2> /dev/null &
+	$(QEMU) -fda $< -s -S -d int -no-reboot -no-shutdown 2> /dev/null &
 	$(GDB_PREFIX)gdb out/kernel.elf
 
 qemu-dos: out/floppy.img

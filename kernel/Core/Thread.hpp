@@ -90,7 +90,7 @@ namespace Thread
 	{
 		Process* process;
 		u32 id;
-		u8 name[32];
+		char name[32];
 		State state;
 
 		void* stackBottom;

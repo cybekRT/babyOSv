@@ -2,6 +2,8 @@
 
 namespace HAL
 {
+	inline void WaitForInterrupt() { __asm("hlt"); }
+
 	u8 In8(u16 port);
 	void Out8(u16 port, u8 data);
 

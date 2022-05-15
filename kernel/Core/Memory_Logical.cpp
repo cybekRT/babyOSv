@@ -4,6 +4,11 @@ namespace Memory::Logical
 {
 	PageDirectory* pageDirectory = (PageDirectory*)0xFFFFF000;
 
+	bool Init()
+	{
+		return true;
+	}
+
 	PageDirectory* GetLogicPageDirectory()
 	{
 		return (PageDirectory*)0xFFFFFC00;
@@ -59,14 +64,14 @@ namespace Memory::Logical
 						startB = b + 1;
 						pagesCountFree = 0;
 					}
-					
+
 				}
 			}
 			else
 			{
 				pagesCountFree += 1024;
 			}
-			
+
 			if(pagesCountFree >= pagesCountNeeded)
 				return abToAddr(startA, startB);
 		}
@@ -143,10 +148,10 @@ namespace Memory::Logical
 
 		auto dirIndex = ((u32)logicAddress) >> 22;
 		auto tableIndex = (((u32)logicAddress) >> 12) & 0x3ff;
-		
+
 		auto pageTable = GetLogicPageTable(dirIndex);
 		auto entry = &pageTable->entries[tableIndex];
-		
+
 		ASSERT(entry->flags & PAGE_TABLE_FLAG_PRESENT, "Unmapping absent entry");
 
 		entry->address = 0;
@@ -169,18 +174,11 @@ namespace Memory::Logical
 
 	void* Alloc(unsigned allocSize)
 	{
+		auto PAGE_SIZE = Memory::PAGE_SIZE;
 		// TODO: it doesn't need to alloc continuous memory due to the mapping...
 
-		allocSize = (allocSize + 0xFFF) & (~0xFFF);
-
-		void* physAddr = Physical::Alloc(allocSize);
-		if(!physAddr)
-		{
-			PutString("Not enough free memory~!");
-			for(;;);
-
-			return nullptr;
-		}
+		allocSize = (allocSize + PAGE_SIZE) & (~(PAGE_SIZE - 1));
+		// Print("Logical alloc: %d\n", allocSize);
 
 		void* logicAddr = FindFreeLogicalSpace(allocSize);
 		if(!logicAddr)
@@ -188,12 +186,29 @@ namespace Memory::Logical
 			PutString("Couldn't find free logical space~!");
 			for(;;);
 
-			Physical::Free(physAddr);
+			// Physical::Free(physAddr);
 			return nullptr;
 		}
 
-		Map(physAddr, logicAddr, allocSize);
+		// Print("Found logic addr: %p\n", logicAddr);
 
+		for(unsigned a = 0; a < allocSize; a += PAGE_SIZE)
+		{
+			void* physAddr = Physical::AllocPage();
+			if(!physAddr)
+			{
+				PutString("Not enough free memory~!");
+				for(;;);
+
+				return nullptr;
+			}
+
+			void* currentLogicAddr = (void*)(((u8*)logicAddr) + a);
+			// Print("Mapping %p -> %p\n", physAddr, currentLogicAddr);
+			Map(physAddr, currentLogicAddr, PAGE_SIZE);
+		}
+
+		// Print("Logical alloc returned: %p\n", logicAddr);
 		return logicAddr;
 	}
 
@@ -201,12 +216,13 @@ namespace Memory::Logical
 	{
 		auto dirIndex = ((u32)logicAddress) >> 22;
 		auto tableIndex = (((u32)logicAddress) >> 12) & 0x3ff;
-		
+
 		auto pageTable = GetLogicPageTable(dirIndex);
 		auto entry = &pageTable->entries[tableIndex];
 		auto physAddress = entry->GetAddress();
 
-		Physical::Free(physAddress);
+		// Print("Freeing logic: %p\n", logicAddress);
+		Physical::FreePage(physAddress);
 		Unmap(logicAddress);
 	}
 }
