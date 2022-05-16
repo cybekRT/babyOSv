@@ -245,15 +245,16 @@ namespace Memory
 
 	MallocHeader* mallocPage = nullptr;
 
-	bool MallocResize(unsigned bytes)
+	bool MallocAddPage(unsigned bytes)
 	{
-		u32 totalSize = ((bytes + sizeof(MallocHeader)) + 0xFFF) & (~0xFFF);
+		u32 totalSize = ((bytes + sizeof(MallocHeader)) + PAGE_SIZE - 1) & (~(PAGE_SIZE - 1));
 
-		u32 minSize = 4 * 4096;
+		u32 minSize = 4 * PAGE_SIZE;
 		if(totalSize < minSize)
 			totalSize = minSize;
 
 		auto newHeader = (MallocHeader*)Logical::Alloc(totalSize); // TODO: use pages count
+		ASSERT(newHeader != nullptr, "Out of memory :(");
 		if(!newHeader)
 			return false;
 
@@ -269,8 +270,14 @@ namespace Memory
 		{
 			auto ptr = mallocPage;
 			while(ptr->next != nullptr)
+			{
+				if(mallocPage < ptr->next)
+					break;
 				ptr = ptr->next;
+			}
 
+			if(ptr->next != nullptr)
+				newHeader->next = ptr->next;
 			ptr->next = newHeader;
 		}
 
@@ -283,9 +290,19 @@ namespace Memory
 
 		if(mallocPage == nullptr)
 		{
-			if(!MallocResize(bytes))
+			if(!MallocAddPage(bytes))
 				return nullptr;
 		}
+
+		if(mallocPage->length >= bytes)
+		{
+			auto ptr = mallocPage;
+			ptr->used = 1;
+			mallocPage = mallocPage->next;
+			return ptr + 1;
+		}
+		else
+			FAIL("Oopsie...");
 
 		// First fit
 		auto ptr = mallocPage;
@@ -333,7 +350,7 @@ namespace Memory
 
 			if(ptr->next == nullptr)
 			{
-				if(!MallocResize(bytes))
+				if(!MallocAddPage(bytes))
 					return nullptr;
 			}
 
@@ -346,55 +363,56 @@ namespace Memory
 
 	void Free(void* ptr)
 	{
-		MallocHeader* hdr = &((MallocHeader*)ptr)[-1];
+		MallocHeader* hdr = (MallocHeader*)ptr;//&((MallocHeader*)ptr)[-1];
+		hdr--;
 
 		if(!hdr->used)
 		{
-			return;
 			FAIL("Double free~!\n");
+			return;
 			//Print("Double free~!\n"); for(;;);
 		}
 
 		hdr->used = false;
 
 		//Print("MallocPage: %p, Hdr: %p\n", mallocPage, hdr);
-		if(hdr < mallocPage)
-		{
+		// if(hdr < mallocPage)
+		// {
 			hdr->next = mallocPage;
 			mallocPage = hdr;
 			//Print("MallocPage = Hdr = %p\n", mallocPage);
-		}
-		else
-		{
-			auto ptr = mallocPage;
-			auto prevPtr = (MallocHeader*)nullptr;
-			while(ptr)
-			{
-				if(ptr == hdr || ptr->next == hdr)
-				{
-					FAIL("Cycle in malloc list~!\n");
-					//Print("Oopsie...\n"); for(;;);
-				}
+		// }
+		// else
+		// {
+		// 	auto ptr = mallocPage;
+		// 	auto prevPtr = (MallocHeader*)nullptr;
+		// 	while(ptr)
+		// 	{
+		// 		if(ptr == hdr || ptr->next == hdr)
+		// 		{
+		// 			FAIL("Cycle in malloc list~!\n");
+		// 			//Print("Oopsie...\n"); for(;;);
+		// 		}
 
-				if(ptr->next > hdr)
-				{
-					hdr->next = ptr->next;
-					ptr->next = hdr;
+		// 		if(ptr->next > hdr)
+		// 		{
+		// 			hdr->next = ptr->next;
+		// 			ptr->next = hdr;
 
-					break;
-				}
+		// 			break;
+		// 		}
 
-				prevPtr = ptr;
-				ptr = ptr->next;
-			}
+		// 		prevPtr = ptr;
+		// 		ptr = ptr->next;
+		// 	}
 
-			if(ptr == nullptr)
-			{
-				// Print("Prev: %p, Ptr: %p, Hdr: %p, Hdr->next: %p\n", prevPtr, ptr, hdr, hdr->next);
-				prevPtr->next = hdr;
-				//hdr->next = nullptr;
-			}
-		}
+		// 	if(ptr == nullptr)
+		// 	{
+		// 		// Print("Prev: %p, Ptr: %p, Hdr: %p, Hdr->next: %p\n", prevPtr, ptr, hdr, hdr->next);
+		// 		prevPtr->next = hdr;
+		// 		//hdr->next = nullptr;
+		// 	}
+		// }
 		// TODO: merge entries
 	}
 
