@@ -160,6 +160,9 @@ namespace Memory
 
 			memoryMapCount++;
 		}
+
+		Memory::Physical::ReserveMemory((void*)0xA0000, 64 * 1024);
+		Memory::Physical::ReserveMemory((void*)(_kernel_beg & (~0x80000000)), _kernel_end - _kernel_beg);
 	}
 
 	void CreateTSS()
@@ -245,7 +248,7 @@ namespace Memory
 
 	MallocHeader* mallocPage = nullptr;
 
-	bool MallocAddPage(unsigned bytes)
+	void* MallocAddPage(unsigned bytes)
 	{
 		u32 totalSize = ((bytes + sizeof(MallocHeader)) + PAGE_SIZE - 1) & (~(PAGE_SIZE - 1));
 
@@ -256,113 +259,100 @@ namespace Memory
 		auto newHeader = (MallocHeader*)Logical::Alloc(totalSize); // TODO: use pages count
 		ASSERT(newHeader != nullptr, "Out of memory :(");
 		if(!newHeader)
-			return false;
+			return nullptr;
 
 		newHeader->length = totalSize - sizeof(MallocHeader);
 		newHeader->next = nullptr;
 		newHeader->used = false;
 
-		if(mallocPage == nullptr)
-		{
-			mallocPage = newHeader;
-		}
-		else
-		{
-			auto ptr = mallocPage;
-			while(ptr->next != nullptr)
-			{
-				if(mallocPage < ptr->next)
-					break;
-				ptr = ptr->next;
-			}
+		// if(mallocPage == nullptr)
+		// {
+		// 	mallocPage = newHeader;
+		// }
+		// else
+		// {
+		// 	auto ptr = mallocPage;
+		// 	while(ptr->next != nullptr)
+		// 	{
+		// 		if(mallocPage < ptr->next)
+		// 			break;
+		// 		ptr = ptr->next;
+		// 	}
 
-			if(ptr->next != nullptr)
-				newHeader->next = ptr->next;
-			ptr->next = newHeader;
-		}
+		// 	if(ptr->next != nullptr)
+		// 		newHeader->next = ptr->next;
+		// 	ptr->next = newHeader;
+		// }
 
-		return true;
+		return newHeader;
 	}
 
 	void* Alloc(unsigned bytes)
 	{
-		bytes += sizeof(MallocHeader);
+		// bytes += sizeof(MallocHeader);
 
 		if(mallocPage == nullptr)
 		{
-			if(!MallocAddPage(bytes))
+			mallocPage = (MallocHeader*)MallocAddPage(bytes);
+			if(!mallocPage)
 				return nullptr;
 		}
 
-		if(mallocPage->length >= bytes)
-		{
-			auto ptr = mallocPage;
-			ptr->used = 1;
-			mallocPage = mallocPage->next;
-			return ptr + 1;
-		}
-		else
-			FAIL("Oopsie...");
-
-		// First fit
 		auto ptr = mallocPage;
-		auto prevPtr = (MallocHeader*)nullptr;
-		while(ptr)
+		MallocHeader* prevPtr = nullptr;
+		int xx = 0;
+		//while(ptr)
+		for(;;)
 		{
+			xx++;
 			if(ptr->length >= bytes)
 			{
-				if(ptr->length > bytes + sizeof(MallocHeader))
+				// auto ptr = mallocPage;
+				if(mallocPage->length - bytes > sizeof(MallocHeader))
 				{
-					auto oldLength = ptr->length;
-					auto oldNext = ptr->next;
-					auto newHeader = (MallocHeader*)(((char*)ptr) + bytes);
-					ptr->length = bytes;
-					ptr->next = newHeader;
-					ptr->used = true;
+					MallocHeader* nextHdr = (MallocHeader*)(((u8*)ptr) + bytes + sizeof(MallocHeader));
+					nextHdr->length = mallocPage->length - bytes - sizeof(MallocHeader);
+					nextHdr->next = ptr->next;
+					nextHdr->used = false;
 
-					newHeader->length = oldLength - bytes;
-					newHeader->next = oldNext;
-					newHeader->used = false;
+					ptr->next = nextHdr;
+					ptr->length = bytes;
 				}
 
+				ptr->used = 1;
+				// mallocPage = mallocPage->next;
 				if(prevPtr)
 					prevPtr->next = ptr->next;
 				else
-				{
 					mallocPage = ptr->next;
-					if(!mallocPage)
-					{
-						Memory::Physical::PrintMemoryMap();
-						for(;;)
-						{
-							Print("Not enough memory~!");
-							__asm("hlt");
-						}
-					}
-					ASSERT(mallocPage, "Out of memory?");
-					//Print("MallocPage = ptr->next = %p", ptr->next);
-				}
 
-				ptr->next = nullptr;
-
-				return (void*)(ptr + 1); // Return memory after header
-			}
-
-			if(ptr->next == nullptr)
-			{
-				if(!MallocAddPage(bytes))
-					return nullptr;
+				return ptr + 1;
 			}
 
 			prevPtr = ptr;
 			ptr = ptr->next;
+
+			if(ptr == nullptr)
+			{
+				ptr = (MallocHeader*)MallocAddPage(bytes);
+				ASSERT(ptr != nullptr, "Out of memory");
+
+				prevPtr->next = ptr;
+			}
 		}
+
+		Print("Oopsie... %d\n", xx);
+		Physical::PrintMemoryMap();
+		__asm("cli");
+		__asm("hlt");
+		FAIL("Oopsie...");
 
 		return nullptr;
 	}
 
 	void Free(void* ptr)
 	{
+		// return;
 		MallocHeader* hdr = (MallocHeader*)ptr;//&((MallocHeader*)ptr)[-1];
 		hdr--;
 

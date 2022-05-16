@@ -33,8 +33,9 @@ namespace Memory::Logical
 
 	void* FindFreeLogicalSpace(unsigned size)
 	{
+		auto PAGE_SIZE = Memory::PAGE_SIZE;
 		// It's for kernel-space only~!
-		size = (size + 0xFFF) & (~0xFFF);
+		size = (size + PAGE_SIZE - 1) & (~(PAGE_SIZE - 1));
 		unsigned pagesCountNeeded = size >> 12;
 		unsigned pagesCountFree = 0;
 
@@ -177,7 +178,7 @@ namespace Memory::Logical
 		auto PAGE_SIZE = Memory::PAGE_SIZE;
 		// TODO: it doesn't need to alloc continuous memory due to the mapping...
 
-		allocSize = (allocSize + PAGE_SIZE) & (~(PAGE_SIZE - 1));
+		// allocSize = (allocSize + PAGE_SIZE - 1) & (~(PAGE_SIZE - 1));
 		// Print("Logical alloc: %d\n", allocSize);
 
 		void* logicAddr = FindFreeLogicalSpace(allocSize);

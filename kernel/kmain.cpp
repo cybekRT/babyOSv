@@ -59,11 +59,15 @@ extern "C" void kmain()
 	Terminal::SetXY(0, 0);
 	Print("Memory test:\n");
 	char c = 0;
+	u32 zxc = 0;
+
 	for(volatile unsigned a = 0; a < 1000; a++)
 	{
+		zxc++;
 		// if(a % 50 == 0)
 		{
 			Terminal::SetXY(0, 1);
+			Print("### Iteration: %d\n", zxc);
 			Memory::Physical::PrintMemoryMap();
 			// Timer::Delay(1000);
 		}

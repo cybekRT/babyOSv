@@ -48,7 +48,7 @@ namespace Memory::Physical
 
 	void ReserveMemory(void* _address, u32 _length)
 	{
-		if((u32)_address + _length > maxMemoryIndex)
+		if( ((u32)_address + _length) / PAGE_SIZE > maxMemoryIndex)
 			maxMemoryIndex = ((u32)_address + _length) / PAGE_SIZE;
 
 		u32 address = (u32)_address;
