@@ -89,12 +89,14 @@ extern "C" void kmain()
 				u32 size = (zxc % 123) + 5;
 				// Print("&ptr[x] = %p\nAlloc~! ", &ptr[x]);
 				ptr[x] = (u8*)Memory::Alloc(size);// Memory::Physical::AllocPage();
-				Print("Assign~! (%p, %p)\n", ptr[x], Memory::Logical::GetPhysicalFromLogical(ptr[x]));
+				// Print("Assign~! (%p, %p)\n", ptr[x], Memory::Logical::GetPhysicalFromLogical(ptr[x]));
 				// ptr[x] = tmpPtr;
 				// Print("Filling~! [%p, %p]\n", &ptr[x][0], &ptr[x][1023]);
-				for(unsigned y = 0; y < zxc; y++)
+				for(unsigned y = 0; y < size; y++)
 				{
-					ptr[x][y] = y;
+					const u32 v = 0xBAADF00D;
+					u8* vv = (u8*)&v;
+					ptr[x][y] = vv[y % 4];
 				}
 				// Print("Ok, -> %d (%d - %p)\n", zxc, x, ptr[x]);
 			}
