@@ -290,4 +290,11 @@ namespace Terminal
 	{
 		color = (bg & 0x0F) << 4 | (fg & 0x0F);
 	}
+
+	void Clear()
+	{
+		SetXY(0, 0);
+		for(unsigned a = 0; a < 80*25; a++)
+			PutChar(' ');
+	}
 }

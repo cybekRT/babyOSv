@@ -39,6 +39,10 @@ extern "C" void kmain()
 	Memory::Init();
 	Interrupt::Init();
 
+	// Print("Logical: %p\n", (void*)kmain);
+	// Print("Physical: %p\n", Memory::Logical::GetPhysicalFromLogical((void*)kmain));
+	// for(;;);
+
 	/* Call global constructors */
 	Print("Constructors: (%p - %p)\n", _ctors_beg, _ctors_end);
 	for(u32* ptr = _ctors_beg; ptr != _ctors_end; ptr++)
@@ -51,7 +55,7 @@ extern "C" void kmain()
 	}
 
 	Timer::Init();
-	// Thread::Init();
+	Thread::Init();
 	Keyboard::Init();
 
 	for(unsigned a = 0; a < 80*25; a++)
@@ -64,28 +68,43 @@ extern "C" void kmain()
 	for(volatile unsigned a = 0; a < 1000; a++)
 	{
 		zxc++;
-		// if(a % 50 == 0)
+		if(a % 50 == 0)
 		{
-			Terminal::SetXY(0, 1);
+			// Terminal::SetXY(0, 1);
+			Terminal::Clear();
+			Terminal::SetXY(0, 0);
 			Print("### Iteration: %d\n", zxc);
-			Memory::Physical::PrintMemoryMap();
+			Memory::PrintMemoryMap();
 			// Timer::Delay(1000);
 		}
 
 		// Memory::Alloc(5);
-		if(a == 999)
+		// if(a == 999)
 		{
 			const u32 cnt = 100;
-			void* ptr[cnt];
+			static u8* ptr[cnt];
 
 			for(unsigned x = 0; x < cnt; x++)
-				ptr[x] = Memory::Alloc(1024);// Memory::Physical::AllocPage();
+			{
+				u32 size = (zxc % 123) + 5;
+				// Print("&ptr[x] = %p\nAlloc~! ", &ptr[x]);
+				ptr[x] = (u8*)Memory::Alloc(size);// Memory::Physical::AllocPage();
+				Print("Assign~! (%p, %p)\n", ptr[x], Memory::Logical::GetPhysicalFromLogical(ptr[x]));
+				// ptr[x] = tmpPtr;
+				// Print("Filling~! [%p, %p]\n", &ptr[x][0], &ptr[x][1023]);
+				for(unsigned y = 0; y < zxc; y++)
+				{
+					ptr[x][y] = y;
+				}
+				// Print("Ok, -> %d (%d - %p)\n", zxc, x, ptr[x]);
+			}
 
 			// FIXME: memory is leaking...
 			for(unsigned x = 0; x < cnt; x++)
 				Memory::Free(ptr[x]); // Memory::Physical::FreePage(ptr[ (x * 3) % cnt ]);
 
-			a = 0;
+			if(a == 999)
+				a = 0;
 		}
 
 		// for(volatile unsigned b = 0; b < 9999; b++)

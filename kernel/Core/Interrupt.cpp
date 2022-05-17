@@ -177,15 +177,18 @@ namespace Interrupt
 		__asm("mov %%ebp, %0" : "=r"(ebp));
 
 		Print("EBP: %x, ESP: %x\n", ebp, esp);
+		Print("Physical: %x, %x\n",
+			Memory::Logical::GetPhysicalFromLogical((void*)ebp),
+			Memory::Logical::GetPhysicalFromLogical((void*)esp));
 
-		u32* x = ((u32*)&ptr)-6;
-		Print("(%p)\n", x);
-		for(int a = 0; a < 8; a++)
-		{
-			// if(*x != 0)
-				Print("_ [%p] = %p\n", x, *x);
-			x++;
-		}
+		// u32* x = ((u32*)&ptr)-6;
+		// Print("(%p)\n", x);
+		// for(int a = 0; a < 8; a++)
+		// {
+		// 	// if(*x != 0)
+		// 		Print("_ [%p] = %p\n", x, *x);
+		// 	x++;
+		// }
 
 		for(;;)
 			HAL::WaitForInterrupt();

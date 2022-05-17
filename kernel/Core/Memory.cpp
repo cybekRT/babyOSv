@@ -289,11 +289,14 @@ namespace Memory
 
 	void* Alloc(unsigned bytes)
 	{
+		// Print("Inside~! ");
 		// bytes += sizeof(MallocHeader);
 
 		if(mallocPage == nullptr)
 		{
+			Print("Resizing malloc 1\n");
 			mallocPage = (MallocHeader*)MallocAddPage(bytes);
+			ASSERT(mallocPage, "Out of memory");
 			if(!mallocPage)
 				return nullptr;
 		}
@@ -302,16 +305,18 @@ namespace Memory
 		MallocHeader* prevPtr = nullptr;
 		int xx = 0;
 		//while(ptr)
+		// Print("Req: %d => ", bytes);
 		for(;;)
 		{
 			xx++;
+			// Print("(%d) ", ptr->length);
 			if(ptr->length >= bytes)
 			{
 				// auto ptr = mallocPage;
-				if(mallocPage->length - bytes > sizeof(MallocHeader))
+				if(ptr->length - bytes > sizeof(MallocHeader))
 				{
 					MallocHeader* nextHdr = (MallocHeader*)(((u8*)ptr) + bytes + sizeof(MallocHeader));
-					nextHdr->length = mallocPage->length - bytes - sizeof(MallocHeader);
+					nextHdr->length = ptr->length - bytes - sizeof(MallocHeader);
 					nextHdr->next = ptr->next;
 					nextHdr->used = false;
 
@@ -326,6 +331,7 @@ namespace Memory
 				else
 					mallocPage = ptr->next;
 
+				// Print("\n");
 				return ptr + 1;
 			}
 
@@ -334,6 +340,7 @@ namespace Memory
 
 			if(ptr == nullptr)
 			{
+				Print("Resizing malloc 2\n");
 				ptr = (MallocHeader*)MallocAddPage(bytes);
 				ASSERT(ptr != nullptr, "Out of memory");
 
@@ -348,6 +355,27 @@ namespace Memory
 		FAIL("Oopsie...");
 
 		return nullptr;
+	}
+
+	void MallocMerge()
+	{
+		auto ptr = mallocPage;
+		u32 count = 0;
+		while(ptr)
+		{
+			if((u8*)ptr->next == ((u8*)ptr) + ptr->length + sizeof(MallocHeader))
+			{
+				auto next = ptr->next;
+				ptr->length += next->length + sizeof(MallocHeader);
+				ptr->next = next->next;
+
+				count++;
+			}
+			else
+				ptr = ptr->next;
+		}
+
+		// Print("Merged: %d\n", count);
 	}
 
 	void Free(void* ptr)
@@ -365,11 +393,34 @@ namespace Memory
 
 		hdr->used = false;
 
+		if(hdr < mallocPage)
+		{
+			hdr->next = mallocPage;
+			mallocPage = hdr;
+		}
+		else
+		{
+			auto page = mallocPage;
+			while(page)
+			{
+				if(page->next > hdr || page->next == nullptr)
+				{
+					hdr->next = page->next;
+					page->next = hdr;
+					break;
+				}
+
+				page = page->next;
+			}
+		}
+
+		MallocMerge();
+
 		//Print("MallocPage: %p, Hdr: %p\n", mallocPage, hdr);
 		// if(hdr < mallocPage)
 		// {
-			hdr->next = mallocPage;
-			mallocPage = hdr;
+			// hdr->next = mallocPage;
+			// mallocPage = hdr;
 			//Print("MallocPage = Hdr = %p\n", mallocPage);
 		// }
 		// else
@@ -410,6 +461,27 @@ namespace Memory
 	{
 		MallocHeader* hdr = &((MallocHeader*)ptr)[-1];
 		return hdr->length - sizeof(MallocHeader);;
+	}
+
+	void PrintMemoryMap()
+	{
+		Physical::PrintMemoryMap();
+
+		u32 totalLength = 0;
+
+		unsigned pagesCount = 0;
+		auto ptr = mallocPage;
+		Print("Pages:");
+		while(ptr)
+		{
+			Print("(%p, %d) ", ptr, ptr->length);
+			pagesCount++;
+			totalLength += ptr->length;
+			ptr = ptr->next;
+		}
+
+		Print("Malloc pages: %d\n", pagesCount);
+		Print("Total available bytes: %d\n", totalLength);
 	}
 }
 

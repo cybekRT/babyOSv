@@ -146,6 +146,7 @@ namespace Thread
 		const u32 newStackSize = thread->stackSize;
 
 		void *stackPhys = Memory::Physical::Alloc(newStackSize);
+		Print("Stack phys: %p\n", stackPhys);
 		thread->stackBottom = Memory::Logical::Map(stackPhys, newStackBeg - newStackSize, newStackSize);
 
 		u32 currentESP;

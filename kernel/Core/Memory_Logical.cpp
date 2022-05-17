@@ -19,6 +19,16 @@ namespace Memory::Logical
 		return (PageTable*)(0xFFC00000 | (index << 12));
 	}
 
+	void* GetPhysicalFromLogical(void* _ptr)
+	{
+		u32 ptr = (u32)_ptr;
+		auto table = GetLogicPageTable(ptr >> 22);
+		auto index = (ptr >> 12) & 0x03FF;
+		u32 phys = table->entries[index].address << 12;
+
+		return (void*)phys;
+	}
+
 	void DisableFirstMegabyteMapping()
 	{
 		pageDirectory->entries[0].address = 0;
@@ -88,6 +98,7 @@ namespace Memory::Logical
 			for(;;);
 		}
 
+		// Print("  Mapping... (%p -> %p)", physAddress, logicAddress);
 		unsigned directoryIndex = ((unsigned)logicAddress) >> 22;
 		unsigned tableIndex = (((unsigned)logicAddress) >> 12) & 0x3ff;
 
@@ -95,8 +106,10 @@ namespace Memory::Logical
 		PageTable* pt = (PageTable*)(0xFFC00000 | (directoryIndex << 12));
 		PageTableEntry* pte = (PageTableEntry*)(0xFFC00000 | (directoryIndex << 12) | (tableIndex * sizeof(PageDirectoryEntry)));
 
+		// Print("wait... ");
 		if(!pde->address)
 		{
+			// Print("Adding table... ");
 			PageTable* ptPhys = (PageTable*)Physical::Alloc(sizeof(PageTable));
 			pde->address = ((unsigned)ptPhys) >> 12;
 			pde->flags = PAGE_TABLE_FLAG_PRESENT | PAGE_TABLE_FLAG_READ_WRITE | PAGE_TABLE_FLAG_SUPERVISOR;
@@ -111,8 +124,10 @@ namespace Memory::Logical
 			memset(pt, 0, sizeof(PageTable));
 		}
 
+		// Print("  Activating... ");
 		pte->address = ((unsigned)physAddress >> 12);
 		pte->flags = PAGE_TABLE_FLAG_PRESENT | PAGE_TABLE_FLAG_READ_WRITE | PAGE_TABLE_FLAG_SUPERVISOR;
+		// Print("OK~!\n");
 	}
 
 	void* Map(void* physAddress, void* logicAddress, unsigned length)
@@ -182,6 +197,7 @@ namespace Memory::Logical
 		// Print("Logical alloc: %d\n", allocSize);
 
 		void* logicAddr = FindFreeLogicalSpace(allocSize);
+		// Print("Logical: %p\n", logicAddr);
 		if(!logicAddr)
 		{
 			PutString("Couldn't find free logical space~!");
@@ -196,6 +212,7 @@ namespace Memory::Logical
 		for(unsigned a = 0; a < allocSize; a += PAGE_SIZE)
 		{
 			void* physAddr = Physical::AllocPage();
+			Print("\tPhys: %p\n", physAddr);
 			if(!physAddr)
 			{
 				PutString("Not enough free memory~!");

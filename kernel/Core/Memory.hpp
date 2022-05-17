@@ -80,6 +80,7 @@ namespace Memory
 	namespace Logical
 	{
 		bool Init();
+		void* GetPhysicalFromLogical(void* ptr);
 
 		void DisableFirstMegabyteMapping();
 
@@ -95,6 +96,8 @@ namespace Memory
 	void* Alloc(unsigned bytes);
 	void Free(void* ptr);
 	u32 Size(void* ptr);
+
+	void PrintMemoryMap();
 
 	template<class T>
 	T* Alloc()
