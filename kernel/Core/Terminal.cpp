@@ -1,6 +1,7 @@
 #include"Terminal.hpp"
 #include<stdarg.h>
 
+#include"HAL.hpp"
 namespace Terminal
 {
 	char* buffer = nullptr;
@@ -39,6 +40,8 @@ namespace Terminal
 
 	u32 PutChar(char c)
 	{
+		HAL::Out8(0x3F8, c);
+
 		if(buffer)
 		{
 			(*buffer++) = c;

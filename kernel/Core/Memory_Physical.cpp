@@ -187,8 +187,9 @@ namespace Memory::Physical
 						for(unsigned c = lastIndex; c <= index; c++)
 							memoryBitmap[c / 8] &= ~(1 << (c % 8));
 
-						Print("Physical alloc: %p\n", (index * PAGE_SIZE));
-						return (void*)(index * PAGE_SIZE);
+						Print("Physical alloc: %p -> %p (%d)\n",
+							(lastIndex * PAGE_SIZE), (index * PAGE_SIZE), pagesCount);
+						return (void*)(lastIndex * PAGE_SIZE);
 					}
 				}
 				else

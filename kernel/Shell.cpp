@@ -212,6 +212,7 @@ namespace Shell
 	Array<char*> SplitParameters(char* buffer, u32 bufferSize)
 	{
 		Array<char*> params;
+		Print("Buffer: %p, size: %d\n", buffer, bufferSize);
 
 		bool isWhitespace = true;
 		bool isQuoted = false;
@@ -299,7 +300,9 @@ namespace Shell
 						continue;
 
 					buffer.PushBack(0); // Terminate string
+					Print("Created array\n");
 					Array<char*> params;
+					Print("Splitting params...\n");
 					params = SplitParameters(&buffer[0], buffer.Size());
 
 					if(!params.IsEmpty())

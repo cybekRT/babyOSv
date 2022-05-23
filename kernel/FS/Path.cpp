@@ -48,6 +48,7 @@ void Path::Add(const char* dir)
 	//char* tmp = (char*)Memory::Alloc(len + 1);
 	char* tmp = new char[len + 1];
 	strcpy(tmp, dir);
+	Print("Adding path: %s\n", tmp);
 	paths.PushBack(String(tmp));
 }
 

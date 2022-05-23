@@ -29,6 +29,7 @@ public:
 
 		// length = argLen;
 
+		Print("Construct String(%p) -> %p\n", arg, this);
 		Assign(arg, strlen(arg));
 	}
 
@@ -78,9 +79,15 @@ public:
 	char& operator[](u32 index)
 	{
 		if(!buffer)
+		{
+			ASSERT(index < sizeof(buffer_s), "invalid index");
 			return buffer_s[index];
+		}
 		else
+		{
+			ASSERT(index < length, "invalid index");
 			return buffer[index];
+		}
 	}
 
 	String operator+(const char* arg) const
@@ -143,8 +150,10 @@ public:
 protected:
 	bool Realloc(u32 minReqSize = 0)
 	{
+		Print("Resizing!\n");
 		if(!buffer)
 		{
+			Print("No buffer:\n");
 			capacity = sizeof(buffer_s) * 2;
 			if(capacity <= minReqSize)
 				capacity = minReqSize + 1;
@@ -160,6 +169,7 @@ protected:
 		}
 		else
 		{
+			Print("Yes buffer:\n");
 			capacity *= 2;
 			if(capacity <= minReqSize)
 				capacity = minReqSize + 1;
@@ -182,18 +192,24 @@ protected:
 
 	void Assign(const char* arg, u32 argLen)
 	{
+		Print("String assign: %s (%p)\n", arg, this);
 		if(buffer)
 		{
 			if(capacity > argLen)
 			{
+				Print("Enough capacity\n");
 				strcpy(buffer, arg);
 			}
 			else
 			{
+				Print("Resize needed... %p\n", buffer);
 				delete[] buffer;
+				buffer = nullptr;
 
+				Print("Removed, reallocating...\n");
 				length = 0;
 				Realloc(argLen + 1);
+				Print("Reallocated, copying string\n");
 				strcpy(buffer, arg);
 			}
 		}
@@ -212,6 +228,7 @@ protected:
 		}
 
 		length = argLen;
+		Print("Assigned~! (%p)\n", this);
 	}
 
 	void Add(const char* arg, u32 argLen)

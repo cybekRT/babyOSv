@@ -47,13 +47,17 @@ public:
 
 	}
 
-	explicit Array(u32 capacity) : size(0), capacity(capacity)
+	explicit Array(u32 capacity) : data(nullptr), size(0), capacity(capacity)
 	{
+		ASSERT(capacity > 0, "Invalid capacity");
 		data = (T*)new u8[sizeof(T) * capacity];
 	}
 
-	Array(const Array& arg) : size(arg.size), capacity(arg.capacity)
+	Array(const Array& arg) : data(nullptr), size(arg.size), capacity(arg.capacity)
 	{
+		if(!arg.data || !arg.size)
+			return;
+
 		data = (T*)new u8[sizeof(T) * capacity];
 
 		for(unsigned a = 0; a < size; a++)
@@ -76,12 +80,18 @@ public:
 				delete[] (u8*)data;
 				data = nullptr;
 
-				capacity = arg.capacity;
+				capacity = 0;
 			}
 		}
 
+		if(!arg.data || !arg.size)
+			return *this;
+
 		if(!data)
+		{
+			capacity = arg.capacity;
 			data = (T*)new u8[sizeof(T) * capacity];
+		}
 
 		size = arg.size;
 

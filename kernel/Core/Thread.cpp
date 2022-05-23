@@ -142,13 +142,15 @@ namespace Thread
 
 	void CreateKernelStack(Thread* thread)
 	{
-		u8* newStackBeg = (u8*)0xE0000000;
+		u8* newStackBeg = (u8*)0xF0000000;
 		const u32 newStackSize = thread->stackSize;
 
+		Print("Req new stack size: %d\n", newStackSize);
 		void *stackPhys = Memory::Physical::Alloc(newStackSize);
-		Print("Stack phys: %p\n", stackPhys);
+		Print("Stack phys: %p, mapping...\n", stackPhys);
 		thread->stackBottom = Memory::Logical::Map(stackPhys, newStackBeg - newStackSize, newStackSize);
 
+		Print("Copying old stack\n");
 		u32 currentESP;
 		u32 currentEBP;
 		__asm("mov %%esp, %0" : "=r"(currentESP));
@@ -174,6 +176,8 @@ namespace Thread
 
 		__asm("mov %0, %%esp" : : "r"(newESP));
 		__asm("mov %0, %%ebp" : : "r"(newEBP));
+
+		Print("Stack copied, finished~!\n");
 	}
 
 	bool Init()
@@ -182,6 +186,7 @@ namespace Thread
 
 		Interrupt::Register(255, _NextThread);
 
+		Print("Thread: Alloc thread struct\n");
 		Thread* thread = (Thread*)Memory::Alloc(sizeof(Thread));
 
 		thread->process = nullptr;
@@ -189,7 +194,8 @@ namespace Thread
 		memcpy(thread->name, (void*)"Init", 4);
 		thread->state = State::Running;
 
-		thread->stackSize = 8192*4;
+		Print("Thread: Alloc stack\n");
+		thread->stackSize = 8192*8;
 		//thread->stack = Memory::Alloc(thread->stackSize);
 		CreateKernelStack(thread);
 
@@ -197,12 +203,16 @@ namespace Thread
 		currentThread = thread;
 		currentThread->interruptDisabled = 1;
 
+		Print("Thread: create idle thread\n");
 		Create(&idleThread, (u8*)"Idle", Idle);
 
+		Print("Thread: start idle thread\n");
 		Start(idleThread);
 
 		// XXX: Thread init enables global interrupts~!
+		Print("Thread: enable interrupt\n");
 		Interrupt::Enable();
+		Print("Thread: finished~\n");
 		return true;
 	}
 
