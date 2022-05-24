@@ -41,7 +41,7 @@ namespace Timer
 
 		Interrupt::AckIRQ();
 
-		// Thread::NextThread();
+		Thread::NextThread();
 	}
 
 	ISR(255)
@@ -52,7 +52,7 @@ namespace Timer
 	bool Init()
 	{
 		Interrupt::Register(Interrupt::IRQ2INT(Interrupt::IRQ_TIMER), ISR_Timer);
-		//Interrupt::Register(255, ISR_255);
+		Interrupt::Register(255, ISR_255);
 
 		HAL::Out8(PIT_PORT_COMMAND, PIT_COMMAND_CHANNEL_0 | PIT_COMMAND_AMODE_LOHIBYTE | PIT_COMMAND_OPMODE_3 | PIT_COMMAND_BMODE_BINARY);
 		HAL::Out8(PIT_PORT_CHANNEL_0, 0xA9);
@@ -79,10 +79,10 @@ namespace Timer
 		__asm("pushf");
 		__asm("sti");
 
-		static Time time = ticks + ms;
+		Time time = ticks + ms;
 		while(ticks < time)
 		{
-			// __asm("int $0xff");
+			__asm("int $0xff");
 		}
 
 		// Thread::SetState(Thread::currentThread, prevState);

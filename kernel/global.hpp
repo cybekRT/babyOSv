@@ -29,7 +29,7 @@ typedef u32 size_t;
 { \
 	if(!(cond)) \
 	{ \
-		Terminal::Print("\n\nAssert failed: %s:%d (%s) - %s\n\n", __FILE__, __LINE__, __FUNCTION__, msg); \
+		Terminal::Print("\nAssert failed: %s:%d (%s) - %s\n", __FILE__, __LINE__, __FUNCTION__, msg); \
 		for(;;) \
 		{ \
 			 __asm("int $0xfe\ncli\nhlt\n"); \
@@ -41,7 +41,7 @@ typedef u32 size_t;
 #ifndef TESTS
 
 #define DEBUG_BREAK {__asm("xchg %%bx, %%bx" : : : "bx");}
-#define FAIL(msg) { Print("\n\nAssert failed: %s:%d (%s) - %s\n\n", __FILE__, __LINE__, __FUNCTION__, msg); __asm("int $0xfe"); }
+#define FAIL(msg) { Print("\nAssert failed: %s:%d (%s) - %s\n", __FILE__, __LINE__, __FUNCTION__, msg); __asm("int $0xfe"); }
 
 #endif
 

@@ -26,6 +26,35 @@ Video::Bitmap* screen = nullptr;
 extern u32* _ctors_beg;
 extern u32* _ctors_end;
 
+void AddKey(char c)
+{
+	if(c == '\n')
+		Keyboard::AddEvent(Keyboard::KeyEvent { .type = Keyboard::KeyType::Pressed, .key = Keyboard::KeyCode::Enter } );
+	else
+		Keyboard::AddEvent(Keyboard::KeyEvent { .type = Keyboard::KeyType::Pressed, .ascii = c } );
+}
+
+int TestThread(void* args)
+{
+	Timer::Delay(500);
+	for(auto c : "cd fdd\n")
+		AddKey(c);
+
+	Timer::Delay(500);
+	for(auto c : "cd kernel\n")
+		AddKey(c);
+
+	Timer::Delay(500);
+	for(auto c : "cat kmain.asm\n")
+		AddKey(c);
+
+	Timer::Delay(500);
+	for(auto c : "splash\n")
+		AddKey(c);
+
+	return 0;
+}
+
 extern "C" void kmain()
 {
 	ASSERT(sizeof(u64) == 8, "u64");
@@ -168,6 +197,13 @@ extern "C" void kmain()
 	Thread::Thread* shellThread;
 	Thread::Create(&shellThread, (u8*)"Shell", Shell::Thread);
 	Thread::Start(shellThread);
+
+	if(0)
+	{
+		Thread::Thread* tT;
+		Thread::Create(&tT, (u8*)"test", TestThread);
+		Thread::Start(tT);
+	}
 #endif
 
 	Print("\n\nKernel running...\n");

@@ -61,7 +61,7 @@ public:
 		data = (T*)new u8[sizeof(T) * capacity];
 
 		for(unsigned a = 0; a < size; a++)
-			data[a] = arg.data[a];
+			new(data + a) T(arg.data[a]);
 	}
 
 	~Array()
@@ -96,7 +96,7 @@ public:
 		size = arg.size;
 
 		for(unsigned a = 0; a < size; a++)
-			data[a] = arg.data[a];
+			new(data + a) T(arg.data[a]);
 
 		return *this;
 	}
@@ -163,7 +163,8 @@ public:
 			// data[a] = data[a - 1];
 		}
 
-		data[index] = arg;
+		// Remember: assigning new object to garbage data is not a good idea...
+		new(data + index) T(arg);
 		size++;
 	}
 

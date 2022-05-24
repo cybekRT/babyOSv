@@ -491,6 +491,7 @@ void* operator new(size_t size)
 
 	// Print("New: %d bytes - ", size);
 	auto ptr = Memory::Alloc(size);
+	// memset(ptr, 0, size);
 	ASSERT(ptr != (void*)0x1100, "WTF"); // FIXME: fix me~!
 	// Print("%p\n", ptr);
 	return ptr;
@@ -502,6 +503,7 @@ void* operator new[](size_t size)
 
 	// Print("New[]: %d bytes - ", size);
 	auto ptr = Memory::Alloc(size);
+	// memset(ptr, 0, size);
 	ASSERT(ptr != (void*)0x1100, "WTF"); // FIXME: fix me~!
 	// Print("%p\n", ptr);
 	return ptr;
@@ -511,13 +513,13 @@ void operator delete(void* ptr, size_t size)
 {
 	ASSERT(size > 0, "Invalid size");
 
-	Print("Delete: %p - %d\n", ptr, size);
+	// Print("Delete: %p - %d\n", ptr, size);
 	Memory::Free(ptr);
 }
 
 void operator delete(void* ptr)
 {
-	Print("Delete: %p - ...\n", ptr);
+	// Print("Delete: %p - ...\n", ptr);
 	Memory::Free(ptr);
 }
 
@@ -525,12 +527,12 @@ void operator delete[](void* ptr, size_t size)
 {
 	ASSERT(size > 0, "Invalid size");
 
-	Print("Delete[]: %p - %d\n", ptr, size);
+	// Print("Delete[]: %p - %d\n", ptr, size);
 	Memory::Free(ptr);
 }
 
 void operator delete[](void* ptr)
 {
-	Print("Delete[]: %p - ...\n", ptr);
+	// Print("Delete[]: %p - ...\n", ptr);
 	Memory::Free(ptr);
 }
