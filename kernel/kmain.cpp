@@ -3,6 +3,7 @@
 #include"Interrupt.hpp"
 #include"Timer.hpp"
 #include"Input/Keyboard.hpp"
+#include"Input/Mouse.hpp"
 #include"Thread.hpp"
 
 #include"ISA_DMA.hpp"
@@ -86,6 +87,7 @@ extern "C" void kmain()
 	Timer::Init();
 	Thread::Init();
 	Keyboard::Init();
+	Mouse::Init();
 
 	if(0)
 	{

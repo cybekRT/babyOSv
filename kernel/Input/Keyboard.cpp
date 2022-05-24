@@ -23,6 +23,8 @@ namespace Keyboard
 
 	ISR(Keyboard)
 	{
+		Print("k");
+
 		u8 scanCode = regData.Read();
 
 		if(scanCode == 0xE0)

@@ -29,12 +29,20 @@ namespace Keyboard
 
 	struct PS2_StatusRegister
 	{
+		/* (0 = empty, 1 = full) (must be set before attempting to read data from IO port 0x60) */
 		u8 outputBuffer : 1;
+		/* (0 = empty, 1 = full) (must be clear before attempting to write data to IO port 0x60 or IO port 0x64)  */
 		u8 inputBuffer : 1;
+		/* Meant to be cleared on reset and set by firmware (via. PS/2 Controller Configuration Byte) if the system passes self tests (POST)  */
 		u8 systemFlag : 1;
+		/* (0 = data written to input buffer is data for PS/2 device, 1 = data written to input buffer is data for PS/2 controller command) */
 		u8 isData : 1;
+		/* May be "keyboard lock" (more likely unused on modern systems)
+		   May be "receive time-out" or "second PS/2 port output buffer full" */
 		u8 unused : 2;
+		/* 0 = no error, 1 = time-out error)  */
 		u8 timeoutError : 1;
+		/* (0 = no error, 1 = parity error) */
 		u8 parityError : 1;
 	} __attribute__((packed));
 

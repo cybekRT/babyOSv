@@ -72,8 +72,8 @@ GCC_FLAGS	+= -mgeneral-regs-only -fno-isolate-erroneous-paths-attribute -fno-asy
 GCC_FLAGS	+= -fno-rtti -fno-omit-frame-pointer -fno-use-cxa-atexit -fno-stack-protector -fno-threadsafe-statics
 endif
 NASM_FLAGS	:= -Iboot/
-QEMU_FLAGS	:= $(QEMU_DOS_IMG) $(QEMU_DOSEXT_IMG) -vga std -boot ac -m 8 -d int -monitor stdio -d int -d cpu_reset -d guest_errors
-
+QEMU_FLAGS	:= $(QEMU_DOS_IMG) $(QEMU_DOSEXT_IMG) -chardev msmouse,id=msmouse -vga std -boot ac -m 8 -d int -monitor stdio -d int -d cpu_reset -d guest_errors
+# -serial file:serial.log
 ####################
 #
 #	Output files and dependencies
