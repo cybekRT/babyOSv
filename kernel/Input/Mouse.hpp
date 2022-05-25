@@ -6,4 +6,5 @@ namespace Mouse
 
 	void FIFOAddCmd(u8 v);
 	void FIFOAddData(u8 v);
+	void Test();
 }

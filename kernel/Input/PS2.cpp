@@ -10,33 +10,42 @@ namespace PS2
 	HAL::RegisterWO<u8> regCommand(0x64);
 	HAL::RegisterRW<u8> regData(0x60);
 
+	volatile bool handleData = false;
+
 	void Handle()
 	{
-		auto status = regStatus.Read();
-		u8 data = regData.Read();
-
-		Print("Cmd or data: %d (%x)\n", status.isData, *(u8*)&status);
-		if(status.auxData)
+		if(handleData)
 		{
-			Mouse::FIFOAddData(data);
+			auto status = regStatus.Read();
+			u8 data = regData.Read();
+
+			Print("Cmd or data: %d (%x)\n", status.isData, *(u8*)&status);
+			if(status.auxData)
+			{
+				Mouse::FIFOAddData(data);
+				regData.Read();
+				regData.Read();
+			}
+			else
+			{
+				Keyboard::FIFOAddData(data);
+			}
 		}
 		else
-		{
-			Keyboard::FIFOAddData(data);
-		}
+			Print("(no handle)");
 
 		Interrupt::AckIRQ();
 	}
 
 	ISR(Keyboard)
 	{
-		Print("k");
+		Print("(k)");
 		Handle();
 	}
 
 	ISR(Mouse)
 	{
-		Print("m");
+		Print("(m)");
 		Handle();
 	}
 
@@ -66,13 +75,14 @@ namespace PS2
 		SendCmd(PS2_CMD_DISABLE_KEYBOARD);
 		SendCmd(PS2_CMD_DISABLE_MOUSE);
 
-		Interrupt::Register(Interrupt::IRQ2INT(Interrupt::IRQ_KEYBOARD), ISR_Keyboard);
-		Interrupt::Register(Interrupt::IRQ2INT(Interrupt::IRQ_MOUSE), ISR_Mouse);
+		// Interrupt::Register(Interrupt::IRQ2INT(Interrupt::IRQ_KEYBOARD), ISR_Keyboard);
+		// Interrupt::Register(Interrupt::IRQ2INT(Interrupt::IRQ_MOUSE), ISR_Mouse);
 
 		Keyboard::Init();
 		Mouse::Init();
 
 		SendCmd(PS2_CMD_ENABLE_KEYBOARD);
 		SendCmd(PS2_CMD_ENABLE_MOUSE);
+		handleData = true;
 	}
 }

@@ -91,6 +91,8 @@ extern "C" void kmain()
 	// Keyboard::Init();
 	// Mouse::Init();
 
+	Mouse::Test();
+
 	if(0)
 	{
 		Print("=== Memory test ===\n");

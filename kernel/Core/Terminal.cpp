@@ -40,7 +40,7 @@ namespace Terminal
 
 	u32 PutChar(char c)
 	{
-		HAL::Out8(0x3F8, c);
+		// HAL::Out8(0x3F8, c);
 
 		if(buffer)
 		{

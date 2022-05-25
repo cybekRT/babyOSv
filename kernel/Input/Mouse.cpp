@@ -3,6 +3,8 @@
 #include"Interrupt.hpp"
 #include"HAL.hpp"
 
+#include"Timer.hpp"
+
 #define PS2_REG_CMD 0x64
 #define PS2_REG_DAT 0x60
 #define PS2_CMD_GET_COMPAQ_STATUS 0x20
@@ -23,27 +25,22 @@ namespace Mouse
 	{
 		PS2::StatusRegister tmp;
 
-		tmp = regStatus.Read(); Print("Status: %x", *(u8*)&tmp);
+		// tmp = regStatus.Read(); Print("Status: %x", *(u8*)&tmp);
 		while(!regStatus.Read().outputBuffer);
-		tmp = regStatus.Read(); Print(" -> %x\n", *(u8*)&tmp);
+		// tmp = regStatus.Read(); Print(" -> %x\n", *(u8*)&tmp);
 	}
 
 	void WaitForReadyToSend()
 	{
 		PS2::StatusRegister tmp;
 
-		tmp = regStatus.Read(); Print("Status: %x", *(u8*)&tmp);
+		// tmp = regStatus.Read(); Print("Status: %x", *(u8*)&tmp);
 		while(regStatus.Read().inputBuffer);
-		tmp = regStatus.Read(); Print("-> %x\n", *(u8*)&tmp);
+		// tmp = regStatus.Read(); Print("-> %x\n", *(u8*)&tmp);
 	}
 
 	void SendCmd(u8 v)
 	{
-		// Keyboard::PS2_StatusRegister tmp;
-		// *(u8*)&tmp = 0x00;
-		// tmp.inputBuffer = 1;
-		// Print("Test: %d\n", *(u8*)&tmp);
-
 		WaitForReadyToSend();
 		regCommand.Write(0xD4);
 		WaitForReadyToSend();
@@ -58,6 +55,16 @@ namespace Mouse
 
 	u8 ReadData()
 	{
+		// __asm("cli");
+		// for(;;)
+		// {
+		// 	auto v = HAL::In8(0x64);
+		// 	Print("Status: %x\n", v);
+		// 	if(v & 1)
+		// 		break;
+		// }
+
+		// return HAL::In8(0x60);
 		WaitForReadyToRead();
 		return regData.Read();
 	}
@@ -93,7 +100,7 @@ namespace Mouse
 		Print("Initializing mouse...\n");
 		// Interrupt::Register(Interrupt::IRQ2INT(Interrupt::IRQ_MOUSE), ISR_Mouse);
 
-		// SendControllerCmd(PS2_CMD_ENABLE_AUX);
+		SendControllerCmd(PS2_CMD_ENABLE_AUX);
 
 		SendControllerCmd(PS2_CMD_GET_COMPAQ_STATUS);
 		auto ctrlConf = ReadRegister<PS2::ControllerConfiguration>();
@@ -105,21 +112,16 @@ namespace Mouse
 		SendRegister(ctrlConf);
 		// while(ReadData() != 0xFA);
 
-		// SendCmd(0xFF);
-		// while(ReadData() != 0xAA);
+		SendCmd(PS2_CMD_MOUSE_GET_ID);
+		while(ReadData() != 0xFA);
+		auto mouseId = ReadData();
+		Print("Mouse ID: %d\n", mouseId);
+
 		SendCmd(PS2_CMD_MOUSE_SET_DEFAULTS);
-		// ReadData();
-		// SendCmd(PS2_CMD_MOUSE_ENABLE_STREAMING);
-		// while(ReadData() != 0xFA);
-
-		// SendCmd(PS2_CMD_MOUSE_GET_ID);
-		// while(ReadData() != 0xFA);
-		// auto mouseId = ReadData();
-
-		// Print("Mouse ID: %d\n", mouseId);
+		while(ReadData() != 0xFA);
 
 		SendCmd(PS2_CMD_MOUSE_ENABLE_STREAMING);
-		ReadData();
+		while(ReadData() != 0xFA);
 
 		// SendCmd(0xFF);
 		// u8 ack = ReadData();
@@ -138,5 +140,54 @@ namespace Mouse
 	void FIFOAddData(u8 v)
 	{
 		Print("(m) Add byte: %x\n", v);
+	}
+
+	ISR(kb)
+	{
+		Print("(k)\n");
+		while(HAL::In8(0x64) & 1)
+			HAL::In8(0x60);
+		Interrupt::AckIRQ();
+	}
+
+	volatile int yolov = 0;
+	ISR(yolo)
+	{
+		Print("(m)\n");
+		while(HAL::In8(0x64) & 1)
+			yolov = HAL::In8(0x60);
+		Interrupt::AckIRQ();
+	}
+
+	void Test()
+	{
+		// Interrupt::Register(Interrupt::INT_IRQ12, ISR_yolo);
+		Interrupt::Register(Interrupt::IRQ2INT(Interrupt::IRQ_MOUSE), ISR_yolo);
+		Interrupt::Register(Interrupt::IRQ2INT(Interrupt::IRQ_KEYBOARD), ISR_kb);
+		SendCmd(PS2_CMD_MOUSE_ENABLE_STREAMING);
+
+		__asm("sti");
+
+		for(;;)
+		{
+			__asm("hlt");
+			Print("%x\n", yolov);
+			// Print("%x ", ReadData());
+		}
+
+		for(;;);
+		SendCmd(0xE9);
+		Print("Status: %x %x %x %x\n", ReadData(), ReadData(), ReadData(), ReadData());
+
+		char c = 'D';
+		for(;;)
+		{
+			SendCmd(0xEB);
+			Print("%c: %x %x %x %x\r", c++, ReadData(), ReadData(), ReadData(), ReadData());
+			if(c == 'Z')
+				c = 'A';
+
+			Timer::Delay(500);
+		}
 	}
 }

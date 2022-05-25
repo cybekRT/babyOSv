@@ -295,13 +295,14 @@ namespace Interrupt
 		Register(INT_INVALID_SEGMENT, (ISR)ISR_GPF);
 		//Register(INT_DIVISION_BY_ZERO, ISR_GPF);
 
-		/*for(unsigned a = 0; a < 16; a++)
+		for(unsigned a = 0; a < 16; a++)
 		{
 			Register(IRQ2INT(a), ISR_IRQ_Dummy);
-		}*/
+		}
 
 		//Register(IRQ2INT(IRQ_TIMER), ISR_IRQ_Dummy);
 		Register(IRQ2INT(IRQ_LPT1), ISR_IRQ_Dummy);
+		Register(IRQ2INT(IRQ_COM1), ISR_IRQ_Dummy);
 		//__asm("sti");
 
 		return true;
