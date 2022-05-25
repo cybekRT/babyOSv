@@ -21,16 +21,25 @@ namespace Keyboard
 	extern KeyCode scanCode2Key[];
 	extern KeyInfo keyInfo[];
 
-	ISR(Keyboard)
+	bool Init()
 	{
-		Print("k");
+		return true;
+	}
 
-		u8 scanCode = regData.Read();
+	void FIFOAddCmd(u8 v)
+	{
+		Print("(k) Add cmd: %x\n", v);
+	}
+
+	void FIFOAddData(u8 v)
+	{
+		Print("(k) Add byte: %x\n", v);
+		u8 scanCode = v;//regData.Read();
 
 		if(scanCode == 0xE0)
 		{
 			// TODO
-			Interrupt::AckIRQ();
+			// Interrupt::AckIRQ();
 			return;
 		}
 
@@ -43,7 +52,7 @@ namespace Keyboard
 
 		if(key == Key::None)
 		{
-			Interrupt::AckIRQ();
+			// Interrupt::AckIRQ();
 			return;
 		}
 
@@ -82,17 +91,10 @@ namespace Keyboard
 			__asm("int $0xfe");
 		}
 
-		Interrupt::AckIRQ();
+		// Interrupt::AckIRQ();
 
 		events.PushBack(event);
 		Thread::RaiseSignal( { .type = Thread::Signal::IRQ, .value = Interrupt::IRQ_KEYBOARD } );
-	}
-
-	bool Init()
-	{
-		Interrupt::Register(Interrupt::IRQ2INT(Interrupt::IRQ_KEYBOARD), ISR_Keyboard);
-
-		return true;
 	}
 
 	void AddEvent(const KeyEvent& event)
