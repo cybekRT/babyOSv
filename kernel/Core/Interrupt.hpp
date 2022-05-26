@@ -109,7 +109,18 @@ namespace Interrupt
 		"mov $0x20, %%dx \r\n"
 		"mov $0x20, %%al \r\n"
 		"out %%al, %%dx \r\n"
-		: 
+		:
+		:
+		: "eax", "edx");
+	}
+
+	inline void AckIRQ_PIC2()
+	{
+		__asm(
+		"mov $0xA0, %%dx \r\n"
+		"mov $0xA0, %%al \r\n"
+		"out %%al, %%dx \r\n"
+		:
 		:
 		: "eax", "edx");
 	}

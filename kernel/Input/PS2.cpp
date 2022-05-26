@@ -23,8 +23,6 @@ namespace PS2
 			if(status.auxData)
 			{
 				Mouse::FIFOAddData(data);
-				regData.Read();
-				regData.Read();
 			}
 			else
 			{
@@ -33,20 +31,21 @@ namespace PS2
 		}
 		else
 			Print("(no handle)");
-
-		Interrupt::AckIRQ();
 	}
 
 	ISR(Keyboard)
 	{
-		Print("(k)");
+		Print("(k) ");
 		Handle();
+		Interrupt::AckIRQ();
 	}
 
 	ISR(Mouse)
 	{
-		Print("(m)");
+		Print("(m) ");
 		Handle();
+		Interrupt::AckIRQ_PIC2();
+		Interrupt::AckIRQ();
 	}
 
 	void WaitForReadyToRead()
@@ -72,17 +71,21 @@ namespace PS2
 
 	bool Init()
 	{
+		Interrupt::Disable();
+
 		SendCmd(PS2_CMD_DISABLE_KEYBOARD);
 		SendCmd(PS2_CMD_DISABLE_MOUSE);
 
-		// Interrupt::Register(Interrupt::IRQ2INT(Interrupt::IRQ_KEYBOARD), ISR_Keyboard);
-		// Interrupt::Register(Interrupt::IRQ2INT(Interrupt::IRQ_MOUSE), ISR_Mouse);
+		Interrupt::Register(Interrupt::IRQ2INT(Interrupt::IRQ_KEYBOARD), ISR_Keyboard);
+		Interrupt::Register(Interrupt::IRQ2INT(Interrupt::IRQ_MOUSE), ISR_Mouse);
 
 		Keyboard::Init();
 		Mouse::Init();
 
 		SendCmd(PS2_CMD_ENABLE_KEYBOARD);
 		SendCmd(PS2_CMD_ENABLE_MOUSE);
+
 		handleData = true;
+		Interrupt::Enable();
 	}
 }

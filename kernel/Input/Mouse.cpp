@@ -161,18 +161,11 @@ namespace Mouse
 
 	void Test()
 	{
-		// Interrupt::Register(Interrupt::INT_IRQ12, ISR_yolo);
-		Interrupt::Register(Interrupt::IRQ2INT(Interrupt::IRQ_MOUSE), ISR_yolo);
-		Interrupt::Register(Interrupt::IRQ2INT(Interrupt::IRQ_KEYBOARD), ISR_kb);
-		SendCmd(PS2_CMD_MOUSE_ENABLE_STREAMING);
-
 		__asm("sti");
 
 		for(;;)
 		{
 			__asm("hlt");
-			Print("%x\n", yolov);
-			// Print("%x ", ReadData());
 		}
 
 		for(;;);

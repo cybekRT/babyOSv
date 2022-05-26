@@ -83,12 +83,13 @@ namespace Interrupt
 
 	ISR(IRQ_Dummy)
 	{
-		/*PutString("ISR: ");
-		PutHex((unsigned)ptr);
-		PutString("\n");*/
-
-		//HAL::Out8(0x20, 0x20);
 		Interrupt::AckIRQ();
+	}
+
+	ISR(IRQ_Dummy_PIC2)
+	{
+		Interrupt::AckIRQ();
+		Interrupt::AckIRQ_PIC2();
 	}
 
 	struct ISR_Registers
@@ -295,9 +296,14 @@ namespace Interrupt
 		Register(INT_INVALID_SEGMENT, (ISR)ISR_GPF);
 		//Register(INT_DIVISION_BY_ZERO, ISR_GPF);
 
-		for(unsigned a = 0; a < 16; a++)
+		for(unsigned a = 0; a < 8; a++)
 		{
 			Register(IRQ2INT(a), ISR_IRQ_Dummy);
+		}
+
+		for(unsigned a = 8; a < 16; a++)
+		{
+			Register(IRQ2INT(a), ISR_IRQ_Dummy_PIC2);
 		}
 
 		//Register(IRQ2INT(IRQ_TIMER), ISR_IRQ_Dummy);
