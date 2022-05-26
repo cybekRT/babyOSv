@@ -2,6 +2,7 @@
 #include"Mouse.hpp"
 #include"Interrupt.hpp"
 #include"HAL.hpp"
+#include"Containers/Array.hpp"
 
 #include"Timer.hpp"
 
@@ -21,22 +22,16 @@ namespace Mouse
 	HAL::RegisterWO<u8> regCommand(PS2_REG_CMD);
 	HAL::RegisterRW<u8> regData(PS2_REG_DAT);
 
+	Array<u8> dataBuffer(8);
+
 	void WaitForReadyToRead()
 	{
-		PS2::StatusRegister tmp;
-
-		// tmp = regStatus.Read(); Print("Status: %x", *(u8*)&tmp);
 		while(!regStatus.Read().outputBuffer);
-		// tmp = regStatus.Read(); Print(" -> %x\n", *(u8*)&tmp);
 	}
 
 	void WaitForReadyToSend()
 	{
-		PS2::StatusRegister tmp;
-
-		// tmp = regStatus.Read(); Print("Status: %x", *(u8*)&tmp);
 		while(regStatus.Read().inputBuffer);
-		// tmp = regStatus.Read(); Print("-> %x\n", *(u8*)&tmp);
 	}
 
 	void SendCmd(u8 v)
@@ -55,16 +50,6 @@ namespace Mouse
 
 	u8 ReadData()
 	{
-		// __asm("cli");
-		// for(;;)
-		// {
-		// 	auto v = HAL::In8(0x64);
-		// 	Print("Status: %x\n", v);
-		// 	if(v & 1)
-		// 		break;
-		// }
-
-		// return HAL::In8(0x60);
 		WaitForReadyToRead();
 		return regData.Read();
 	}
@@ -98,9 +83,8 @@ namespace Mouse
 	bool Init()
 	{
 		Print("Initializing mouse...\n");
-		// Interrupt::Register(Interrupt::IRQ2INT(Interrupt::IRQ_MOUSE), ISR_Mouse);
 
-		SendControllerCmd(PS2_CMD_ENABLE_AUX);
+		// SendControllerCmd(PS2_CMD_ENABLE_AUX);
 
 		SendControllerCmd(PS2_CMD_GET_COMPAQ_STATUS);
 		auto ctrlConf = ReadRegister<PS2::ControllerConfiguration>();
@@ -110,12 +94,17 @@ namespace Mouse
 
 		SendControllerCmd(PS2_CMD_SET_COMPAQ_STATUS);
 		SendRegister(ctrlConf);
-		// while(ReadData() != 0xFA);
+		// ReadData();
+		/* while(ReadData() != 0xFA); */
 
 		SendCmd(PS2_CMD_MOUSE_GET_ID);
-		while(ReadData() != 0xFA);
+		// while(ReadData() != 0xFA);
+		ReadData();
 		auto mouseId = ReadData();
 		Print("Mouse ID: %d\n", mouseId);
+
+		// SendCmd(0xFF);
+		// u8 ack = ReadData();
 
 		SendCmd(PS2_CMD_MOUSE_SET_DEFAULTS);
 		while(ReadData() != 0xFA);
@@ -123,11 +112,7 @@ namespace Mouse
 		SendCmd(PS2_CMD_MOUSE_ENABLE_STREAMING);
 		while(ReadData() != 0xFA);
 
-		// SendCmd(0xFF);
-		// u8 ack = ReadData();
-
 		Print("Mouse initialized~!\n");
-		// for(;;) __asm("hlt");
 
 		return true;
 	}
@@ -137,26 +122,39 @@ namespace Mouse
 		Print("(m) Add cmd: %x\n", v);
 	}
 
+	struct MouseStream
+	{
+		u8 buttonLeft : 1;
+		u8 buttonRight : 1;
+		u8 buttonMiddle : 1;
+		u8 _unused : 1;
+		u8 xSign : 1;
+		u8 ySign : 1;
+		u8 xOverflow : 1;
+		u8 yOverflow : 1;
+
+		u8 xMov;
+		u8 yMov;
+	} __attribute__((packed));
+
 	void FIFOAddData(u8 v)
 	{
 		Print("(m) Add byte: %x\n", v);
-	}
 
-	ISR(kb)
-	{
-		Print("(k)\n");
-		while(HAL::In8(0x64) & 1)
-			HAL::In8(0x60);
-		Interrupt::AckIRQ();
-	}
+		dataBuffer.PushBack(v);
 
-	volatile int yolov = 0;
-	ISR(yolo)
-	{
-		Print("(m)\n");
-		while(HAL::In8(0x64) & 1)
-			yolov = HAL::In8(0x60);
-		Interrupt::AckIRQ();
+		if(dataBuffer.Size() >= 3)
+		{
+			MouseStream* ms = (MouseStream*)dataBuffer.Data();
+
+			Print("Mouse: %c%c%c : %d %d\n",
+				(ms->buttonLeft) ? 'L' : '_', (ms->buttonMiddle) ? 'M' : '_', (ms->buttonRight) ? 'R' : '_',
+				ms->xMov, ms->yMov);
+
+				dataBuffer.PopFront();
+				dataBuffer.PopFront();
+				dataBuffer.PopFront();
+		}
 	}
 
 	void Test()
