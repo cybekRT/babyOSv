@@ -90,8 +90,93 @@ extern "C" void kmain()
 	PS2::Init();
 	// Keyboard::Init();
 	// Mouse::Init();
+	// Mouse::Test();
 
-	Mouse::Test();
+	if(1)
+	{
+		static int mx = 20, my = 20;
+		static bool mousePressed = false;
+
+		auto hndl = [](const Mouse::Event* ev) {
+			Print("Event: %d\n", (int)ev->type);
+
+			if(ev->type == Mouse::EventType::Movement)
+			{
+				mx += ev->movement.x;
+				my -= ev->movement.y;
+			}
+
+			if(ev->type == Mouse::EventType::ButtonClick && ev->button == Mouse::Button::Left)
+				mousePressed = true;
+			if(ev->type == Mouse::EventType::ButtonRelease && ev->button == Mouse::Button::Left)
+				mousePressed = false;
+
+			if(mx < 0)
+				mx = 0;
+			if(my < 0)
+				my = 0;
+			if(mx >= 320)
+				mx = 320 - 1;
+			if(my >= 200)
+				my = 200 - 1;
+		};
+		Mouse::Register(hndl);
+
+		// for(;;)
+		// {
+		// 	Print("Mouse: %dx%d     \r", mx, my);
+		// }
+
+		// VGA::Init();
+		Video::Init();
+		Video::SetDriver(&Video::vgaDriver);
+
+		List<Video::Mode> modes;
+		Video::GetAvailableModes(modes);
+		if(!Video::SetMode(modes.Back()))
+		{
+			Print("Set mode failed~!\n");
+			for(;;);
+		}
+
+		Video::Clear();
+		Video::UpdateScreen();
+		// for(;;);
+		auto screen = Video::GetScreen();
+
+		Video::Bitmap* img;
+		Video::CreateBitmap(320, 200, &img);
+		Video::DrawRect(img, Video::Rect(0, 0, 320, 200), Video::Color(0, 0, 0));
+
+		int frame = 0, frameTimer = Timer::GetTicks();
+		auto oldCursor = Video::Rect(0, 0, 0, 0);
+		for(;;)
+		{
+			Video::Clear();
+			Video::DrawBitmap(Video::Rect(0, 0, 320, 200), img, Video::Rect(0, 0, 0, 0), screen);
+
+			Video::Rect rect(mx - 2, my - 2, 5, 5);
+			Video::Color color(255, 0, 0);
+			Video::DrawRect(screen, rect, color);
+			if(mousePressed)
+				Video::DrawRect(img, rect, Video::Color(0, 64, 0));
+			Video::UpdateScreen(oldCursor);
+			Video::UpdateScreen(rect);
+
+			oldCursor = rect;
+			// Thread::NextThread();
+
+			frame++;
+			if(Timer::GetTicks() >= frameTimer + 1000)
+			{
+				Print("FPS: %d (%d frames per %d)\n", frame*1000/u32(Timer::GetTicks() - frameTimer),
+					frame, Timer::GetTicks() - frameTimer);
+
+				frame = 0;
+				frameTimer=Timer::GetTicks();
+			}
+		}
+	}
 
 	if(0)
 	{

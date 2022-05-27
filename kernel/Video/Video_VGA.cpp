@@ -52,7 +52,7 @@ static void Clear()
 {
 	for(unsigned a = 0; a < 320*200; a++)
 	{
-		buffer[a] = RGB2VGA(255, 0, 255);
+		buffer[a] = RGB2VGA(0, 0, 0);
 	}
 }
 
@@ -85,6 +85,23 @@ static void SetPixel(u32 x, u32 y, Color c)
 	}
 }
 
+static void UpdateBuffer(const Bitmap* bmp, const Rect& rect)
+{
+	ASSERT(bmp->width == currentMode.width, "Invalid buffer width");
+	ASSERT(bmp->height == currentMode.height, "Invalid buffer height");
+
+	ASSERT(rect.x + rect.w <= currentMode.width, "Invalid rect width");
+	ASSERT(rect.y + rect.h <= currentMode.height, "Invalid rect height");
+
+	for(unsigned y = rect.y; y < rect.y + rect.h; y++)
+	{
+		for(unsigned x = rect.x; x < rect.x + rect.w; x++)
+		{
+			::SetPixel(x, y, bmp->pixels[y * bmp->width + x]);
+		}
+	}
+}
+
 namespace Video
 {
 	Driver vgaDriver = {
@@ -94,5 +111,6 @@ namespace Video
 		.Clear = ::Clear,
 		.GetPixel = ::GetPixel,
 		.SetPixel = ::SetPixel,
+		.UpdateBuffer = ::UpdateBuffer,
 	};
 }

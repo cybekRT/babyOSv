@@ -30,8 +30,7 @@ namespace Keyboard
 
 	bool Init();
 
-	void FIFOAddCmd(u8 v);
-	void FIFOAddData(u8 v);
+	void FIFOAdd(u8 v);
 
 	void AddEvent(const KeyEvent& event);
 	bool ReadEvent(KeyEvent* event);

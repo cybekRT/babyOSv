@@ -42,7 +42,13 @@ namespace Video
 
 	void Clear()
 	{
-		currentDriver->Clear();
+		for(unsigned y = 0; y < screen->height; y++)
+		{
+			for(unsigned x = 0; x < screen->width; x++)
+			{
+				screen->pixels[y * screen->width + x] = Color(0, 0, 0);
+			}
+		}
 	}
 
 	Color GetPixel(u32 x, u32 y)
@@ -53,6 +59,35 @@ namespace Video
 	void SetPixel(u32 x, u32 y, Color c)
 	{
 		currentDriver->SetPixel(x, y, c);
+	}
+
+	/*
+	 * Helpers
+	 */
+
+	void ClampRect(Rect& r, Rect bounds)
+	{
+		Print("Clamping (%dx%d, %dx%d) ->", r.x, r.y, r.w, r.h);
+
+		if(r.x < 0)
+		{
+			r.w += r.x;
+			r.x = 0;
+		}
+
+		if(r.y < 0)
+		{
+			r.h += r.h;
+			r.y = 0;
+		}
+
+		if(r.x + r.w > bounds.w)
+			r.w = bounds.w - r.x;
+
+		if(r.y + r.h > bounds.h)
+			r.h = bounds.h - r.y;
+
+		Print("(%dx%d, %dx%d)\n", r.x, r.y, r.w, r.h);
 	}
 
 	/*
@@ -71,18 +106,13 @@ namespace Video
 
 	void UpdateScreen()
 	{
-		for(unsigned y = 0; y < screen->height; y++)
-		{
-			for(unsigned x = 0; x < screen->width; x++)
-			{
-				currentDriver->SetPixel(x, y, screen->pixels[y * screen->width + x]);
-			}
-		}
+		currentDriver->UpdateBuffer(screen, Rect(0, 0, screen->width, screen->height));
 	}
 
 	void UpdateScreen(Rect r)
 	{
-		UpdateScreen(); // TODO
+		ClampRect(r, Rect(0, 0, screen->width, screen->height));
+		currentDriver->UpdateBuffer(screen, r);
 	}
 
 	void CreateBitmap(u32 w, u32 h, Bitmap** bmp)
@@ -129,23 +159,7 @@ namespace Video
 			return;
 		}
 
-		if(r.x < 0)
-		{
-			r.w += r.x;
-			r.x = 0;
-		}
-
-		if(r.y < 0)
-		{
-			r.h += r.h;
-			r.y = 0;
-		}
-
-		if(r.x + r.w > m.width)
-			r.w = m.width - r.x;
-
-		if(r.y + r.h > m.height)
-			r.h = m.height - r.y;
+		ClampRect(r, Video::Rect(0, 0, m.width, m.height));
 
 		for(unsigned y = r.y; y < r.y + r.h; y++)
 		{
@@ -153,6 +167,33 @@ namespace Video
 			{
 				bmp->pixels[y * bmp->width + x] = c;
 			}
+		}
+	}
+
+	void DrawBitmap(Rect srcRect, Bitmap* src, Rect dstRect, Bitmap* dst)
+	{
+		// TODO: clamp
+		// ClampRect(srcRect)
+
+		int sx = srcRect.x;
+		int sy = srcRect.y;
+		int dx = dstRect.x;
+		int dy = dstRect.y;
+
+		for(unsigned y = 0; y < srcRect.h; y++)
+		{
+			for(unsigned x = 0; x < srcRect.w; x++)
+			{
+				dst->pixels[dy * dst->width + dx] = src->pixels[sy * src->width + sx];
+
+				sx++;
+				dx++;
+			}
+
+			sx = srcRect.x;
+			dx = dstRect.x;
+			sy++;
+			dy++;
 		}
 	}
 }

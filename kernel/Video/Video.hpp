@@ -62,6 +62,8 @@ namespace Video
 		void (*Clear)();
 		Color (*GetPixel)(u32 x, u32 y);
 		void (*SetPixel)(u32 x, u32 y, Color c);
+
+		void (*UpdateBuffer)(const Bitmap*, const Rect& rect);
 	};
 
 	bool Init();
@@ -87,4 +89,5 @@ namespace Video
 	void PutPixel(Bitmap* bmp, Point p, Color c);
 	void DrawLine(Bitmap* bmp, Point p1, Point p2, Color c);
 	void DrawRect(Bitmap* bmp, Rect r, Color c);
+	void DrawBitmap(Rect srcRect, Bitmap* src, Rect dstRect, Bitmap* dst);
 }

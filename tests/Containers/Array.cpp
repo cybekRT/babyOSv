@@ -2,7 +2,7 @@
 #include<cstring>
 #include<gtest/gtest.h>
 
-#include"Container/Array.hpp"
+#include"Containers/Array.hpp"
 #include"TestSubject.hpp"
 
 class ArrayTest : public testing::Test {

@@ -36,6 +36,7 @@ namespace Thread
 
 	void UpdateThreadsList()
 	{
+		return;
 		Interrupt::Disable();
 
 		u32 ox, oy;

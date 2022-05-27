@@ -19,14 +19,13 @@ namespace PS2
 			auto status = regStatus.Read();
 			u8 data = regData.Read();
 
-			Print("Cmd or data: %d (%x)\n", status.isData, *(u8*)&status);
 			if(status.auxData)
 			{
-				Mouse::FIFOAddData(data);
+				Mouse::FIFOAdd(data);
 			}
 			else
 			{
-				Keyboard::FIFOAddData(data);
+				Keyboard::FIFOAdd(data);
 			}
 		}
 		else
@@ -35,14 +34,12 @@ namespace PS2
 
 	ISR(Keyboard)
 	{
-		Print("(k) ");
 		Handle();
 		Interrupt::AckIRQ();
 	}
 
 	ISR(Mouse)
 	{
-		Print("(m) ");
 		Handle();
 		Interrupt::AckIRQ_PIC2();
 		Interrupt::AckIRQ();

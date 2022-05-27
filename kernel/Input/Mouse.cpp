@@ -3,8 +3,11 @@
 #include"Interrupt.hpp"
 #include"HAL.hpp"
 #include"Containers/Array.hpp"
+#include"Containers/List.hpp"
+#include"Thread.hpp"
 
 #include"Timer.hpp"
+#include"Mutex.hpp"
 
 #define PS2_REG_CMD 0x64
 #define PS2_REG_DAT 0x60
@@ -23,6 +26,12 @@ namespace Mouse
 	HAL::RegisterRW<u8> regData(PS2_REG_DAT);
 
 	Array<u8> dataBuffer(8);
+	List<Event> events;
+
+	// TODO: thread-safe
+	Array<EventHandler> handlers;
+	Thread::Thread* thread;
+	Mutex handlersMutex;
 
 	void WaitForReadyToRead()
 	{
@@ -80,11 +89,33 @@ namespace Mouse
 		regData.Write(*ptr);
 	}
 
+	int HandlerTask(void*)
+	{
+		for(;;)
+		{
+			Print(".");
+			handlersMutex.Lock();
+			for(auto ev : events)
+			{
+				for(auto h : handlers)
+				{
+					h(&ev);
+				}
+			}
+
+			events.Clear();
+			handlersMutex.Unlock();
+
+			// Thread::SetState(thread, Thread::State::Waiting);
+			Thread::WaitForSignal(Thread::Signal { .type = Thread::Signal::IRQ, .value = 123 } );
+		}
+
+		return 1;
+	}
+
 	bool Init()
 	{
 		Print("Initializing mouse...\n");
-
-		// SendControllerCmd(PS2_CMD_ENABLE_AUX);
 
 		SendControllerCmd(PS2_CMD_GET_COMPAQ_STATUS);
 		auto ctrlConf = ReadRegister<PS2::ControllerConfiguration>();
@@ -98,13 +129,9 @@ namespace Mouse
 		/* while(ReadData() != 0xFA); */
 
 		SendCmd(PS2_CMD_MOUSE_GET_ID);
-		// while(ReadData() != 0xFA);
 		ReadData();
 		auto mouseId = ReadData();
 		Print("Mouse ID: %d\n", mouseId);
-
-		// SendCmd(0xFF);
-		// u8 ack = ReadData();
 
 		SendCmd(PS2_CMD_MOUSE_SET_DEFAULTS);
 		while(ReadData() != 0xFA);
@@ -112,14 +139,11 @@ namespace Mouse
 		SendCmd(PS2_CMD_MOUSE_ENABLE_STREAMING);
 		while(ReadData() != 0xFA);
 
+		Thread::Create(&thread, (u8*)"Mouse", HandlerTask);
+		Thread::Start(thread);
+
 		Print("Mouse initialized~!\n");
-
 		return true;
-	}
-
-	void FIFOAddCmd(u8 v)
-	{
-		Print("(m) Add cmd: %x\n", v);
 	}
 
 	struct MouseStream
@@ -137,48 +161,77 @@ namespace Mouse
 		u8 yMov;
 	} __attribute__((packed));
 
-	void FIFOAddData(u8 v)
-	{
-		Print("(m) Add byte: %x\n", v);
+	bool buttonsStates[3] = { 0 };
 
+	void FIFOAdd(u8 v)
+	{
 		dataBuffer.PushBack(v);
 
 		if(dataBuffer.Size() >= 3)
 		{
 			MouseStream* ms = (MouseStream*)dataBuffer.Data();
 
-			Print("Mouse: %c%c%c : %d %d\n",
-				(ms->buttonLeft) ? 'L' : '_', (ms->buttonMiddle) ? 'M' : '_', (ms->buttonRight) ? 'R' : '_',
-				ms->xMov, ms->yMov);
+			if(ms->_unused != 1)
+			{
+				dataBuffer.PopFront();
+				return;
+			}
 
-				dataBuffer.PopFront();
-				dataBuffer.PopFront();
-				dataBuffer.PopFront();
+			// FIXME
+			handlersMutex.Lock();
+			if(ms->buttonLeft != buttonsStates[0])
+			{
+				auto type = (ms->buttonLeft) ? EventType::ButtonClick : EventType::ButtonRelease;
+				events.PushBack( Event { .type = type, .button = Button::Left } );
+
+				buttonsStates[0] = ms->buttonLeft;
+			}
+
+			if(ms->buttonMiddle != buttonsStates[1])
+			{
+				auto type = (ms->buttonMiddle) ? EventType::ButtonClick : EventType::ButtonRelease;
+				events.PushBack( Event { .type = type, .button = Button::Middle } );
+
+				buttonsStates[1] = ms->buttonMiddle;
+			}
+
+			if(ms->buttonRight != buttonsStates[2])
+			{
+				auto type = (ms->buttonRight) ? EventType::ButtonClick : EventType::ButtonRelease;
+				events.PushBack( Event { .type = type, .button = Button::Right } );
+
+				buttonsStates[2] = ms->buttonRight;
+			}
+
+			int movX = (ms->xSign) ? ((s32)ms->xMov | 0xFFFFFF00) : ms->xMov;
+			int movY = (ms->ySign) ? ((s32)ms->yMov | 0xFFFFFF00) : ms->yMov;
+
+			if(movX || movY)
+			{
+				events.PushBack( Event { .type = EventType::Movement, .movement = { .x = movX, .y = movY } } );
+			}
+
+			handlersMutex.Unlock();
+
+			// Print("Mouse: %c%c%c : %d %d\n",
+			// 	(ms->buttonLeft) ? 'L' : '_', (ms->buttonMiddle) ? 'M' : '_', (ms->buttonRight) ? 'R' : '_',
+			// 	ms->xMov, ms->yMov);
+
+			// Thread::SetState(thread, Thread::State::Running);
+
+			Thread::RaiseSignal(Thread::Signal { .type = Thread::Signal::IRQ, .value = 123 } );
+
+			dataBuffer.Clear();
 		}
 	}
 
-	void Test()
+	void Register(EventHandler handler)
 	{
-		__asm("sti");
+		handlers.PushBack(handler);
+	}
 
-		for(;;)
-		{
-			__asm("hlt");
-		}
-
-		for(;;);
-		SendCmd(0xE9);
-		Print("Status: %x %x %x %x\n", ReadData(), ReadData(), ReadData(), ReadData());
-
-		char c = 'D';
-		for(;;)
-		{
-			SendCmd(0xEB);
-			Print("%c: %x %x %x %x\r", c++, ReadData(), ReadData(), ReadData(), ReadData());
-			if(c == 'Z')
-				c = 'A';
-
-			Timer::Delay(500);
-		}
+	void Unregister(EventHandler handler)
+	{
+		handlers.Remove(handler);
 	}
 }

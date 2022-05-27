@@ -26,14 +26,8 @@ namespace Keyboard
 		return true;
 	}
 
-	void FIFOAddCmd(u8 v)
+	void FIFOAdd(u8 v)
 	{
-		Print("(k) Add cmd: %x\n", v);
-	}
-
-	void FIFOAddData(u8 v)
-	{
-		Print("(k) Add byte: %x\n", v);
 		u8 scanCode = v;//regData.Read();
 
 		if(scanCode == 0xE0)
