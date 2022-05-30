@@ -128,19 +128,17 @@ extern "C" void kmain()
 		// }
 
 		// VGA::Init();
-		Video::Init();
-		Video::SetDriver(&Video::vgaDriver);
+		Video::Init(&Video::vgaDriver);
 
-		List<Video::Mode> modes;
-		Video::GetAvailableModes(modes);
-		if(!Video::SetMode(modes.Back()))
+		auto modes = Video::GetAvailableModes();
+		if(!Video::SetMode(modes[1]))
 		{
 			Print("Set mode failed~!\n");
 			for(;;);
 		}
 
-		Video::Clear();
-		Video::UpdateScreen();
+		Video::ClearScreen();
+		// Video::UpdateScreen();
 		// for(;;);
 		auto screen = Video::GetScreen();
 
@@ -148,11 +146,19 @@ extern "C" void kmain()
 		Video::CreateBitmap(320, 200, &img);
 		Video::DrawRect(img, Video::Rect(0, 0, 320, 200), Video::Color(0, 0, 0));
 
+		for(unsigned a = 0; a < img->width * img->height; a++)
+		{
+			img->pixels[a] = Video::Color(0, 64, 0, 255);
+		}
+
+		Video::SetBlending(img, Video::BlendingMethod::Static);
+		int imgAlpha = 0;
+
 		int frame = 0, frameTimer = Timer::GetTicks();
 		auto oldCursor = Video::Rect(0, 0, 0, 0);
 		for(;;)
 		{
-			Video::Clear();
+			Video::ClearScreen();
 			Video::DrawBitmap(Video::Rect(0, 0, 320, 200), img, Video::Rect(0, 0, 0, 0), screen);
 
 			Video::Rect rect(mx - 2, my - 2, 5, 5);
@@ -160,8 +166,12 @@ extern "C" void kmain()
 			Video::DrawRect(screen, rect, color);
 			if(mousePressed)
 				Video::DrawRect(img, rect, Video::Color(0, 64, 0));
-			Video::UpdateScreen(oldCursor);
-			Video::UpdateScreen(rect);
+			// Video::UpdateScreen(oldCursor);
+			// Video::UpdateScreen(rect);
+			Video::UpdateScreen();
+
+			Video::SetBlendingStaticAlpha(img, imgAlpha);
+			imgAlpha = (imgAlpha + 1) % 256;
 
 			oldCursor = rect;
 			// Thread::NextThread();
@@ -260,10 +270,9 @@ extern "C" void kmain()
 
 	if(0)
 	{
-		Video::SetDriver(&Video::vgaDriver);
+		Video::Init(&Video::vgaDriver);
 
-		List<Video::Mode> modes;
-		Video::GetAvailableModes(modes);
+		auto modes = Video::GetAvailableModes();
 
 		Print("Available modes:\n");
 		for(auto mode : modes)
@@ -272,7 +281,7 @@ extern "C" void kmain()
 		}
 
 		Video::SetMode(modes.Back());
-		Video::Clear();
+		Video::ClearScreen();
 
 		screen = Video::GetScreen();
 

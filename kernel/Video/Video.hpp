@@ -1,6 +1,6 @@
 #pragma once
 
-#include"Containers/List.hpp"
+#include"Containers/Array.hpp"
 
 namespace Video
 {
@@ -46,45 +46,55 @@ namespace Video
 		Rect(s32 x, s32 y, s32 w, s32 h) : x(x), y(y), w(w), h(h) {}
 	};
 
+	enum class BlendingMethod
+	{
+		None,
+		Static,
+		Alpha
+	};
+
+	struct BlendingMode
+	{
+		BlendingMethod method;
+		u8 staticValue;
+	};
+
 	struct Bitmap
 	{
 		u32 width;
 		u32 height;
+		BlendingMode blending;
 		Color pixels[];
 	};
 
 	struct Driver
 	{
-		void (*GetAvailableModes)(List<Mode>& modes);
-		Mode (*GetMode)();
+		Array<Mode> (*GetAvailableModes)();
+		Mode (*GetCurrentMode)();
 		bool (*SetMode)(Mode mode);
-
-		void (*Clear)();
-		Color (*GetPixel)(u32 x, u32 y);
-		void (*SetPixel)(u32 x, u32 y, Color c);
 
 		void (*UpdateBuffer)(const Bitmap*, const Rect& rect);
 	};
 
-	bool Init();
+	bool Init(Driver* drv);
 
 	// Direct API wrapper
-	bool SetDriver(Driver* drv);
-	void GetAvailableModes(List<Mode>& modes);
-	Mode GetMode();
+	Array<Mode> GetAvailableModes();
+	Mode GetCurrentMode();
 	bool SetMode(Mode mode);
-	void Clear();
-	Color GetPixel(u32 x, u32 y);
-	void SetPixel(u32 x, u32 y, Color c);
 
 	// High-level API
 	Bitmap* GetScreen();
+	void ClearScreen();
 	void UpdateScreen();
 	void UpdateScreen(Rect r);
 
 	void CreateBitmap(u32 w, u32 h, Bitmap** bmp);
 	void LoadBitmap(u8* path, Bitmap** bmp);
 	void FreeBitmap(Bitmap* bmp);
+
+	void SetBlending(Bitmap* bmp, BlendingMethod method);
+	void SetBlendingStaticAlpha(Bitmap* bmp, u8 alpha);
 
 	void PutPixel(Bitmap* bmp, Point p, Color c);
 	void DrawLine(Bitmap* bmp, Point p1, Point p2, Color c);

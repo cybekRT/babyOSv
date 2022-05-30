@@ -6,25 +6,25 @@ namespace Video
 	Driver* currentDriver = nullptr;
 	Bitmap* screen = nullptr;
 
-	/*
-	 * Driver wrappers
-	 */
-
-	bool SetDriver(Driver* drv)
+	bool Init(Driver* drv)
 	{
 		currentDriver = drv;
 
 		return true;
 	}
 
-	void GetAvailableModes(List<Mode>& modes)
+	/*
+	 * Driver wrappers
+	 */
+
+	Array<Mode> GetAvailableModes()
 	{
-		currentDriver->GetAvailableModes(modes);
+		return currentDriver->GetAvailableModes();
 	}
 
-	Mode GetMode()
+	Mode GetCurrentMode()
 	{
-		return currentDriver->GetMode();
+		return currentDriver->GetCurrentMode();
 	}
 
 	bool SetMode(Mode mode)
@@ -40,34 +40,13 @@ namespace Video
 		return res;
 	}
 
-	void Clear()
-	{
-		for(unsigned y = 0; y < screen->height; y++)
-		{
-			for(unsigned x = 0; x < screen->width; x++)
-			{
-				screen->pixels[y * screen->width + x] = Color(0, 0, 0);
-			}
-		}
-	}
-
-	Color GetPixel(u32 x, u32 y)
-	{
-		return currentDriver->GetPixel(x, y);
-	}
-
-	void SetPixel(u32 x, u32 y, Color c)
-	{
-		currentDriver->SetPixel(x, y, c);
-	}
-
 	/*
 	 * Helpers
 	 */
 
 	void ClampRect(Rect& r, Rect bounds)
 	{
-		Print("Clamping (%dx%d, %dx%d) ->", r.x, r.y, r.w, r.h);
+		// Print("Clamping (%dx%d, %dx%d) ->", r.x, r.y, r.w, r.h);
 
 		if(r.x < 0)
 		{
@@ -87,21 +66,24 @@ namespace Video
 		if(r.y + r.h > bounds.h)
 			r.h = bounds.h - r.y;
 
-		Print("(%dx%d, %dx%d)\n", r.x, r.y, r.w, r.h);
+		// Print("(%dx%d, %dx%d)\n", r.x, r.y, r.w, r.h);
 	}
 
 	/*
 	 * Driver-independent logic
 	 */
 
-	bool Init()
-	{
-		return true;
-	}
-
 	Bitmap* GetScreen()
 	{
 		return screen;
+	}
+
+	void ClearScreen()
+	{
+		for(unsigned a = 0; a < screen->width * screen->height; a++)
+		{
+			screen->pixels[a] = Color(0, 0, 0);
+		}
 	}
 
 	void UpdateScreen()
@@ -138,6 +120,16 @@ namespace Video
 		delete[] bmp;
 	}
 
+	void SetBlending(Bitmap* bmp, BlendingMethod method)
+	{
+		bmp->blending.method = method;
+	}
+
+	void SetBlendingStaticAlpha(Bitmap* bmp, u8 alpha)
+	{
+		bmp->blending.staticValue = alpha;
+	}
+
 	void PutPixel(Bitmap* bmp, Point p, Color c)
 	{
 		bmp->pixels[p.y * bmp->width + p.x] = c;
@@ -145,12 +137,12 @@ namespace Video
 
 	void DrawLine(Bitmap* bmp, Point p1, Point p2, Color c)
 	{
-
+		ASSERT(false, "Not implemented yet");
 	}
 
 	void DrawRect(Bitmap* bmp, Rect r, Color c)
 	{
-		Mode m = currentDriver->GetMode();
+		Mode m = currentDriver->GetCurrentMode();
 
 		if(r.x < -r.w || r.y < -r.h || r.x >= m.width || r.y >= m.height)
 		{
@@ -170,16 +162,8 @@ namespace Video
 		}
 	}
 
-	void DrawBitmap(Rect srcRect, Bitmap* src, Rect dstRect, Bitmap* dst)
+	void DrawBitmapNoBlending(Rect srcRect, Bitmap* src, Rect dstRect, Bitmap* dst, int sx, int sy, int dx, int dy)
 	{
-		// TODO: clamp
-		// ClampRect(srcRect)
-
-		int sx = srcRect.x;
-		int sy = srcRect.y;
-		int dx = dstRect.x;
-		int dy = dstRect.y;
-
 		for(unsigned y = 0; y < srcRect.h; y++)
 		{
 			for(unsigned x = 0; x < srcRect.w; x++)
@@ -194,6 +178,71 @@ namespace Video
 			dx = dstRect.x;
 			sy++;
 			dy++;
+		}
+	}
+
+	void DrawBitmap(Rect srcRect, Bitmap* src, Rect dstRect, Bitmap* dst)
+	{
+		// TODO: clamp
+		// ClampRect(srcRect)
+
+		int sx = srcRect.x;
+		int sy = srcRect.y;
+		int dx = dstRect.x;
+		int dy = dstRect.y;
+
+		if(src->blending.method == BlendingMethod::None)
+			DrawBitmapNoBlending(srcRect, src, dstRect, dst, sx, sy, dx, dy);
+		else
+		{
+			bool printed = false;
+			for(unsigned y = 0; y < srcRect.h; y++)
+			{
+				for(unsigned x = 0; x < srcRect.w; x++)
+				{
+					auto srcPix = src->pixels[sy * src->width + sx];
+					auto dstPix = dst->pixels[dy * dst->width + dx];
+					u8 srcAlpha = (src->blending.method == BlendingMethod::Static) ? src->blending.staticValue : srcPix.a;
+					u8 dstAlpha = 255 - srcAlpha;
+
+					if(srcAlpha == 0)
+						continue;
+					else if(srcAlpha == 255)
+						dst->pixels[dy * dst->width + dx] = srcPix;
+					else
+					{
+						// srcAlpha = 254;
+						// dstAlpha = 1;
+						u32 r, g, b;
+						r = (srcAlpha * (u32)srcPix.r + dstAlpha * (u32)dstPix.r) / 255;
+						g = (srcAlpha * (u32)srcPix.g + dstAlpha * (u32)dstPix.g) / 255;
+						b = (srcAlpha * (u32)srcPix.b + dstAlpha * (u32)dstPix.b) / 255;
+
+						if(!printed)
+						{
+						Print("Src: %d,%d,%d,%d, Dst: %d,%d,%d,%d, Final: %d,%d,%d\n",
+							srcPix.r, srcPix.g, srcPix.b, srcAlpha,
+							dstPix.r, dstPix.g, dstPix.b, dstAlpha,
+							r, g, b);
+						Print("  %d + %d = %d\n",
+							srcAlpha * (u32)srcPix.g,
+							dstAlpha * (u32)dstPix.g,
+							srcAlpha * (u32)srcPix.g + dstAlpha * (u32)dstPix.g);
+							printed = true;
+						}
+
+						dst->pixels[dy * dst->width + dx] = Color(r, g, b);
+					}
+
+					sx++;
+					dx++;
+				}
+
+				sx = srcRect.x;
+				dx = dstRect.x;
+				sy++;
+				dy++;
+			}
 		}
 	}
 }

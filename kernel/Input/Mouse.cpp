@@ -94,7 +94,7 @@ namespace Mouse
 		for(;;)
 		{
 			Print(".");
-			handlersMutex.Lock();
+			// handlersMutex.Lock();
 			for(auto ev : events)
 			{
 				for(auto h : handlers)
@@ -104,7 +104,7 @@ namespace Mouse
 			}
 
 			events.Clear();
-			handlersMutex.Unlock();
+			// handlersMutex.Unlock();
 
 			// Thread::SetState(thread, Thread::State::Waiting);
 			Thread::WaitForSignal(Thread::Signal { .type = Thread::Signal::IRQ, .value = 123 } );
@@ -178,7 +178,7 @@ namespace Mouse
 			}
 
 			// FIXME
-			handlersMutex.Lock();
+			// handlersMutex.Lock();
 			if(ms->buttonLeft != buttonsStates[0])
 			{
 				auto type = (ms->buttonLeft) ? EventType::ButtonClick : EventType::ButtonRelease;
@@ -211,7 +211,7 @@ namespace Mouse
 				events.PushBack( Event { .type = EventType::Movement, .movement = { .x = movX, .y = movY } } );
 			}
 
-			handlersMutex.Unlock();
+			// handlersMutex.Unlock();
 
 			// Print("Mouse: %c%c%c : %d %d\n",
 			// 	(ms->buttonLeft) ? 'L' : '_', (ms->buttonMiddle) ? 'M' : '_', (ms->buttonRight) ? 'R' : '_',
