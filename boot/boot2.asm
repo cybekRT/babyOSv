@@ -136,13 +136,32 @@ Memory_Init:
 	hlt
 	jmp	.fail
 .legacy:
+	; Read CMOS ram size
+	; Low byte
+	mov	dx, 0x70
+	mov	al, 0x30
+	out dx, al
+	in	al, 0x71
+	mov	[.legacyTmp], al
+	; High byte
+	mov	dx, 0x70
+	mov	al, 0x31
+	out dx, al
+	in	al, 0x71
+	mov	[.legacyTmp+1], al
+	; Add first 1024kB and change kB to B
+	mov	edx, [.legacyTmp]
+	add	edx, 1024
+	shl	edx, 10
+
 	; TODO: detect memory size, reserve standard BIOS and GPU ranges
 	mov	dword [MEM_MAP_entries], 1
 	mov	eax, MEM_MAP
 	mov	dword [eax + 0], 0x0
-	mov	dword [eax + 8], 0xfffff
+	mov	dword [eax + 8], edx
 	mov	byte [eax + 16], 0x1
 	jmp	.exit
+.legacyTmp dd 0
 
 ;%include "boot_read.asm"
 

@@ -107,7 +107,13 @@ namespace Memory
 			{
 				unsigned diff = (unsigned)kEnd - memoryEntries[a].base;
 				memoryEntries[a].base = (unsigned)kEnd;
-				memoryEntries[a].length -= diff;
+				if(memoryEntries[a].length < diff)
+				{
+					memoryEntries[a].length = 0;
+					continue;
+				}
+				else
+					memoryEntries[a].length -= diff;
 			}
 
 			if(memoryEntries[a].base % 4096 || memoryEntries[a].length % 4096)
@@ -139,6 +145,7 @@ namespace Memory
 	void CreateMemoryMap()
 	{
 		unsigned memoryMapCount = 0;
+		Print("Memory entries:\n");
 		for(unsigned a = 0; a < memoryEntriesCount; a++)
 		{
 			if(memoryEntries[a].type != 1 || memoryEntries[a].length == 0)
@@ -156,12 +163,20 @@ namespace Memory
 			if(memoryEntries[a].length > 0xFFFFFFFF)
 				memoryEntries[a].length = 0xFFFFFFFF;
 
+			Print("- %d %x, %x\n", memoryEntries[a].type, (u32)memoryEntries[a].base, (u32)memoryEntries[a].length);
 			Memory::Physical::AddFreeMemory((void*)memoryEntries[a].base, (u32)memoryEntries[a].length);
 
 			memoryMapCount++;
 		}
 
-		Memory::Physical::ReserveMemory((void*)0xA0000, 64 * 1024);
+		Print("Done~!\n");
+
+		// Standard reserved memory regions :|
+		Memory::Physical::ReserveMemory((void*)0x80000, 128 * 1024);
+		Memory::Physical::ReserveMemory((void*)0xA0000, 128 * 1024);
+		Memory::Physical::ReserveMemory((void*)0xC0000, 32 * 1024);
+		Memory::Physical::ReserveMemory((void*)0xC8000, 160 * 1024);
+		Memory::Physical::ReserveMemory((void*)0xF0000, 64 * 1024);
 		Memory::Physical::ReserveMemory((void*)(_kernel_beg & (~0x80000000)), _kernel_end - _kernel_beg);
 	}
 
@@ -492,7 +507,6 @@ void* operator new(size_t size)
 	// Print("New: %d bytes - ", size);
 	auto ptr = Memory::Alloc(size);
 	// memset(ptr, 0, size);
-	ASSERT(ptr != (void*)0x1100, "WTF"); // FIXME: fix me~!
 	// Print("%p\n", ptr);
 	return ptr;
 }
@@ -504,7 +518,6 @@ void* operator new[](size_t size)
 	// Print("New[]: %d bytes - ", size);
 	auto ptr = Memory::Alloc(size);
 	// memset(ptr, 0, size);
-	ASSERT(ptr != (void*)0x1100, "WTF"); // FIXME: fix me~!
 	// Print("%p\n", ptr);
 	return ptr;
 }

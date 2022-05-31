@@ -23,6 +23,8 @@ namespace Memory::Physical
 		if((u32)_address + _length > maxMemoryIndex)
 			maxMemoryIndex = ((u32)_address + _length) / PAGE_SIZE;
 
+		Print("Adding free memory: %p, %d\n", _address, _length);
+
 		u32 address = (u32)_address;
 		u32 pagesCount = _length / PAGE_SIZE;
 		if(!pagesCount)
@@ -52,6 +54,8 @@ namespace Memory::Physical
 	{
 		if( ((u32)_address + _length) / PAGE_SIZE > maxMemoryIndex)
 			maxMemoryIndex = ((u32)_address + _length) / PAGE_SIZE;
+
+		Print("Reserving memory: %p, %d\n", _address, _length);
 
 		u32 address = (u32)_address;
 		u32 pagesCount = (_length + PAGE_SIZE - 1) / PAGE_SIZE;
