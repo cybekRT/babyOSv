@@ -208,9 +208,11 @@ namespace VFS
 		ASSERT(dir, "No dir");
 
 		Status status;
+		Print("DirectoryChange(_, %s)\n", name);
 
 		if(dir->fsInfo != nullptr)
 		{
+			Print("fsInfo != nullptr\n");
 			status = Status::EndOfFile;
 			dir->fsInfo->DirectoryRewind(dir->fsPriv, dir->fsDir);
 			FS::DirEntry entry;
@@ -219,8 +221,10 @@ namespace VFS
 				if(!entry.isValid)
 					continue;
 
+				Print("Compare: \"%s\" with \"%s\": ", (char*)name, (char*)entry.name);
 				if(!strcmp((char*)entry.name, (char*)name))
 				{
+					Print("Same!\n");
 					status = dir->fsInfo->DirectoryFollow(dir->fsPriv, dir->fsDir);
 
 					if(status == Status::Success)
@@ -233,6 +237,8 @@ namespace VFS
 							dir->path.GoUp();
 					}
 				}
+				else
+					Print("Different!\n");
 			}
 
 			if(status != Status::Success && strcmp((char*)name, "..") == 0)
@@ -252,18 +258,24 @@ namespace VFS
 		}
 		else
 		{
+			Print("fsInfo == nullptr\n");
 			MountPoint* mp = nullptr;
-			for(auto itr : mountPoints)
+			for(auto& itr : mountPoints)
 			{
+				Print("Compare: \"%s\" with \"%s\": ", (char*)name, (char*)itr.name);
 				if(!strcmp((char*)name, itr.name))
 				{
+					Print("Same!\n");
 					mp = &itr;
 					break;
 				}
+				else
+					Print("Different!\n");
 			}
 
 			if(!mp)
 			{
+				Print("No mount point~!\n");
 				return Status::Undefined;
 			}
 
@@ -352,13 +364,24 @@ namespace VFS
 		DirectoryOpenRoot(&dir);
 
 		Print("Path: %p\n", paths.paths.Back().Data());
-		auto filename = paths.paths[2];
+		auto filename = paths.paths.Back();// paths.paths[2];
+		paths.GoUp();
 
 		// TODO: implement me
 		for(auto path : paths.paths)
 		{
 			Print("Directory: %s\n", path.Data());
+			auto status = VFS::DirectoryChange(dir, path.Data());
+			if(status != Status::Success)
+			{
+				Print("Couldn't change to: %s\n", path.Data());
+			}
 		}
+
+		// FS::File* f = nullptr;
+		auto fopensts = FileOpen(dir, filename.Data(), file);
+		Print("File open status: %d\n", fopensts);
+		DirectoryClose(&dir);
 
 		Print("Success~!\n");
 		return Status::Success;

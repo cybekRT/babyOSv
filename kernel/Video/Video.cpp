@@ -46,8 +46,6 @@ namespace Video
 
 	void ClampRect(Rect& r, Rect bounds)
 	{
-		// Print("Clamping (%dx%d, %dx%d) ->", r.x, r.y, r.w, r.h);
-
 		if(r.x < 0)
 		{
 			r.w += r.x;
@@ -56,7 +54,7 @@ namespace Video
 
 		if(r.y < 0)
 		{
-			r.h += r.h;
+			r.h += r.y;
 			r.y = 0;
 		}
 
@@ -65,8 +63,6 @@ namespace Video
 
 		if(r.y + r.h > bounds.h)
 			r.h = bounds.h - r.y;
-
-		// Print("(%dx%d, %dx%d)\n", r.x, r.y, r.w, r.h);
 	}
 
 	/*
@@ -107,9 +103,123 @@ namespace Video
 			(*bmp)->pixels[a] = Color(255, 255, 255, 255);
 	}
 
-	void LoadBitmap(u8* path, Bitmap** bmp)
+	struct BitmapFileHeader
 	{
+		char header[2];
+		u32 totalSize;
+		u16 _unused1;
+		u16 _unused2;
+		u32 dataOffset;
+	} __attribute__((packed));
 
+	struct BitmapCoreHeader
+	{
+		// 0E 	14 	4 	The size of this header (12 bytes)
+		u32 size;
+		// 12 	18 	2 	The bitmap width in pixels (unsigned 16-bit)
+		u16 imageWidth;
+		// 14 	20 	2 	The bitmap height in pixels (unsigned 16-bit)
+		u16 imageHeight;
+		// 16 	22 	2 	The number of color planes, must be 1
+		u16 colorPlanes;
+		// 18 	24 	2 	The number of bits per pixel
+		u16 bitsPerPixel;
+	} __attribute__((packed));
+
+	struct BitmapInfoHeader
+	{
+		// Offset (hex) 	Offset (dec) 	Size (bytes) 	Windows BITMAPINFOHEADER[2]
+		// 0E 	14 	4 	the size of this header, in bytes (40)
+		u32		size;
+		// 12 	18 	4 	the bitmap width in pixels (signed integer)
+		s32		imageWidth;
+		// 16 	22 	4 	the bitmap height in pixels (signed integer)
+		s32		imageHeight;
+		// 1A 	26 	2 	the number of color planes (must be 1)
+		u16		colorPlanes;
+		// 1C 	28 	2 	the number of bits per pixel, which is the color depth of the image. Typical values are 1, 4, 8, 16, 24 and 32.
+		u16		bitsPerPixel;
+		// 1E 	30 	4 	the compression method being used. See the next table for a list of possible values
+		u32		compressionMethod;
+		// 22 	34 	4 	the image size. This is the size of the raw bitmap data; a dummy 0 can be given for BI_RGB bitmaps.
+		u32		imageSize;
+		// 26 	38 	4 	the horizontal resolution of the image. (pixel per metre, signed integer)
+		s32		dpiHorizontal;
+		// 2A 	42 	4 	the vertical resolution of the image. (pixel per metre, signed integer)
+		s32		dpiVertical;
+		// 2E 	46 	4 	the number of colors in the color palette, or 0 to default to 2n
+		u32		colorsInPalette;
+		// 32 	50 	4 	the number of important colors used, or 0 when every color is important; generally ignored
+		u32		importantColors;
+	} __attribute__((packed));
+
+	bool LoadBitmap(String path, Bitmap** bmp)
+	{
+		u32 read;
+		FS::File* f = nullptr;
+		VFS::FileOpen(path.Data(), &f);
+		if(!f)
+		{
+			Print("No file: %s\n", path.Data());
+			return false;
+		}
+
+		BitmapFileHeader bmpHdr;
+		VFS::FileRead(f, (u8*)&bmpHdr, sizeof(bmpHdr), &read);
+		if(read != sizeof(bmpHdr))
+		{
+			Print("Invalid size: %d/%d\n", read, sizeof(bmpHdr));
+			return false;
+		}
+
+		BitmapInfoHeader coreHdr;
+		VFS::FileRead(f, (u8*)&coreHdr, sizeof(coreHdr), &read);
+		if(read != sizeof(coreHdr))
+		{
+			Print("Invalid size: %d/%d\n", read, sizeof(coreHdr));
+			return false;
+		}
+
+		Print("Header: %c%c\n", bmpHdr.header[0], bmpHdr.header[1]);
+		Print("Total size: %d\n", bmpHdr.totalSize);
+		Print("Offset: %d\n", bmpHdr.dataOffset);
+
+		Print("Core header size: %d\n", coreHdr.size);
+		Print("Image size: %dx%d\n", coreHdr.imageWidth, coreHdr.imageHeight);
+		Print("Color planes: %d\n", coreHdr.colorPlanes);
+		Print("Bits per pixel: %d\n", coreHdr.bitsPerPixel);
+
+		if(coreHdr.bitsPerPixel != 24)
+		{
+			Print("Invalid bits per pixel: %d\n", coreHdr.bitsPerPixel);
+			return false;
+		}
+
+		CreateBitmap(coreHdr.imageWidth, coreHdr.imageHeight, bmp);
+
+		VFS::FileSetPointer(f, bmpHdr.dataOffset);
+		for(unsigned a = 0; a < coreHdr.imageWidth * coreHdr.imageHeight; a++)
+		{
+			u8 col[3];
+			static int cnt = 0;
+			VFS::FileRead(f, (u8*)col, 3, &read);
+			u32 offset;
+			VFS::FileGetPointer(f, &offset);
+			// Print("Offset: %d (%d) (#%d)\n", offset, cnt++, read);
+			if(read != 3)
+			{
+				Print("Unepected end of file");
+				return false;
+			}
+
+			u32 x = a % coreHdr.imageWidth;
+			u32 y = a / coreHdr.imageWidth;
+			u32 nativeY = coreHdr.imageHeight - 1 - y;
+			(*bmp)->pixels[nativeY * coreHdr.imageWidth + x] = Color(col[0], col[1], col[2]);
+		}
+
+		VFS::FileClose(&f);
+		return true;
 	}
 
 	void FreeBitmap(Bitmap* bmp)
@@ -144,10 +254,10 @@ namespace Video
 	{
 		Mode m = currentDriver->GetCurrentMode();
 
-		if(r.x < -r.w || r.y < -r.h || r.x >= m.width || r.y >= m.height)
+		if(r.x < -r.w || r.y < -r.h || r.x >= (int)m.width || r.y >= (int)m.height)
 		{
 			Print("Oopsie... %dx%d, %dx%d (%d %d %d %d)\n", r.x, r.y, r.w, r.h,
-				r.x < -r.w, r.y < -r.h, r.x >= m.width, r.y >= m.height);
+				r.x < -r.w, r.y < -r.h, r.x >= (int)m.width, r.y >= (int)m.height);
 			return;
 		}
 
@@ -211,8 +321,6 @@ namespace Video
 						dst->pixels[dy * dst->width + dx] = srcPix;
 					else
 					{
-						// srcAlpha = 254;
-						// dstAlpha = 1;
 						u32 r, g, b;
 						r = (srcAlpha * (u32)srcPix.r + dstAlpha * (u32)dstPix.r) / 255;
 						g = (srcAlpha * (u32)srcPix.g + dstAlpha * (u32)dstPix.g) / 255;

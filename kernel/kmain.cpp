@@ -92,102 +92,6 @@ extern "C" void kmain()
 	// Mouse::Init();
 	// Mouse::Test();
 
-	if(1)
-	{
-		static int mx = 20, my = 20;
-		static bool mousePressed = false;
-
-		auto hndl = [](const Mouse::Event* ev) {
-			Print("Event: %d\n", (int)ev->type);
-
-			if(ev->type == Mouse::EventType::Movement)
-			{
-				mx += ev->movement.x;
-				my -= ev->movement.y;
-			}
-
-			if(ev->type == Mouse::EventType::ButtonClick && ev->button == Mouse::Button::Left)
-				mousePressed = true;
-			if(ev->type == Mouse::EventType::ButtonRelease && ev->button == Mouse::Button::Left)
-				mousePressed = false;
-
-			if(mx < 0)
-				mx = 0;
-			if(my < 0)
-				my = 0;
-			if(mx >= 320)
-				mx = 320 - 1;
-			if(my >= 200)
-				my = 200 - 1;
-		};
-		Mouse::Register(hndl);
-
-		// for(;;)
-		// {
-		// 	Print("Mouse: %dx%d     \r", mx, my);
-		// }
-
-		// VGA::Init();
-		Video::Init(&Video::vgaDriver);
-
-		auto modes = Video::GetAvailableModes();
-		if(!Video::SetMode(modes[1]))
-		{
-			Print("Set mode failed~!\n");
-			for(;;);
-		}
-
-		Video::ClearScreen();
-		// Video::UpdateScreen();
-		// for(;;);
-		auto screen = Video::GetScreen();
-
-		Video::Bitmap* img;
-		Video::CreateBitmap(320, 200, &img);
-		Video::DrawRect(img, Video::Rect(0, 0, 320, 200), Video::Color(0, 0, 0));
-
-		for(unsigned a = 0; a < img->width * img->height; a++)
-		{
-			img->pixels[a] = Video::Color(0, 64, 0, 255);
-		}
-
-		Video::SetBlending(img, Video::BlendingMethod::Static);
-		int imgAlpha = 0;
-
-		int frame = 0, frameTimer = Timer::GetTicks();
-		auto oldCursor = Video::Rect(0, 0, 0, 0);
-		for(;;)
-		{
-			Video::ClearScreen();
-			Video::DrawBitmap(Video::Rect(0, 0, 320, 200), img, Video::Rect(0, 0, 0, 0), screen);
-
-			Video::Rect rect(mx - 2, my - 2, 5, 5);
-			Video::Color color(255, 0, 0);
-			Video::DrawRect(screen, rect, color);
-			if(mousePressed)
-				Video::DrawRect(img, rect, Video::Color(0, 64, 0));
-			// Video::UpdateScreen(oldCursor);
-			// Video::UpdateScreen(rect);
-			Video::UpdateScreen();
-
-			Video::SetBlendingStaticAlpha(img, imgAlpha);
-			imgAlpha = (imgAlpha + 1) % 256;
-
-			oldCursor = rect;
-			// Thread::NextThread();
-
-			frame++;
-			if(Timer::GetTicks() >= frameTimer + 1000)
-			{
-				Print("FPS: %d (%d frames per %d)\n", frame*1000/u32(Timer::GetTicks() - frameTimer),
-					frame, Timer::GetTicks() - frameTimer);
-
-				frame = 0;
-				frameTimer=Timer::GetTicks();
-			}
-		}
-	}
-
 	if(0)
 	{
 		Print("=== Memory test ===\n");
@@ -287,6 +191,131 @@ extern "C" void kmain()
 
 		// Video::DrawRect(Video::Rect(10, 10, 180, 50), Video::Color(255, 0, 0));
 		// Video::DrawRect(Video::Rect(40, 30, 180, 20), Video::Color(0, 255, 0, 128));
+	}
+
+	if(1)
+	{
+		static int mx = 20, my = 20;
+		static bool mousePressed = false;
+
+		auto hndl = [](const Mouse::Event* ev) {
+			Print("Event: %d\n", (int)ev->type);
+
+			if(ev->type == Mouse::EventType::Movement)
+			{
+				mx += ev->movement.x;
+				my -= ev->movement.y;
+			}
+
+			if(ev->type == Mouse::EventType::ButtonClick && ev->button == Mouse::Button::Left)
+				mousePressed = true;
+			if(ev->type == Mouse::EventType::ButtonRelease && ev->button == Mouse::Button::Left)
+				mousePressed = false;
+
+			if(mx < 0)
+				mx = 0;
+			if(my < 0)
+				my = 0;
+			if(mx >= 320)
+				mx = 320 - 1;
+			if(my >= 200)
+				my = 200 - 1;
+		};
+		Mouse::Register(hndl);
+
+		// for(;;)
+		// {
+		// 	Print("Mouse: %dx%d     \r", mx, my);
+		// }
+
+		// VGA::Init();
+		Video::Init(&Video::vgaDriver);
+
+		auto modes = Video::GetAvailableModes();
+		if(!Video::SetMode(modes[1]))
+		{
+			Print("Set mode failed~!\n");
+			for(;;);
+		}
+
+		Video::ClearScreen();
+		// Video::UpdateScreen();
+		// for(;;);
+		auto screen = Video::GetScreen();
+
+		Video::Bitmap* img;
+		Video::CreateBitmap(320, 200, &img);
+		Video::DrawRect(img, Video::Rect(0, 0, 320, 200), Video::Color(0, 0, 0));
+
+		for(unsigned a = 0; a < img->width * img->height; a++)
+		{
+			img->pixels[a] = Video::Color(0, 64, 0, 255);
+		}
+
+		Video::SetBlending(img, Video::BlendingMethod::Static);
+		int imgAlpha = 0;
+
+		int frame = 0, frameTimer = Timer::GetTicks();
+		auto oldCursor = Video::Rect(0, 0, 0, 0);
+
+		auto res = Video::LoadBitmap(String("/fdd/test.bmp"), &img);
+		Print("Res: %d\n", res);
+
+		Video::ClearScreen();
+		Video::DrawBitmap(Video::Rect(0, 0, 64, 64), img, Video::Rect(64, 16, 0, 0), screen);
+		Video::UpdateScreen();
+
+		u32 cnt = 0;
+		for(;;)
+		{
+			u32 x = cnt % (320 - 64);
+			if( (cnt / (320 - 64)) % 2)
+				x = 320 - 64 - x;
+			u32 y = cnt % (200 - 64);
+			if( (cnt / (200 - 64)) % 2)
+				y = 200 - 64 - y;
+
+			Video::ClearScreen();
+			Video::DrawBitmap(Video::Rect(0, 0, 64, 64), img, Video::Rect(x, y, 0, 0), screen);
+			Video::UpdateScreen();
+
+			cnt++;
+		}
+
+		for(;;)
+		{
+			Video::ClearScreen();
+
+			// Video::DrawRect(screen, Video::Rect(-2, -2, 5, 5), Video::Color(255, 0, 0));
+			// Video::UpdateScreen();
+
+			Video::DrawBitmap(Video::Rect(0, 0, 320, 200), img, Video::Rect(0, 0, 0, 0), screen);
+
+			Video::Rect rect(mx - 2, my - 2, 5, 5);
+			Video::Color color(255, 0, 0);
+			Video::DrawRect(screen, rect, color);
+			if(mousePressed)
+				Video::DrawRect(img, rect, Video::Color(0, 64, 0));
+			// Video::UpdateScreen(oldCursor);
+			// Video::UpdateScreen(rect);
+			Video::UpdateScreen();
+
+			Video::SetBlendingStaticAlpha(img, imgAlpha);
+			imgAlpha = (imgAlpha + 1) % 256;
+
+			oldCursor = rect;
+			// Thread::NextThread();
+
+			frame++;
+			if(Timer::GetTicks() >= frameTimer + 1000)
+			{
+				Print("FPS: %d (%d frames per %d)\n", frame*1000/u32(Timer::GetTicks() - frameTimer),
+					frame, Timer::GetTicks() - frameTimer);
+
+				frame = 0;
+				frameTimer=Timer::GetTicks();
+			}
+		}
 	}
 
 #if 1

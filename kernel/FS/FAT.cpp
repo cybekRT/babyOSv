@@ -1,6 +1,8 @@
 #include"FS.hpp"
 #include"Memory.hpp"
 
+#include"Timer.hpp"
+
 using FS::File;
 using FS::Directory;
 using FS::DirEntry;
@@ -136,7 +138,7 @@ namespace FAT
 	 *  Helper functions
 	 */
 
-	int StrFindLastOf(char* str, char c)
+	unsigned StrFindLastOf(const char* str, char c)
 	{
 		unsigned len = strlen(str);
 
@@ -150,13 +152,13 @@ namespace FAT
 		return pos;
 	}
 
-	void LFNToF83(char* lfn, char* filename)
+	void LFNToF83(const char* lfn, char* filename)
 	{
 		char* ext = filename + 8;
 
 		auto lfnLen = strlen(lfn);
 		auto dotPos = StrFindLastOf(lfn, '.');
-		if(dotPos < 0 || dotPos + 1 >= lfnLen)
+		if(dotPos == (unsigned)-1 || dotPos + 1 >= lfnLen)
 			dotPos = lfnLen;
 
 		for(unsigned a = 0; a < 8+3; ++a)
@@ -730,7 +732,7 @@ namespace FAT
 			return Status::Undefined;
 
 		Info* info = (Info*)fs;
-		u32 bufferSize = info->part->device->drv->BlockSize(info->part->device->drvPriv) * info->bpb->sectorsPerCluster;
+		// u32 bufferSize = info->part->device->drv->BlockSize(info->part->device->drvPriv) * info->bpb->sectorsPerCluster;
 		(*dir) = new Directory;//(bufferSize, 0);
 		(*dir)->rootCluster = 0;
 		(*dir)->bufferOffset = 0;
@@ -756,7 +758,7 @@ namespace FAT
 
 	Status DirectoryReadInternal(Info* info, Directory* dir, DirEntry* entry)
 	{
-		auto part = info->part;
+		// auto part = info->part;
 
 		//if(dir->dataOffset == 0 || dir->dataOffset == 512 * info->bpb->sectorsPerCluster)
 		if(!dir->cache || dir->bufferOffset + sizeof(FAT16_DirEntry) >= dir->cache->bufferSize)
@@ -1000,7 +1002,7 @@ namespace FAT
 
 		Info* info = (Info*)fs;
 
-		Status s;
+		// Status s;
 
 		u32 newDirCluster;
 		AddCluster(info, 0, &newDirCluster);
@@ -1114,7 +1116,7 @@ namespace FAT
 			return Status::Undefined;
 
 		Info* info = (Info*)fs;
-		u32 bufferSize = info->part->device->drv->BlockSize(info->part->device->drvPriv) * info->bpb->sectorsPerCluster;
+		// u32 bufferSize = info->part->device->drv->BlockSize(info->part->device->drvPriv) * info->bpb->sectorsPerCluster;
 		FAT16_DirEntry* fatEntry = (FAT16_DirEntry*)(dir->cache->buffer + dir->bufferOffset);
 
 		//(*file) = new File(bufferSize, (fatEntry->clusterHigh << 16) | fatEntry->cluster, fatEntry->size, dir->firstCluster);
@@ -1161,10 +1163,10 @@ namespace FAT
 
 		if(file->totalOffset >= file->totalSize)
 		{
+			// Print("End of file~!\n");
 			return Status::EndOfFile;
 		}
 
-		//if(!file->bufferValid)
 		if(!file->cache || file->totalOffset % file->cache->bufferSize == 0)
 		{
 			if(file->totalOffset > 0)
@@ -1178,11 +1180,14 @@ namespace FAT
 					return Status::EndOfFile;
 				}
 
+				// Print("Freeing cache: %d~!\n", file->cache->cluster);
 				FreeCache(info, file->cache);
+				// Print("Getting next cache: %d\n", nextCluster);
 				file->cache = GetCache(info, nextCluster);
 			}
 			else
 			{
+				// Print("Getting new cache: %d\n", file->rootCluster);
 				file->cache = GetCache(info, file->rootCluster);
 			}
 
@@ -1194,17 +1199,33 @@ namespace FAT
 
 		// If there's need to read more data than in internal buffer, divide to 2 separate calls
 		u32 inBuffer = file->cache->bufferSize - (file->totalOffset % file->cache->bufferSize);
+		// Print("Buffer size: %d, inBuffer: %d\n", bufferSize, inBuffer);
 		if(bufferSize > inBuffer)
 		{
 			Status status;
 			u32 subread;
 
+			// Copy buffer
+			// for(unsigned a = 0; a < inBuffer; a++)
+			// {
+			// 	buffer[]
+			// }
+
+			// Print("Sub-read~! (%d)\n", *readCount);
+			// Print("Part: %p", part);
+			// Print("Device: %p", part->device);
+			// Print("Drv: %p", part->device->drv);
+
 			part->device->drv->Lock(part->device->drvPriv);
 			for(unsigned a = 0; a < bufferSize; )
 			{
-				u32 curSize = (bufferSize - (*readCount) > file->cache->bufferSize ? file->cache->bufferSize : bufferSize - (*readCount));
+				u32 curSize = (bufferSize - (*readCount) > inBuffer ? inBuffer : bufferSize - (*readCount));
 
+				// Print("Buffer size: %d, read: %d\n", bufferSize, *readCount);
+				// Print("Calling subread: %d\n", curSize);
+				// Timer::Delay(500);
 				status = FileRead(fs, file, buffer + (*readCount), curSize, &subread);
+				// Print("Read: %d\n", subread);
 				a += subread;
 				(*readCount) += subread;
 
@@ -1338,6 +1359,35 @@ namespace FAT
 		if(!fs)
 			return Status::Undefined;
 
+		auto info = (FAT::Info*)fs;
+
+		if(file->cache && file->cache->cluster != file->rootCluster)
+		{
+			FreeCache(info, file->cache);
+			file->cache = GetCache(info, file->rootCluster);
+		}
+
+		for(unsigned a = 0; a < offset; )
+		{
+			if(offset - a > file->cache->bufferSize)
+			{
+				auto currentCluster = file->cache->cluster;
+				a += file->cache->bufferSize;
+				// TODO: improve, only root can have different buffer size~!
+				FreeCache(info, file->cache);
+				file->cache = GetCache(info, GetNextCluster(info, currentCluster));
+				if(!file->cache)
+				{
+					Print("Offse too big~! (%d/%d)\n", offset, a);
+					break;
+				}
+			}
+			else
+				a += offset % file->cache->bufferSize;
+		}
+
+		file->totalOffset = offset;
+
 		return Status::Undefined;
 	}
 
@@ -1346,7 +1396,8 @@ namespace FAT
 		if(!fs)
 			return Status::Undefined;
 
-		return Status::Undefined;
+		*offset = file->totalOffset;
+		return Status::Success;
 	}
 
 	FS::FSInfo info =

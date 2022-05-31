@@ -1,6 +1,7 @@
 #pragma once
 
 #include"Containers/Array.hpp"
+#include"Containers/String.hpp"
 
 namespace Video
 {
@@ -90,7 +91,7 @@ namespace Video
 	void UpdateScreen(Rect r);
 
 	void CreateBitmap(u32 w, u32 h, Bitmap** bmp);
-	void LoadBitmap(u8* path, Bitmap** bmp);
+	bool LoadBitmap(String path, Bitmap** bmp);
 	void FreeBitmap(Bitmap* bmp);
 
 	void SetBlending(Bitmap* bmp, BlendingMethod method);
