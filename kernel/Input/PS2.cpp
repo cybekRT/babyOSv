@@ -84,5 +84,7 @@ namespace PS2
 
 		handleData = true;
 		Interrupt::Enable();
+
+		return true;
 	}
 }

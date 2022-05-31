@@ -200,6 +200,7 @@ namespace Interrupt
 	{
 		static ISR_Registers regs;
 		__asm("cli");
+		__asm("xchg %bx, %bx");
 
 		__asm("mov %%eax, %0" : "=m"(regs.eax));
 		__asm("mov %%ebx, %0" : "=m"(regs.ebx));

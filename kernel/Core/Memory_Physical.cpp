@@ -14,6 +14,8 @@ namespace Memory::Physical
 	{
 		for(unsigned a = 0; a < sizeof(memoryBitmap); a++)
 			memoryBitmap[a] = 0;
+
+		return true;
 	}
 
 	void AddFreeMemory(void* _address, u32 _length)
