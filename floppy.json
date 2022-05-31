@@ -1,6 +1,6 @@
 {
 	"label": "babyOS",
-	"bootloader": "out/boot1.bin",  
+	"bootloader": "out/boot1.bin",
 	"/": {
 			"boot.bin": "out/boot2.bin",
 			"kernel.bin": "out/kernel.bin",
@@ -14,7 +14,8 @@
 			"kernel": {
 				"kmain.asm": "kernel/kmain_startup.asm"
 			},
-			"splash": "splash.raw"
+			"splash": "splash.raw",
+			"test.bmp": "test.bmp"
 	},
 	"output": "out/floppy.img"
 }
