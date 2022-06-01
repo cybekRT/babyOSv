@@ -25,6 +25,11 @@ public:
 		return size == 0;
 	}
 
+	bool IsFull()
+	{
+		return (size == limit);
+	}
+
 	void PushBack(const T& arg)
 	{
 		if(read == write && size > 0)
