@@ -2,6 +2,7 @@
 #include"Containers/RingBuffer.hpp"
 #include"Containers/Array.hpp"
 #include"Interrupt.hpp"
+#include"HAL.hpp"
 
 /* Ports are counted from 0, COMx are from 1 :| */
 #define	IO_COM1 0x3F8
@@ -64,6 +65,50 @@ struct LineStatusReg
 	u8 errorImpending 	: 1; // 7 	Impending Error 	Set if there is an error with a word in the input buffer
 } __attribute__((packed));
 
+struct ModemStatusReg
+{
+	u8 ctsChanged	: 1; // 0 	Delta Clear to Send (DCTS) 	Indicates that CTS input has changed state since the last time it was read
+	u8 dsrChanged	: 1; // 1 	Delta Data Set Ready (DDSR) 	Indicates that DSR input has changed state since the last time it was read
+	u8 riChanged	: 1; // 2 	Trailing Edge of Ring Indicator (TERI) 	Indicates that RI input to the chip has changed from a low to a high state
+	u8 dcdChanged	: 1; // 3 	Delta Data Carrier Detect (DDCD) 	Indicates that DCD input has changed state since the last time it ware read
+	u8 cts			: 1; // 4 	Clear to Send (CTS) 	Inverted CTS Signal
+	u8 dsr			: 1; // 5 	Data Set Ready (DSR) 	Inverted DSR Signal
+	u8 ri			: 1; // 6 	Ring Indicator (RI) 	Inverted RI Signal
+	u8 dcd			: 1; // 7 	Data Carrier Detect (DCD) 	Inverted DCD Signal
+} __attribute__((packed));
+
+enum class WordLength
+{
+	Bits5 = 0b00,
+	Bits6 = 0b01,
+	Bits7 = 0b10,
+	Bits8 = 0b11,
+};
+
+enum class StopBits
+{
+	Bits1 = 0b0,
+	Bits2 = 0b1,
+};
+
+enum class Parity
+{
+	None = 0b000,
+	Odd = 0b001,
+	Even = 0b011,
+	Mark = 0b101,
+	Space = 0b111,
+};
+
+struct LineControlReg
+{
+	WordLength wordLength : 2;
+	StopBits stopBits : 1;
+	Parity parity : 3;
+	u8 _unused	: 1;
+	u8 dlab		: 1;
+} __attribute__((packed));
+
 namespace Serial
 {
 	RingBuffer<u8, 8> comBuffersIn[4];
@@ -80,10 +125,55 @@ namespace Serial
 		Print("%s\n", __FUNCTION__);
 	}
 
+	void SetBaudRate(u8 port, u16 baudRate)
+	{
+		ASSERT(port < 4, "Invalid COM port");
+
+		LineControlReg lcReg;
+		*(u8*)&lcReg = HAL::In8(portIO[port] + IO_REG::LineControl);
+
+		// Enable DLAB
+		lcReg.dlab = 1;
+		HAL::Out8(portIO[port] + IO_REG::LineControl, *(u8*)&lcReg);
+
+		// Calculate
+		ASSERT((115200 % baudRate) == 0, "Invalid baudrate~!");
+		u16 divisor = 115200 / baudRate;
+
+		// Send
+		HAL::Out8(portIO[port] + IO_REG::BaudLow, divisor & 0xff);
+		HAL::Out8(portIO[port] + IO_REG::BaudHigh, divisor >> 8);
+
+		// Disable DLAB
+		lcReg.dlab = 1;
+		HAL::Out8(portIO[port] + IO_REG::LineControl, *(u8*)&lcReg);
+	}
+
 	bool Init()
 	{
 		Interrupt::Register(Interrupt::IRQ2INT(Interrupt::IRQ_COM1), ISR_COM_1_3);
 		Interrupt::Register(Interrupt::IRQ2INT(Interrupt::IRQ_COM2), ISR_COM_2_4);
+
+		for(unsigned port = 0; port < 4; port++)
+		{
+			HAL::RegisterRW<InterruptEnableReg> ieReg(portIO[port] + IO_REG::InterruptEnable);
+
+			auto ie = ieReg.Read();
+			ie.OnError = 0;
+			ie.OnInputEmpty = 0;
+			ie.OnOutputFull = 0;
+			ie.OnStatusChange = 0;
+			ieReg.Write(ie);
+
+			SetBaudRate(port, (u16)115200);
+
+			HAL::RegisterRW<ModemControlReg> modemReg(portIO[port] + IO_REG::ModemControl);
+			auto modem = modemReg.Read();
+			modem.loopback = true;
+			modem.dataTerminalReady = false;
+			modem.requestToSend = false;
+			modemReg.Write(modem);
+		}
 
 		return true;
 	}

@@ -102,7 +102,9 @@ namespace HAL
 				if constexpr (sizeof(T) == 1)
 				{
 					//Print("%d -> 8b\n", port);
-					return (T)In8(port);
+					T tmp;
+					*(u8*)&tmp = In8(port);
+					return tmp;
 				}
 				else if constexpr (sizeof(T) == 2)
 				{
