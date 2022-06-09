@@ -17,117 +17,113 @@ namespace HAL
 		RW
 	};
 
+	template<class T>
 	class RegisterBase
 	{
 		protected:
 			u16 port;
 
 			RegisterBase(u16 port) : port(port) {}
+
+		public:
+			T value;
 	};
 
 	template<class T>
-	class RegisterRO : public RegisterBase
+	class RegisterRO : public RegisterBase<T>
 	{
-		protected:
-			//T value;
-
 		public:
 			RegisterRO() {}
 
-			RegisterRO(u16 port) : RegisterBase(port)
+			RegisterRO(u16 port) : RegisterBase<T>(port)
 			{
 
 			}
 
-			T Read()
+			T& Read()
 			{
 				if constexpr (sizeof(T) == 1)
 				{
-					//*(u8*)&value = In8(port);
-					u8 v = In8(port);
-
-					return *(T*)&v;
-					//return reinterpret_cast<T>(In8(port));
+					*(u8*)&this->value = In8(this->port);
+					return this->value;
 				}
 				else if constexpr (sizeof(T) == 2)
-					return (T)In16(port);
+				{
+					*(u16*)&this->value = In16(this->port);
+					return this->value;
+				}
 				else
-					//static_assert(dependent_false<T>::value, "Invalid register size");
 					ASSERT(false, "Invalid register size");
 			}
 	};
 
 	template<class T>
-	class RegisterWO : public RegisterBase
+	class RegisterWO : public RegisterBase<T>
 	{
 		public:
 			RegisterWO() {}
 
-			RegisterWO(u16 port) : RegisterBase(port)
+			RegisterWO(u16 port) : RegisterBase<T>(port)
 			{
 
 			}
 
-			void Write(T value)
+			void Write()
 			{
 				if constexpr (sizeof(T) == 1)
-				{
-					/*Print("Vptr: %x\n", &value);
-					Print("V   : %x\n", value);
-					Print("V2  : %x\n", *(&value));
-					Print("V3  : %x\n", *(u8*)&value);
-					Print("Port: %x\n", port);*/
-					Out8(port, *(u8*)&value);
-				}
+					Out8(this->port, *(u8*)&this->value);
 				else if constexpr (sizeof(T) == 2)
-					Out16(port, *(u16*)&value);
+					Out16(this->port, *(u16*)&this->value);
 				else
-					//static_assert(dependent_false<T>::value, "Invalid register size");
 					ASSERT(false, "Invalid register size");
+			}
+
+			void Write(const T& value)
+			{
+				this->value = value;
+				Write();
 			}
 	};
 
 	template<class T>
-	class RegisterRW : public RegisterBase
+	class RegisterRW : public RegisterBase<T>
 	{
 		public:
-			RegisterRW(u16 port) : RegisterBase(port)
+			RegisterRW(u16 port) : RegisterBase<T>(port)
 			{
 
 			}
 
-			inline T Read()
+			T& Read()
 			{
-				//return (T)In8(port);
 				if constexpr (sizeof(T) == 1)
 				{
-					//Print("%d -> 8b\n", port);
-					T tmp;
-					*(u8*)&tmp = In8(port);
-					return tmp;
+					*(u8*)&this->value = In8(this->port);
+					return this->value;
 				}
 				else if constexpr (sizeof(T) == 2)
 				{
-					//Print("%d -> 16b\n", port);
-					return (T)In16(port);
+					*(u16*)&this->value = In16(this->port);
+					return this->value;
 				}
 				else
-				{
-					//Print("%d -> inv\n", port);
-					//static_assert(dependent_false<T>::value, "Invalid register size");
 					ASSERT(false, "Invalid register size");
-				}
 			}
 
-			inline void Write(T value)
+			void Write()
 			{
 				if constexpr (sizeof(T) == 1)
-					Out8(port, *(u8*)&value);
+					Out8(this->port, *(u8*)&this->value);
 				else if constexpr (sizeof(T) == 2)
-					Out16(port, *(u16*)&value);
+					Out16(this->port, *(u16*)&this->value);
 				else
-					//static_assert(dependent_false<T>::value, "Invalid register size");
 					ASSERT(false, "Invalid register size");
+			}
+
+			void Write(const T& value)
+			{
+				this->value = value;
+				Write();
 			}
 	};
 }

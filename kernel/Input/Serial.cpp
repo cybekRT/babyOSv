@@ -3,6 +3,7 @@
 #include"Containers/Array.hpp"
 #include"Interrupt.hpp"
 #include"HAL.hpp"
+#include"Timer.hpp"
 
 /* Ports are counted from 0, COMx are from 1 :| */
 #define	IO_COM1 0x3F8
@@ -77,27 +78,130 @@ struct ModemStatusReg
 	u8 dcd			: 1; // 7 	Data Carrier Detect (DCD) 	Inverted DCD Signal
 } __attribute__((packed));
 
+enum class InterruptID
+{
+	// Priority from lowest to highest
+	/* Interrupt Type | Interrupt Source | Interrupt Reset Control */
+	none					= 0b0001,
+	/**
+	 * MODEM Status
+	 * Clear to Send or Data Set Ready or Ring Indicator or Data Carrier Detect
+	 * Reading the MODEM Status Register
+	 */
+	modemStatus				= 0b0000,
+	/**
+	 * Transmitter Holding Register Empty
+	 * Transmitter Holding Register Empty
+	 * Reading the IIR Register (if source of interrupt) or Writing into the Transmitter Holding Register
+	 */
+	transmitterHolding		= 0b0010,
+	/**
+	 * Character Timeout Indication
+	 * No Characters Have Been Removed From or Input to the RCVR FIFO During the Last 4 Char.
+	 * | Times and There Is at Least 1 Char. in It During This Time
+	 * Reading the Receiver Buffer Register
+	 */
+	timeout					= 0b1100,
+	/**
+	 * Received Data Available
+	 * Receiver Data Available or Trigger Level Reached
+	 * Reading the Receiver Buffer Register or the FIFO Drops Below the Trigger Level
+	 */
+	receivedDataAvailable	= 0b0100,
+	/**
+	 * Receiver Line Status
+	 * Overrun Error or Parity Error or Framing Error or Break Interrupt
+	 * Reading the Line Status Register
+	 */
+	receiverLineStatus		= 0b0111,
+};
+
+struct InterruptIdentReg
+{
+	u8 interruptNotPending	: 1;
+	InterruptID intId : 4;
+	u8 fifoEnableRX	: 1;
+	u8 fifoEnableTX	: 1;
+} __attribute__((packed));
+
+enum class FIFOTriggerLevel
+{
+	Bytes_1		= 0b00,
+	Bytes_4		= 0b01,
+	Bytes_8		= 0b10,
+	Bytes_14	= 0b11,
+};
+
+/**
+ * This is a write only register at the same location as the IIR
+ * (the IIR is a read only register). This register is used to en-
+ * able the FIFOs, clear the FIFOs, set the RCVR FIFO trigger
+ * level, and select the type of DMA signalling
+ */
+struct FIFOControlReg
+{
+	/**
+	 * Writing a 1 to FCR0 enables both the XMIT and RCVR
+	 * FIFOs. Resetting FCR0 will clear all bytes in both FIFOs.
+	 * When changing from the FIFO Mode to the 16450 Mode
+	 * and vice versa, data is automatically cleared from the
+	 * FIFOs. This bit must be a 1 when other FCR bits are written
+	 * to or they will not be programmed.
+	 */
+	u8 enableTxRxFIFO				: 1;
+	/**
+	 * Writing a 1 to FCR1 clears all bytes in the RCVR FIFO
+	 * and resets its counter logic to 0. The shift register is not
+	 * cleared. The 1 that is written to this bit position is self-clear-
+	 * ing.
+	 */
+	u8 clearRxFIFO					: 1;
+	/**
+	 * Writing a 1 to FCR2 clears all bytes in the XMIT FIFO
+	 * and resets its counter logic to 0. The shift register is not
+	 * cleared. The 1 that is written to this bit position is self-clear-
+	 * ing.
+	 */
+	u8 clearTxFIFO					: 1;
+	/**
+	 * Setting FCR3 to a 1 will cause the RXRDY and
+	 * TXRDY pins to change from mode 0 to mode 1 if FCR0e1
+	 * (see description of RXRDY and TXRDY pins).
+	 */
+	u8 readyPinsMode				: 1;
+	/**
+	 * FCR4 to FCR5 are reserved for future use.
+	 */
+	u8 _reserved					: 2;
+	/**
+	 * FCR6 and FCR7 are used to set the trigger level for
+	 * the RCVR FIFO interrupt.
+	 */
+	FIFOTriggerLevel triggerLevel	: 2;
+
+} __attribute__((packed));
+
 enum class WordLength
 {
-	Bits5 = 0b00,
-	Bits6 = 0b01,
-	Bits7 = 0b10,
-	Bits8 = 0b11,
+	Bits_5 = 0b00,
+	Bits_6 = 0b01,
+	Bits_7 = 0b10,
+	Bits_8 = 0b11,
 };
 
 enum class StopBits
 {
-	Bits1 = 0b0,
-	Bits2 = 0b1,
+	Bits_1 = 0b0,
+	Bits_2 = 0b1,
 };
 
 enum class Parity
 {
-	None = 0b000,
-	Odd = 0b001,
-	Even = 0b011,
-	Mark = 0b101,
-	Space = 0b111,
+	None	= 0b000,
+	Odd		= 0b001,
+	Even	= 0b011,
+	Mark	= 0b101,
+	Space	= 0b111,
 };
 
 struct LineControlReg
@@ -113,6 +217,7 @@ namespace Serial
 {
 	RingBuffer<u8, 8> comBuffersIn[4];
 	RingBuffer<u8, 16> comBuffersOut[4];
+	bool comWorking[4];
 	Array<Handler> handlers[4];
 
 	ISR(COM_1_3)
@@ -125,28 +230,63 @@ namespace Serial
 		Print("%s\n", __FUNCTION__);
 	}
 
-	void SetBaudRate(u8 port, u16 baudRate)
+	void SetBaudRate(u8 port, u32 baudRate)
 	{
 		ASSERT(port < 4, "Invalid COM port");
+		u16 base = portIO[port];
 
-		LineControlReg lcReg;
-		*(u8*)&lcReg = HAL::In8(portIO[port] + IO_REG::LineControl);
+		HAL::RegisterRW<LineControlReg> lcReg(base + IO_REG::LineControl);
+		lcReg.Read();
 
 		// Enable DLAB
-		lcReg.dlab = 1;
-		HAL::Out8(portIO[port] + IO_REG::LineControl, *(u8*)&lcReg);
+		lcReg.value.dlab = 1;
+		lcReg.Write();
 
 		// Calculate
+		// Print("Baud: %d, %d\n", baudRate, (115200 % baudRate));
 		ASSERT((115200 % baudRate) == 0, "Invalid baudrate~!");
-		u16 divisor = 115200 / baudRate;
+		u32 divisor = 115200 / baudRate;
 
 		// Send
-		HAL::Out8(portIO[port] + IO_REG::BaudLow, divisor & 0xff);
-		HAL::Out8(portIO[port] + IO_REG::BaudHigh, divisor >> 8);
+		HAL::Out8(base + IO_REG::BaudLow, divisor & 0xff);
+		HAL::Out8(base + IO_REG::BaudHigh, (divisor >> 8) & 0xff);
 
 		// Disable DLAB
-		lcReg.dlab = 1;
-		HAL::Out8(portIO[port] + IO_REG::LineControl, *(u8*)&lcReg);
+		lcReg.value.dlab = 0;
+		lcReg.Write();
+	}
+
+	template<typename T>
+	bool DoWithTimeout(T func, u32 timeoutMs)
+	{
+		auto ticks = Timer::GetTicks();
+
+		while(Timer::GetTicks() < ticks + timeoutMs)
+		{
+			if(func())
+				return true;
+		}
+
+		return false;
+	}
+
+	#define DO_WITH_TIMEOUT(arg, timeout) DoWithTimeout([&]() -> bool { return arg; }, timeout)
+
+	bool Probe(int port)
+	{
+		u16 base = portIO[port];
+
+		u8 testVal = 0xA5;
+		HAL::Out8(base + IO_REG::Data, testVal);
+
+		HAL::RegisterRO<LineStatusReg> lineStatus(base + IO_REG::LineStatus);
+
+		// DoWithTimeout([&]() -> bool { return lineStatus.Read().inputReady; }, 1000);
+		DO_WITH_TIMEOUT(lineStatus.Read().inputReady, 1000);
+
+		u8 recv = HAL::In8(base);
+
+		return (recv == testVal);
 	}
 
 	bool Init()
@@ -156,23 +296,58 @@ namespace Serial
 
 		for(unsigned port = 0; port < 4; port++)
 		{
-			HAL::RegisterRW<InterruptEnableReg> ieReg(portIO[port] + IO_REG::InterruptEnable);
+			u16 base = portIO[port];
 
-			auto ie = ieReg.Read();
-			ie.OnError = 0;
-			ie.OnInputEmpty = 0;
-			ie.OnOutputFull = 0;
-			ie.OnStatusChange = 0;
-			ieReg.Write(ie);
+			HAL::RegisterRW<InterruptEnableReg> ieReg(base + IO_REG::InterruptEnable);
+			ieReg.value.OnError = 0;
+			ieReg.value.OnInputEmpty = 0;
+			ieReg.value.OnOutputFull = 0;
+			ieReg.value.OnStatusChange = 0;
+			ieReg.Write();
 
-			SetBaudRate(port, (u16)115200);
+			SetBaudRate(port, 115200);
 
-			HAL::RegisterRW<ModemControlReg> modemReg(portIO[port] + IO_REG::ModemControl);
-			auto modem = modemReg.Read();
-			modem.loopback = true;
-			modem.dataTerminalReady = false;
-			modem.requestToSend = false;
-			modemReg.Write(modem);
+			HAL::RegisterRW<LineControlReg> lineCtrlReg(base + IO_REG::LineControl);
+			lineCtrlReg.Read();
+			lineCtrlReg.value.dlab = 0;
+			lineCtrlReg.value.parity = Parity::None;
+			lineCtrlReg.value.stopBits = StopBits::Bits_1;
+			lineCtrlReg.value.wordLength = WordLength::Bits_8;
+			lineCtrlReg.Write();
+
+			HAL::RegisterRW<ModemControlReg> modemReg(base + IO_REG::ModemControl);
+			modemReg.Read();
+			modemReg.value.enableIRQ = false;
+			modemReg.value.loopback = true;
+			modemReg.value.dataTerminalReady = false;
+			modemReg.value.requestToSend = false;
+			modemReg.Write();
+
+			// FIXME: COM0 is sometimes not detected on Qemu
+			for(unsigned a = 0; a < 5; a++)
+			{
+				comWorking[port] = Probe(port);
+				if(comWorking[port])
+					break;
+				else
+					Timer::Delay(20);
+			}
+
+			Print("COM%d status: %d\n", port, comWorking[port]);
+
+			// If port is not working, ignore it and jump to next one
+			if(!comWorking[port])
+				continue;
+
+			ieReg.value.OnError = true;
+			ieReg.value.OnInputEmpty = true;
+			ieReg.value.OnOutputFull = true;
+			ieReg.value.OnStatusChange = true;
+			ieReg.Write();
+
+			modemReg.value.enableIRQ = true;
+			modemReg.value.loopback = false;
+			modemReg.Write();
 		}
 
 		return true;

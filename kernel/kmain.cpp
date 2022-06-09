@@ -22,6 +22,7 @@
 #include"Video/VGA.hpp"
 #include"Video/Video.hpp"
 #include"Video/Video_VGA.hpp"
+#include"Input/Serial.hpp"
 
 Video::Bitmap* screen = nullptr;
 
@@ -88,6 +89,8 @@ extern "C" void kmain()
 	Timer::Init();
 	Thread::Init();
 	PS2::Init();
+
+	Serial::Init();
 	// Keyboard::Init();
 	// Mouse::Init();
 	// Mouse::Test();
