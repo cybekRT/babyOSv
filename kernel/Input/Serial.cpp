@@ -220,7 +220,7 @@ namespace Serial
 
 		HAL::RegisterRO<LineStatusReg> lineStatus(base + IO_REG::LineStatus);
 
-		WAIT_UNTIL(lineStatus.Read().inputReady, 1000);
+		WAIT_UNTIL(lineStatus.Read().inputReady, 50);
 
 		u8 recv = HAL::In8(base);
 
