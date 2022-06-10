@@ -24,6 +24,7 @@ namespace Mouse
 	HAL::RegisterRO<PS2::StatusRegister> regStatus(0x64);
 	HAL::RegisterWO<u8> regCommand(PS2_REG_CMD);
 	HAL::RegisterRW<u8> regData(PS2_REG_DAT);
+	const int defaultTimeout = 100;
 
 	Array<u8> dataBuffer(8);
 	List<Event> events;
@@ -33,33 +34,45 @@ namespace Mouse
 	Thread::Thread* thread;
 	Mutex handlersMutex;
 
-	void WaitForReadyToRead()
+	bool WaitForReadyToRead()
 	{
-		while(!regStatus.Read().outputBuffer);
+		Print("Waiting1...");
+		return WAIT_UNTIL(regStatus.Read().outputBuffer, defaultTimeout);
 	}
 
-	void WaitForReadyToSend()
+	bool WaitForReadyToSend()
 	{
-		while(regStatus.Read().inputBuffer);
+		Print("Waiting2...");
+		return WAIT_UNTIL(!regStatus.Read().inputBuffer, defaultTimeout);
 	}
 
-	void SendCmd(u8 v)
+	bool SendCmd(u8 v)
 	{
-		WaitForReadyToSend();
+		if(!WaitForReadyToSend())
+			return false;
+
 		regCommand.Write(0xD4);
-		WaitForReadyToSend();
+
+		if(!WaitForReadyToSend())
+			return false;
+
 		regData.Write(v);
+		return true;
 	}
 
-	void SendControllerCmd(u8 v)
+	bool SendControllerCmd(u8 v)
 	{
-		WaitForReadyToSend();
+		if(!WaitForReadyToSend())
+			return false;
+
 		regCommand.Write(v);
+		return true;
 	}
 
 	u8 ReadData()
 	{
-		WaitForReadyToRead();
+		if(!WaitForReadyToRead())
+			return 0;
 		return regData.Read();
 	}
 
@@ -73,20 +86,28 @@ namespace Mouse
 		return tmp;
 	}
 
-	void SendData(u8 v)
+	bool SendData(u8 v)
 	{
-		WaitForReadyToSend();
+		if(!WaitForReadyToSend())
+			return false;
+
 		regCommand.Write(0xD4);
-		WaitForReadyToSend();
+		if(!WaitForReadyToSend())
+			return false;
+
 		regData.Write(v);
+		return true;
 	}
 
 	template<class T>
-	void SendRegister(T& v)
+	bool SendRegister(T& v)
 	{
 		u8* ptr = (u8*)&v;
-		WaitForReadyToSend();
+		if(!WaitForReadyToSend())
+			return false;
+
 		regData.Write(*ptr);
+		return true;
 	}
 
 	int HandlerTask(void*)
@@ -123,21 +144,27 @@ namespace Mouse
 		ctrlConf.mouseIrq = true;
 		ctrlConf.disableMouse = false;
 
-		SendControllerCmd(PS2_CMD_SET_COMPAQ_STATUS);
-		SendRegister(ctrlConf);
+		if(!SendControllerCmd(PS2_CMD_SET_COMPAQ_STATUS))
+			return false;
+		if(!SendRegister(ctrlConf))
+			return false;
 		// ReadData();
 		/* while(ReadData() != 0xFA); */
 
-		SendCmd(PS2_CMD_MOUSE_GET_ID);
+		if(!SendCmd(PS2_CMD_MOUSE_GET_ID))
+			return false;
 		ReadData();
 		auto mouseId = ReadData();
 		Print("Mouse ID: %d\n", mouseId);
 
-		SendCmd(PS2_CMD_MOUSE_SET_DEFAULTS);
-		while(ReadData() != 0xFA);
+		if(!SendCmd(PS2_CMD_MOUSE_SET_DEFAULTS))
+			return false;
+		if(!WAIT_UNTIL(ReadData() != 0xFA, defaultTimeout))
+			return false;
 
 		SendCmd(PS2_CMD_MOUSE_ENABLE_STREAMING);
-		while(ReadData() != 0xFA);
+		if(!WAIT_UNTIL(ReadData() != 0xFA, defaultTimeout))
+			return false;
 
 		Thread::Create(&thread, (u8*)"Mouse", HandlerTask);
 		Thread::Start(thread);

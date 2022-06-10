@@ -5,6 +5,8 @@
 #include"HAL.hpp"
 #include"Timer.hpp"
 
+using namespace Serial;
+
 /* Ports are counted from 0, COMx are from 1 :| */
 #define	IO_COM1 0x3F8
 #define	IO_COM2 0x2F8
@@ -181,36 +183,13 @@ struct FIFOControlReg
 
 } __attribute__((packed));
 
-enum class WordLength
-{
-	Bits_5 = 0b00,
-	Bits_6 = 0b01,
-	Bits_7 = 0b10,
-	Bits_8 = 0b11,
-};
-
-enum class StopBits
-{
-	Bits_1 = 0b0,
-	Bits_2 = 0b1,
-};
-
-enum class Parity
-{
-	None	= 0b000,
-	Odd		= 0b001,
-	Even	= 0b011,
-	Mark	= 0b101,
-	Space	= 0b111,
-};
-
 struct LineControlReg
 {
-	WordLength wordLength : 2;
-	StopBits stopBits : 1;
-	Parity parity : 3;
-	u8 _unused	: 1;
-	u8 dlab		: 1;
+	WordLength wordLength	: 2;
+	StopBits stopBits		: 1;
+	Parity parity			: 3;
+	u8 setBreak				: 1;
+	u8 dlab					: 1;
 } __attribute__((packed));
 
 namespace Serial
@@ -223,14 +202,32 @@ namespace Serial
 	ISR(COM_1_3)
 	{
 		Print("%s\n", __FUNCTION__);
+		Interrupt::AckIRQ();
 	}
 
 	ISR(COM_2_4)
 	{
 		Print("%s\n", __FUNCTION__);
+		Interrupt::AckIRQ();
 	}
 
-	void SetBaudRate(u8 port, u32 baudRate)
+	bool Probe(int port)
+	{
+		u16 base = portIO[port];
+
+		u8 testVal = 0xA5;
+		HAL::Out8(base + IO_REG::Data, testVal);
+
+		HAL::RegisterRO<LineStatusReg> lineStatus(base + IO_REG::LineStatus);
+
+		WAIT_UNTIL(lineStatus.Read().inputReady, 1000);
+
+		u8 recv = HAL::In8(base);
+
+		return (recv == testVal);
+	}
+
+	bool SetBaudRate(u8 port, u32 baudRate)
 	{
 		ASSERT(port < 4, "Invalid COM port");
 		u16 base = portIO[port];
@@ -243,7 +240,6 @@ namespace Serial
 		lcReg.Write();
 
 		// Calculate
-		// Print("Baud: %d, %d\n", baudRate, (115200 % baudRate));
 		ASSERT((115200 % baudRate) == 0, "Invalid baudrate~!");
 		u32 divisor = 115200 / baudRate;
 
@@ -254,39 +250,8 @@ namespace Serial
 		// Disable DLAB
 		lcReg.value.dlab = 0;
 		lcReg.Write();
-	}
 
-	template<typename T>
-	bool DoWithTimeout(T func, u32 timeoutMs)
-	{
-		auto ticks = Timer::GetTicks();
-
-		while(Timer::GetTicks() < ticks + timeoutMs)
-		{
-			if(func())
-				return true;
-		}
-
-		return false;
-	}
-
-	#define DO_WITH_TIMEOUT(arg, timeout) DoWithTimeout([&]() -> bool { return arg; }, timeout)
-
-	bool Probe(int port)
-	{
-		u16 base = portIO[port];
-
-		u8 testVal = 0xA5;
-		HAL::Out8(base + IO_REG::Data, testVal);
-
-		HAL::RegisterRO<LineStatusReg> lineStatus(base + IO_REG::LineStatus);
-
-		// DoWithTimeout([&]() -> bool { return lineStatus.Read().inputReady; }, 1000);
-		DO_WITH_TIMEOUT(lineStatus.Read().inputReady, 1000);
-
-		u8 recv = HAL::In8(base);
-
-		return (recv == testVal);
+		return true;
 	}
 
 	bool Init()
@@ -339,6 +304,16 @@ namespace Serial
 			if(!comWorking[port])
 				continue;
 
+			// Set FIFOs
+			HAL::RegisterRW<FIFOControlReg> fifoReg(base + IO_REG::FIFOControl);
+			fifoReg.Read();
+			fifoReg.value.clearRxFIFO = true;
+			fifoReg.value.clearTxFIFO = true;
+			fifoReg.value.enableTxRxFIFO = true;
+			fifoReg.value.readyPinsMode = 0;
+			fifoReg.value.triggerLevel = FIFOTriggerLevel::Bytes_14;
+			fifoReg.Write();
+
 			ieReg.value.OnError = true;
 			ieReg.value.OnInputEmpty = true;
 			ieReg.value.OnOutputFull = true;
@@ -363,5 +338,71 @@ namespace Serial
 	{
 		ASSERT(port < 4, "Invalid COM port");
 		handlers[port].Remove(handler);
+	}
+
+	bool Configure(u8 port, u32 baudRate, WordLength wordLength, StopBits stopBits, Parity parity, bool breakLine)
+	{
+		SetBaudRate(port, 115200);
+
+		HAL::RegisterRW<LineControlReg> lineCtrlReg(portIO[port] + IO_REG::LineControl);
+		lineCtrlReg.Read();
+		lineCtrlReg.value.dlab = 0;
+		lineCtrlReg.value.parity = parity;
+		lineCtrlReg.value.stopBits = stopBits;
+		lineCtrlReg.value.setBreak = breakLine;
+		lineCtrlReg.value.wordLength = wordLength;
+		lineCtrlReg.Write();
+
+		return true;
+	}
+
+	bool SetReady(u8 port, bool rts, bool dtr)
+	{
+		HAL::RegisterRW<ModemControlReg> modemReg(portIO[port] + IO_REG::ModemControl);
+		modemReg.Read();
+		modemReg.value.dataTerminalReady = dtr;
+		modemReg.value.requestToSend = rts;
+		modemReg.Write();
+
+		return true;
+	}
+
+	void ClearBuffers(u8 port)
+	{
+		HAL::RegisterRW<FIFOControlReg> fifoReg(portIO[port] + IO_REG::FIFOControl);
+		fifoReg.Read();
+		fifoReg.value.clearRxFIFO = true;
+		fifoReg.value.clearTxFIFO = true;
+		fifoReg.Write();
+	}
+
+	void Test(u8 port)
+	{
+		Print("Test: ");
+		HAL::RegisterRO<LineStatusReg> statusReg(portIO[port] + IO_REG::LineStatus);
+		while(statusReg.Read().outputFull)
+		{
+
+		}
+	}
+
+	bool ReadByte(u8 port, u8* value, u32 timeout)
+	{
+		HAL::RegisterRO<LineStatusReg> statusReg(portIO[port] + IO_REG::LineStatus);
+		if(!WAIT_UNTIL(statusReg.Read().outputFull, timeout))
+			return false;
+
+		*value = HAL::In8(portIO[port] + IO_REG::Data);
+		return true;
+	}
+
+	bool WriteByte(u8 port, u8 value, u32 timeout)
+	{
+		HAL::RegisterRO<LineStatusReg> statusReg(portIO[port] + IO_REG::LineStatus);
+		if(!WAIT_UNTIL(statusReg.Read().inputReady, timeout))
+			return false;
+
+		HAL::Out8(portIO[port] + IO_REG::Data, value);
+		return true;
 	}
 };

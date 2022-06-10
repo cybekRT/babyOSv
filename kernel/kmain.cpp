@@ -95,6 +95,25 @@ extern "C" void kmain()
 	// Mouse::Init();
 	// Mouse::Test();
 
+	Serial::Configure(1, 1200, Serial::WordLength::Bits_7, Serial::StopBits::Bits_1, Serial::Parity::None, true);
+	Serial::SetReady(1, false, false);
+	Timer::Delay(200);
+	Serial::ClearBuffers(1);
+	Serial::SetReady(1, true, true);
+
+	// Serial::Test(1);
+
+	u8 mouseVal = 0;
+	for(unsigned a = 0; a < 10; a++) {
+	if(!Serial::ReadByte(1, &mouseVal, 2000))
+		Print("No serial mouse :/\n");
+	else
+		Print("Mouse: %x\n", mouseVal);
+	}
+
+	Print("Finished~!\n");
+	for(;;);
+
 	if(0)
 	{
 		Print("=== Memory test ===\n");

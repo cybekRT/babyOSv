@@ -10,6 +10,9 @@ namespace PS2
 	HAL::RegisterWO<u8> regCommand(0x64);
 	HAL::RegisterRW<u8> regData(0x60);
 
+	bool keyboardEnabled = false;
+	bool mouseEnabled = false;
+
 	volatile bool handleData = false;
 
 	void Handle()
@@ -34,13 +37,15 @@ namespace PS2
 
 	ISR(Keyboard)
 	{
-		Handle();
+		if(keyboardEnabled)
+			Handle();
 		Interrupt::AckIRQ();
 	}
 
 	ISR(Mouse)
 	{
-		Handle();
+		if(mouseEnabled)
+			Handle();
 		Interrupt::AckIRQ_PIC2();
 		Interrupt::AckIRQ();
 	}
@@ -68,22 +73,30 @@ namespace PS2
 
 	bool Init()
 	{
-		Interrupt::Disable();
+		// Interrupt::Disable();
+		Print("Initializing PS/2...\n");
+		Interrupt::Register(Interrupt::IRQ2INT(Interrupt::IRQ_KEYBOARD), ISR_Keyboard);
+		Interrupt::Register(Interrupt::IRQ2INT(Interrupt::IRQ_MOUSE), ISR_Mouse);
 
 		SendCmd(PS2_CMD_DISABLE_KEYBOARD);
 		SendCmd(PS2_CMD_DISABLE_MOUSE);
 
-		Interrupt::Register(Interrupt::IRQ2INT(Interrupt::IRQ_KEYBOARD), ISR_Keyboard);
-		Interrupt::Register(Interrupt::IRQ2INT(Interrupt::IRQ_MOUSE), ISR_Mouse);
+		keyboardEnabled = Keyboard::Init();
+		mouseEnabled = Mouse::Init();
 
-		Keyboard::Init();
-		Mouse::Init();
-
-		SendCmd(PS2_CMD_ENABLE_KEYBOARD);
-		SendCmd(PS2_CMD_ENABLE_MOUSE);
+		if(keyboardEnabled)
+		{
+			SendCmd(PS2_CMD_ENABLE_KEYBOARD);
+			Print("  Keyboard initialized~!\n");
+		}
+		if(mouseEnabled)
+		{
+			SendCmd(PS2_CMD_ENABLE_MOUSE);
+			Print("  Mouse initialized~!\n");
+		}
 
 		handleData = true;
-		Interrupt::Enable();
+		// Interrupt::Enable();
 
 		return true;
 	}
