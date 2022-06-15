@@ -109,7 +109,6 @@ TEST_F(ListTest, ForeachIterator_Remove)
 	unsigned a = 0;
 	for(auto itr = test.begin(); itr != test.end(); )
 	{
-		printf("RemoveAt~~~!\n");
 		itr = test.RemoveAt(itr);
 
 		a++;
