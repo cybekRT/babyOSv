@@ -29,6 +29,16 @@ Video::Bitmap* screen = nullptr;
 extern u32* _ctors_beg;
 extern u32* _ctors_end;
 
+int xx = 0;
+void KillStack()
+{
+	// Print("X: %d\r", xx);
+	xx++;
+	if(xx >= 217)
+		asm("xchg %bx, %bx");
+	KillStack();
+}
+
 void AddKey(char c)
 {
 	if(c == '\n')
@@ -89,6 +99,9 @@ extern "C" void kmain()
 	Timer::Init();
 	Thread::Init();
 	PS2::Init();
+
+	Interrupt::Disable();
+	KillStack();
 
 	Serial::Init();
 	// Keyboard::Init();
@@ -352,13 +365,13 @@ extern "C" void kmain()
 	// Thread::Start(fakeKbdThread);
 
 	Thread::Thread* shellThread;
-	Thread::Create(&shellThread, (u8*)"Shell", Shell::Thread);
+	Thread::Create(&shellThread, "Shell", Shell::Thread);
 	Thread::Start(shellThread);
 
 	if(0)
 	{
 		Thread::Thread* tT;
-		Thread::Create(&tT, (u8*)"test", TestThread);
+		Thread::Create(&tT, "test", TestThread);
 		Thread::Start(tT);
 	}
 #endif

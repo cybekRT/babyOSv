@@ -25,9 +25,11 @@ namespace Thread
 	};
 
 	Thread* currentThread = nullptr;
-
 	Thread* idleThread = nullptr;
+
 	Array<Thread*> threads;
+	List<Thread*> threadsQueue;
+
 	List<Thread2Signal> waitingThreads;
 	List<SignalInfo> raisedSignals;
 	u32 lastThreadId = 0;
@@ -36,7 +38,6 @@ namespace Thread
 
 	void UpdateThreadsList()
 	{
-		return;
 		Interrupt::Disable();
 
 		u32 ox, oy;
@@ -196,7 +197,7 @@ namespace Thread
 		thread->state = State::Running;
 
 		Print("Thread: Alloc stack\n");
-		thread->stackSize = 8192*8;
+		thread->stackSize = 4096;//8192*8;
 		//thread->stack = Memory::Alloc(thread->stackSize);
 		CreateKernelStack(thread);
 
@@ -205,7 +206,7 @@ namespace Thread
 		currentThread->interruptDisabled = 1;
 
 		Print("Thread: create idle thread\n");
-		Create(&idleThread, (u8*)"Idle", Idle);
+		Create(&idleThread, "Idle", Idle);
 
 		Print("Thread: start idle thread\n");
 		Start(idleThread);
@@ -303,15 +304,17 @@ namespace Thread
 		for(;;);
 	}
 
-	Status Create(Thread** thread, u8* name, int (*entry)(void*), void* threadData)
+	Status Create(Thread** thread, String name, int (*entry)(void*), void* threadData)
 	{
+		ASSERT(name.Length() < sizeof(Thread::name) + 1, "Thread name is too long");
+
 		// __asm("pushf\ncli");
 		Interrupt::Disable();
 		(*thread) = (Thread*)Memory::Alloc(sizeof(Thread));
 
 		(*thread)->process = nullptr;
 		(*thread)->id = (++lastThreadId);
-		memcpy((*thread)->name, name, strlen((char*)name)+1);
+		memcpy((*thread)->name, name.Data(), strlen((char*)name.Data())+1);
 		(*thread)->state = State::Running;
 
 		(*thread)->stackSize = 8192;
@@ -393,6 +396,28 @@ namespace Thread
 			(*code) = -1;
 
 		return Status::Undefined;
+	}
+
+	Status Kill(Thread** thread)
+	{
+		Print("Killing thread: %s\n", (*thread)->name);
+
+		return Status::Success;
+	}
+
+	Status Lock()
+	{
+
+	}
+
+	Status Unlock()
+	{
+
+	}
+
+	Status SwitchTo(Thread* thread)
+	{
+		return Status::Success;
 	}
 
 	State GetState(Thread* thread)

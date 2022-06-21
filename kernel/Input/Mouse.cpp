@@ -166,7 +166,7 @@ namespace Mouse
 		if(!WAIT_UNTIL(ReadData() != 0xFA, defaultTimeout))
 			return false;
 
-		Thread::Create(&thread, (u8*)"Mouse", HandlerTask);
+		Thread::Create(&thread, "Mouse", HandlerTask);
 		Thread::Start(thread);
 
 		Print("Mouse initialized~!\n");

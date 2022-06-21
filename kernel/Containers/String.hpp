@@ -14,7 +14,7 @@ public:
 		buffer_s[0] = 0;
 	}
 
-	explicit String(const char* arg) : String()
+	String(const char* arg) : String()
 	{
 		Assign(arg, strlen(arg));
 	}

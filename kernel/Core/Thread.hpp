@@ -1,5 +1,6 @@
 #include"Timer.hpp"
 #include"Status.hpp"
+#include"Containers/String.hpp"
 
 class Process;
 
@@ -112,9 +113,14 @@ namespace Thread
 	bool Init();
 	void NextThread();
 
-	Status Create(Thread** thread, u8* name, int (*entry)(void*), void* threadData = nullptr);
+	Status Create(Thread** thread, String name, int (*entry)(void*), void* threadData = nullptr);
 	Status Start(Thread* thread);
-	Status Join(Thread** thread, int* code);
+	Status Join(Thread* thread, int* code);
+	Status Kill(Thread** thread);
+
+	Status Lock();
+	Status Unlock();
+	Status SwitchTo(Thread* thread);
 
 	State GetState(Thread* thread);
 	void SetState(Thread* thread, State state);
