@@ -31,8 +31,9 @@ namespace Memory::Logical
 
 	void DisableFirstMegabyteMapping()
 	{
-		pageDirectory->entries[0].address = 0;
-		pageDirectory->entries[0].flags = 0;
+		*(u32*)&pageDirectory->entries[0] = 0x00;
+		// pageDirectory->entries[0].address = 0;
+		// pageDirectory->entries[0].present = 0;
 
 		// Refresh cr3
 		__asm(
@@ -98,21 +99,21 @@ namespace Memory::Logical
 			for(;;);
 		}
 
-		// Print("  Mapping... (%p -> %p)", physAddress, logicAddress);
 		unsigned directoryIndex = ((unsigned)logicAddress) >> 22;
 		unsigned tableIndex = (((unsigned)logicAddress) >> 12) & 0x3ff;
 
-		PageDirectoryEntry* pde = (PageDirectoryEntry*)(0xFFFFF000 | (directoryIndex * 4));
+		PageDirectory* pd = (PageDirectory*)(0xFFFFF000);
+		PageDirectoryEntry* pde = &pd->entries[directoryIndex];
 		PageTable* pt = (PageTable*)(0xFFC00000 | (directoryIndex << 12));
-		PageTableEntry* pte = (PageTableEntry*)(0xFFC00000 | (directoryIndex << 12) | (tableIndex * sizeof(PageDirectoryEntry)));
+		PageTableEntry* pte = &pt->entries[tableIndex];
 
-		// Print("wait... ");
 		if(!pde->address)
 		{
-			// Print("Adding table... ");
 			PageTable* ptPhys = (PageTable*)Physical::Alloc(sizeof(PageTable));
 			pde->address = ((unsigned)ptPhys) >> 12;
-			pde->flags = PAGE_TABLE_FLAG_PRESENT | PAGE_TABLE_FLAG_READ_WRITE | PAGE_TABLE_FLAG_SUPERVISOR;
+			pde->memoryMode = MemoryMode::ReadWrite;
+			pde->privilegeMode = PrivilegeMode::UserAccess;
+			pde->present = 1;
 
 			// Refresh CR3
 			__asm
@@ -124,10 +125,10 @@ namespace Memory::Logical
 			memset(pt, 0, sizeof(PageTable));
 		}
 
-		// Print("  Activating... ");
 		pte->address = ((unsigned)physAddress >> 12);
-		pte->flags = PAGE_TABLE_FLAG_PRESENT | PAGE_TABLE_FLAG_READ_WRITE | PAGE_TABLE_FLAG_SUPERVISOR;
-		// Print("OK~!\n");
+		pte->memoryMode = MemoryMode::ReadWrite;
+		pte->privilegeMode = PrivilegeMode::UserAccess;
+		pte->present = 1;
 	}
 
 	void* Map(void* physAddress, void* logicAddress, unsigned length)
@@ -168,10 +169,10 @@ namespace Memory::Logical
 		auto pageTable = GetLogicPageTable(dirIndex);
 		auto entry = &pageTable->entries[tableIndex];
 
-		ASSERT(entry->flags & PAGE_TABLE_FLAG_PRESENT, "Unmapping absent entry");
+		ASSERT(!entry->present, "Unmapping absent entry");
 
 		entry->address = 0;
-		entry->flags &= ~PAGE_TABLE_FLAG_PRESENT;
+		entry->present = 0;
 
 		#ifdef I386
 		// Refresh cr3

@@ -1,5 +1,51 @@
 #pragma once
 
+enum class PageSize : u32
+{
+	Page4kB,
+	Page4MB,
+};
+
+enum class CacheType : u32
+{
+	Disabled = 0b01,
+	Reserved = 0b11,
+	WriteBack = 0b00,
+	WriteThrough = 0b10,
+};
+
+enum class MemoryMode
+{
+	ReadOnly = 0,
+	ReadWrite = 1,
+};
+
+enum class PrivilegeMode
+{
+	Supervisor = 0,
+	UserAccess = 1,
+};
+
+// struct PageDirectoryFlags
+// {
+// 	u32 present					: 1;
+// 	MemoryMode memoryMode		: 1;
+// 	PrivilegeMode privilegeMode	: 1;
+// 	// u32 cacheWriteThrough	: 1;
+// 	// u32 cacheDisabled		: 1;
+// 	CacheType cacheType			: 2;
+// 	u32 accessed				: 1;
+// 	u32 available0				: 1;
+// 	PageSize pageSize			: 1;
+// 	u32 available1_4			: 4;
+// 	// Address
+// } __attribute__((packed));
+
+struct PageTableFlags
+{
+
+} __attribute__((packed));
+
 enum PageDirectoryFlag
 {
 	PAGE_DIRECTORY_FLAG_PRESENT		= (1 << 0),
@@ -33,13 +79,39 @@ enum PageTableFlag
 
 struct PageDirectoryEntry
 {
-	unsigned flags : 12;
-	unsigned address : 20;
+	u32 present					: 1;
+	MemoryMode memoryMode		: 1;
+	PrivilegeMode privilegeMode	: 1;
+	CacheType cacheType			: 2;
+	u32 accessed				: 1;
+	u32 available0				: 1;
+	PageSize pageSize			: 1;
+	u32 available1_4			: 4;
+	unsigned address			: 20;
 
 	void* GetAddress() { return (void*)(address << 12); }
-	//void SetAddress(void* address) { this->address = ((unsigned)address) >> 12; } // TODO: add assert
+	void SetAddress(void* address) { this->address = ((unsigned)address) >> 12; }
 
-	bool IsUsed() { return flags & PAGE_DIRECTORY_FLAG_PRESENT; }
+	bool IsUsed() { return present; }
+} __attribute__((packed));
+
+struct PageTableEntry
+{
+	u32 present					: 1;
+	MemoryMode memoryMode		: 1;
+	PrivilegeMode privilegeMode	: 1;
+	CacheType cacheType			: 2;
+	u32 accessed				: 1;
+	u32 dirty					: 1;
+	u32 pageAttributeTable		: 1;
+	u32 global					: 1;
+	u32 available0_2			: 3;
+	unsigned address			: 20;
+
+	void* GetAddress() { return (void*)(address << 12); }
+	void SetAddress(void* address) { this->address = ((unsigned)address) >> 12; }
+
+	bool IsUsed() { return present; }
 } __attribute__((packed));
 
 struct PageDirectory
@@ -47,9 +119,14 @@ struct PageDirectory
 	PageDirectoryEntry entries[1024];
 } __attribute__((packed));
 
-typedef PageDirectoryEntry PageTableEntry;
+struct PageTable
+{
+	PageTableEntry entries[1024];
+} __attribute__((packed));
 
-typedef PageDirectory PageTable;
+// typedef PageDirectoryEntry PageTableEntry;
+
+// typedef PageDirectory PageTable;
 
 namespace Memory
 {

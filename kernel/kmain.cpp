@@ -68,6 +68,16 @@ int TestThread(void* args)
 	return 0;
 }
 
+extern "C" void UserThread()
+{
+	u8* ptr = (u8*)0x800b8000;
+
+	for(;;)
+	{
+		ptr[0]++;
+	}
+}
+
 extern "C" void kmain()
 {
 	ASSERT(sizeof(u64) == 8, "u64");
@@ -80,6 +90,9 @@ extern "C" void kmain()
 	VGA::SetCursor(false);
 	Memory::Init();
 	Interrupt::Init();
+
+	// UserThread();
+	__asm("jmp $0x1B, $UserThread");
 
 	// Print("Logical: %p\n", (void*)kmain);
 	// Print("Physical: %p\n", Memory::Logical::GetPhysicalFromLogical((void*)kmain));
@@ -98,7 +111,7 @@ extern "C" void kmain()
 
 	Timer::Init();
 	Thread::Init();
-	PS2::Init();
+	// PS2::Init();
 
 	Interrupt::Disable();
 	KillStack();

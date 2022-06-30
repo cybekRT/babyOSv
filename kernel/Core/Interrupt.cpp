@@ -148,12 +148,18 @@ namespace Interrupt
 		}
 	}
 
+	static u32 _cs = 0;
 	static bool insidePageFault = false;
 	__attribute__((naked))
 	void ISR_PageFault(void* ptr)
 	{
 		__asm("cli");
 		__asm("xchg %bx, %bx");
+
+		__asm("mov %%cs, %0" : "=r"(_cs));
+
+		Print("YoLo~! %x\n", _cs);
+		for(;;);
 
 		if(insidePageFault)
 		{
@@ -296,6 +302,12 @@ namespace Interrupt
 		Register(INT_PAGE_FAULT, (ISR)ISR_PageFault);
 		Register(INT_INVALID_SEGMENT, (ISR)ISR_GPF);
 		//Register(INT_DIVISION_BY_ZERO, ISR_GPF);
+
+		// idt->entries[INT_PAGE_FAULT].selector=0x28;
+		// idt->entries[INT_PAGE_FAULT].flags = IDT_Entry::IDT_FLAG_32BIT_TASK_GATE | IDT_Entry::IDT_FLAG_ENTRY_PRESENT | IDT_Entry::IDT_FLAG_RING_0;
+
+		// Print("Int 0xE\n");
+		// __asm("int $0xe");
 
 		for(unsigned a = 0; a < 8; a++)
 		{
