@@ -1,4 +1,5 @@
 #include "Memory.hpp"
+#include "Memory_GDT.hpp"
 #include "bootloader_info.hpp"
 #include "preinit.hpp"
 
@@ -232,6 +233,16 @@ namespace Memory
 
 		Physical::Init();
 		Logical::Init();
+
+		// Print("Size: %d\n", sizeof(GDT::GDTEntry_Access::present));
+		// Print("Align: %d\n", alignof(GDT::GDTEntry_Access::present));
+		Print("Size: %d\n", sizeof(GDT::GDTEntry_Access::access));
+		Print("Align: %d\n", alignof(GDT::GDTEntry_Access::access));
+		Print("Size: %d\n", sizeof(GDT::GDTEntry_Access::attributes));
+		Print("Align: %d\n", alignof(GDT::GDTEntry_Access::attributes));
+		// Print("Size: %d\n", sizeof(GDT::GDTEntry_Access::_accessed));
+		// Print("Align: %d\n", alignof(GDT::GDTEntry_Access::_accessed));
+		for(;;);
 
 		memoryEntries = (MemoryInfo_t*)(((unsigned)_bootloader_info_ptr->memoryEntries) | 0x80000000);
 		memoryEntriesCount = *_bootloader_info_ptr->memoryEntriesCount;
