@@ -8,30 +8,11 @@
 
 namespace Thread
 {
-	struct Thread2Signal
-	{
-		Thread* thread;
-		Signal* signal;
-
-		Timer::Time sleepTime;
-		Timer::Time timeout;
-	};
-
-	struct SignalInfo
-	{
-		Signal signal;
-		Timer::Time raisedTime;
-		Timer::Time timeout;
-	};
-
 	Thread* currentThread = nullptr;
 	Thread* idleThread = nullptr;
 
 	Array<Thread*> threads;
 	List<Thread*> threadsQueue;
-
-	List<Thread2Signal> waitingThreads;
-	List<SignalInfo> raisedSignals;
 	u32 lastThreadId = 0;
 
 	__attribute((naked, noreturn)) void _NextThread(void*);
@@ -61,12 +42,12 @@ namespace Thread
 		Terminal::SetXY(x, y++);
 		Terminal::PrintWithPadding(padLen, " Waiting:");
 
-		for(auto t2s : waitingThreads)
-		{
-			Terminal::SetXY(x, y++);
-			s32 remainingTime = (t2s.timeout != (Timer::Time)-1) ? t2s.sleepTime + t2s.timeout - Timer::GetTicks() : -1;
-			Terminal::PrintWithPadding(padLen, "   %s (%d, %d)  ", t2s.thread->name, t2s.signal->type, remainingTime);
-		}
+		// for(auto t2s : waitingThreads)
+		// {
+		// 	Terminal::SetXY(x, y++);
+		// 	s32 remainingTime = (t2s.timeout != (Timer::Time)-1) ? t2s.sleepTime + t2s.timeout - Timer::GetTicks() : -1;
+		// 	Terminal::PrintWithPadding(padLen, "   %s (%d, %d)  ", t2s.thread->name, t2s.signal->type, remainingTime);
+		// }
 
 		Terminal::SetXY(x, y++);
 		Terminal::PrintWithPadding(padLen, "====================");
@@ -83,59 +64,59 @@ namespace Thread
 		{
 			Interrupt::Disable();
 
-			UpdateThreadsList();
+			// UpdateThreadsList();
 
-			while(!raisedSignals.IsEmpty())
-			{
-				SignalInfo sigInfo = raisedSignals.PopFront();
-				Signal sig = sigInfo.signal;
+			// while(!raisedSignals.IsEmpty())
+			// {
+			// 	SignalInfo sigInfo = raisedSignals.PopFront();
+			// 	Signal sig = sigInfo.signal;
 
-				auto t2s = waitingThreads.begin();
-				while(t2s)
-				{
-					bool sigMatch = t2s->signal->type == sig.type && t2s->signal->addr == sig.addr;
-					bool timeout = (t2s->timeout != (Timer::Time)-1) && (Timer::GetTicks() >= t2s->sleepTime + t2s->timeout);
+			// 	auto t2s = waitingThreads.begin();
+			// 	while(t2s)
+			// 	{
+			// 		bool sigMatch = t2s->signal->type == sig.type && t2s->signal->addr == sig.addr;
+			// 		bool timeout = (t2s->timeout != (Timer::Time)-1) && (Timer::GetTicks() >= t2s->sleepTime + t2s->timeout);
 
-					if(sigMatch || timeout)
-					{
-						if(sigMatch)
-							(*t2s->signal) = sig;
-						else if(timeout)
-							(*t2s->signal) = Signal { .type = Signal::Type::Timeout, .addr = 0 };
+			// 		if(sigMatch || timeout)
+			// 		{
+			// 			if(sigMatch)
+			// 				(*t2s->signal) = sig;
+			// 			else if(timeout)
+			// 				(*t2s->signal) = Signal { .type = Signal::Type::Timeout, .addr = 0 };
 
-						t2s->thread->state = State::Running;
-						threads.PushBack(t2s->thread);
+			// 			t2s->thread->state = State::Running;
+			// 			threads.PushBack(t2s->thread);
 
-						//auto item = t2s;
-						//t2s = t2s->next;
-						t2s = waitingThreads.RemoveAt(t2s);
-					}
-					else
-						t2s++;
-				}
-			}
+			// 			//auto item = t2s;
+			// 			//t2s = t2s->next;
+			// 			t2s = waitingThreads.RemoveAt(t2s);
+			// 		}
+			// 		else
+			// 			t2s++;
+			// 	}
+			// }
 
-			auto t2s = waitingThreads.begin();
-			while(t2s)
-			{
-				bool timeout = (t2s->timeout != (Timer::Time)-1) && (Timer::GetTicks() >= t2s->sleepTime + t2s->timeout);
-				if(timeout)
-				{
-					(*t2s->signal) = Signal { .type = Signal::Type::Timeout, .addr = 0 };
+			// auto t2s = waitingThreads.begin();
+			// while(t2s)
+			// {
+			// 	bool timeout = (t2s->timeout != (Timer::Time)-1) && (Timer::GetTicks() >= t2s->sleepTime + t2s->timeout);
+			// 	if(timeout)
+			// 	{
+			// 		(*t2s->signal) = Signal { .type = Signal::Type::Timeout, .addr = 0 };
 
-					t2s->thread->state = State::Running;
-					threads.PushBack(t2s->thread);
+			// 		t2s->thread->state = State::Running;
+			// 		threads.PushBack(t2s->thread);
 
-					// auto item = t2s;
-					// t2s = t2s->next;
-					t2s = waitingThreads.RemoveAt(t2s);
-				}
-				else
-					t2s++;
-			}
+			// 		// auto item = t2s;
+			// 		// t2s = t2s->next;
+			// 		t2s = waitingThreads.RemoveAt(t2s);
+			// 	}
+			// 	else
+			// 		t2s++;
+			// }
 
 			Interrupt::Enable();
-			if(threads.Size() > 0)
+			if(threadsQueue.Size() > 0)
 				NextThread();
 			else
 				__asm("hlt");
@@ -310,7 +291,8 @@ namespace Thread
 
 		// __asm("pushf\ncli");
 		Interrupt::Disable();
-		(*thread) = (Thread*)Memory::Alloc(sizeof(Thread));
+		(*thread) = new Thread();// (Thread*)Memory::Alloc(sizeof(Thread));
+		threads.PushBack((*thread));
 
 		(*thread)->process = nullptr;
 		(*thread)->id = (++lastThreadId);
@@ -383,14 +365,19 @@ namespace Thread
 	Status Start(Thread* thread)
 	{
 		Interrupt::Disable();
-		threads.PushBack(thread);
+		SetState(thread, State::Running);
 		Terminal::Print("Started thread: %s\n", thread->name);
 		Interrupt::Enable();
 
 		return Status::Success;
 	}
 
-	Status Join(Thread** thread, int* code)
+	Status Pause(Thread* thread)
+	{
+		SetState(thread, State::Waiting);
+	}
+
+	Status Join(Thread* thread, int* code)
 	{
 		if(code != nullptr)
 			(*code) = -1;
@@ -398,25 +385,35 @@ namespace Thread
 		return Status::Undefined;
 	}
 
-	Status Kill(Thread** thread)
+	Status Kill(Thread* thread)
 	{
-		Print("Killing thread: %s\n", (*thread)->name);
+		Print("Killing thread: %s\n", thread->name);
+		SetState(thread, State::Zombie);
+
+		for(auto t : thread->deathQueue)
+			SetState(t, State::Running);
 
 		return Status::Success;
 	}
 
 	Status Lock()
 	{
-
+		SetState(currentThread, State::Unstoppable);
 	}
 
 	Status Unlock()
 	{
-
+		SetState(currentThread, State::Running);
 	}
 
 	Status SwitchTo(Thread* thread)
 	{
+		if(thread->state != State::Running && thread->state != State::Unstoppable)
+			return Status::Undefined;
+
+		threadsQueue.Remove(thread);
+		threadsQueue.PushFront(thread);
+
 		return Status::Success;
 	}
 
@@ -430,47 +427,29 @@ namespace Thread
 		if(thread == nullptr)
 			thread = currentThread;
 
+		if(thread->state == state)
+			return;
+
 		thread->state = state;
-	}
-
-	Status RaiseSignal(Signal signal, Timer::Time timeout)
-	{
-		Interrupt::Disable();
-		raisedSignals.PushBack(SignalInfo { .signal = signal, .raisedTime = Timer::GetTicks(), .timeout = timeout });
-		Interrupt::Enable();
-
-		return Status::Success;
-	}
-
-	Status WaitForSignal(Signal signal, Timer::Time timeout)
-	{
-		Interrupt::Disable();
-
-		// if(currentThread == idleThread)
-		// {
-		// 	Print("WTF~!?\n");
-		// 	//for(;;);
-		// }
-
-		auto prevState = currentThread->state;
-
-		//Terminal::Print("Thread %s waiting for signal %d:%d...\n", currentThread->name, signal.type, signal.addr);
-		currentThread->state = State::Waiting;
-		waitingThreads.PushBack(Thread2Signal { .thread = currentThread, .signal = &signal, .sleepTime = Timer::GetTicks(), .timeout = timeout } );
-		// Print("Waiting size: %d\n", waitingThreads.Size());
-		// Print("Thread \"%s\" waiting for signal: %d, timeout: %d\n", currentThread->name, signal.type, timeout);
-
-		NextThread();
-
-		//auto prevState = currentThread->state;
-		//SetState(currentThread, prevState);
-		currentThread->state = prevState;
-		Interrupt::Enable();
-
-		// Print("Thread \"%s\" finished waiting: %d\n", currentThread->name, signal.type);
-		if(signal.type == Signal::Type::Timeout)
-			return Status::Timeout;
-
-		return Status::Success;
+		switch(state)
+		{
+			case State::Running:
+			case State::Unstoppable:
+			{
+				if(!threadsQueue.Contains(thread))
+					threadsQueue.PushBack(thread);
+				break;
+			}
+			case State::Waiting:
+			{
+				threadsQueue.Remove(thread);
+				break;
+			}
+			case State::Zombie:
+			{
+				threadsQueue.Remove(thread);
+				break;
+			}
+		}
 	}
 }

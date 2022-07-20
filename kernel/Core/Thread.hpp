@@ -1,6 +1,9 @@
+#pragma once
+
 #include"Timer.hpp"
 #include"Status.hpp"
 #include"Containers/String.hpp"
+#include"Containers/List.hpp"
 
 class Process;
 
@@ -55,28 +58,6 @@ namespace Thread
 		u32 unused5				: 10;
 	} __attribute__((packed));
 
-	struct Signal
-	{
-		enum Type
-		{
-			None = 0,
-			IRQ,
-			Timer,
-
-			LockObject, // Mutex, Semaphore
-
-			Custom = 250,
-			Timeout = 255,
-		};
-
-		Type type;
-		union
-		{
-			u32 value;
-			void* addr;
-		};
-	};
-
 	enum State
 	{
 		Created,
@@ -104,6 +85,8 @@ namespace Thread
 
 		u32 interruptDisabled;
 		u32 returnValue;
+
+		List<Thread*> deathQueue;
 	};
 
 	extern Thread* currentThread;
@@ -115,8 +98,9 @@ namespace Thread
 
 	Status Create(Thread** thread, String name, int (*entry)(void*), void* threadData = nullptr);
 	Status Start(Thread* thread);
+	Status Pause(Thread* thread);
 	Status Join(Thread* thread, int* code);
-	Status Kill(Thread** thread);
+	Status Kill(Thread* thread);
 
 	Status Lock();
 	Status Unlock();
@@ -124,6 +108,4 @@ namespace Thread
 
 	State GetState(Thread* thread);
 	void SetState(Thread* thread, State state);
-	Status RaiseSignal(Signal signal, Timer::Time timeout = 0);
-	Status WaitForSignal(Signal signal, Timer::Time timeout = (Timer::Time)-1);
 }

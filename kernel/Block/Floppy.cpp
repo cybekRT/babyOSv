@@ -5,6 +5,7 @@
 #include"Timer.hpp"
 #include"Block.hpp"
 #include"Thread.hpp"
+#include"Signal.hpp"
 #include<stdarg.h>
 
 namespace Floppy
@@ -100,11 +101,13 @@ namespace Floppy
 
 	u8 currentTrack = 0;
 	u8 motorEnabled = 0;
+	Signal irqSignal;
 
 	ISR(Floppy)
 	{
 		irqReceived = 1;
-		Thread::RaiseSignal(Thread::Signal { .type = Thread::Signal::Type::IRQ, .value = Interrupt::IRQ_FLOPPY }, 0);
+		// Thread::RaiseSignal(Thread::Signal { .type = Thread::Signal::Type::IRQ, .value = Interrupt::IRQ_FLOPPY }, 0);
+		irqSignal.Raise();
 		Interrupt::AckIRQ();
 	}
 
@@ -159,9 +162,10 @@ namespace Floppy
 
 	void WaitIRQ()
 	{
-		auto status = Thread::WaitForSignal(Thread::Signal { .type = Thread::Signal::Type::IRQ, .value = Interrupt::IRQ_FLOPPY }, 500);
-		if(status == Status::Timeout)
-			Print("Oopsie...\n");
+		// auto status = Thread::WaitForSignal(Thread::Signal { .type = Thread::Signal::Type::IRQ, .value = Interrupt::IRQ_FLOPPY }, 500);
+		irqSignal.Wait();
+		// if(status == Status::Timeout)
+		// 	Print("Oopsie...\n");
 	}
 
 	void MotorOn()
@@ -270,6 +274,7 @@ namespace Floppy
 
 		//irqReceived = 0;
 		Thread::SetState(nullptr, Thread::State::Unstoppable);
+		irqSignal.Reset();
 		PortOut(IOPort::FDD_REG_DIGITAL_OUT, *regPtr);
 		WaitIRQ();
 
@@ -288,6 +293,7 @@ namespace Floppy
 		MotorOn();
 
 		Thread::SetState(nullptr, Thread::State::Unstoppable);
+		irqSignal.Reset();
 		Exec(Command::FDD_CMD_RECALIBRATE, 1, 0x00);
 		WaitIRQ();
 
@@ -338,6 +344,7 @@ namespace Floppy
 		Print("Seeking track: %u\n", track);
 
 		Thread::SetState(nullptr, Thread::State::Unstoppable);
+		irqSignal.Reset();
 		Exec(Command::FDD_CMD_SEEK, 2, 0x00, track);
 		WaitIRQ();
 
@@ -365,12 +372,14 @@ namespace Floppy
 		ISA_DMA::Start(2, ISA_DMA::TransferDir::READ, dmaPhys, 512);
 
 		irqReceived = 0;
+		irqSignal.Reset();
 		u8 cmd = (u8)FDD_CMD_OPTION_MULTITRACK | (u8)FDD_CMD_OPTION_MFM | (u8)FDD_CMD_OPTION_SKIP | (u8)FDD_CMD_READ_DATA;
 		u8 driveNo = 0;
 
 		//Print("Fdd CHS: %x %d %d %d\n", cmd, cylinder, head, sector);
 
 		Thread::SetState(nullptr, Thread::State::Unstoppable);
+		irqSignal.Reset();
 		Exec((Command)cmd, 8, (head << 2) | driveNo, cylinder, head, sector, 0x02, 0x12, 0x1B, 0xFF);
 		WaitIRQ();
 
@@ -442,12 +451,14 @@ namespace Floppy
 		ISA_DMA::Start(2, ISA_DMA::TransferDir::WRITE, dmaPhys, 512);
 
 		irqReceived = 0;
+		irqSignal.Reset();
 		u8 cmd = (u8)FDD_CMD_OPTION_MULTITRACK | (u8)FDD_CMD_OPTION_MFM | (u8)FDD_CMD_WRITE_DATA;
 		u8 driveNo = 0;
 
 		//Print("Fdd CHS: %x %d %d %d\n", cmd, cylinder, head, sector);
 
 		Thread::SetState(nullptr, Thread::State::Unstoppable);
+		irqSignal.Reset();
 		Exec((Command)cmd, 8, (head << 2) | driveNo, cylinder, head, sector, 0x02, 0x12, 0x1B, 0xFF);
 		WaitIRQ();
 

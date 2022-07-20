@@ -357,4 +357,18 @@ public:
 
 		return tail->data;
 	}
+
+	bool Contains(const T& arg)
+	{
+		Item* ptr = head;
+		while(ptr)
+		{
+			if(ptr->data == arg)
+				return true;
+
+			ptr = ptr->next;
+		}
+
+		return false;
+	}
 };

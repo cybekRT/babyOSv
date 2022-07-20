@@ -92,7 +92,7 @@ extern "C" void kmain()
 	Interrupt::Init();
 
 	// UserThread();
-	__asm("jmp $0x1B, $UserThread");
+	// __asm("jmp $0x1B, $UserThread");
 
 	// Print("Logical: %p\n", (void*)kmain);
 	// Print("Physical: %p\n", Memory::Logical::GetPhysicalFromLogical((void*)kmain));
@@ -113,7 +113,9 @@ extern "C" void kmain()
 	Thread::Init();
 	// PS2::Init();
 
-	Interrupt::Disable();
+	Print("Thread started~!\n");
+
+	// Interrupt::Disable();
 	KillStack();
 
 	Serial::Init();

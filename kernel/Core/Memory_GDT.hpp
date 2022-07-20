@@ -30,7 +30,13 @@ namespace Memory
 			/**
 			 * DPL: Descriptor privilege level field. Contains the CPU Privilege level of the segment. 0 = highest privilege (kernel), 3 = lowest privilege (user applications).
 			 */
-			u8 ring : 2;
+			enum class Ring : u8
+			{
+				Ring0 = 0,
+				Ring1 = 1,
+				Ring2 = 2,
+				Ring3 = 3,
+			} ring : 2;
 
 			/**
 			 * S: Descriptor type bit. If clear (0) the descriptor defines a system segment (eg. a Task State Segment). If set (1) it defines a code or data segment.
@@ -44,7 +50,7 @@ namespace Memory
 			/**
 			 * E: Executable bit. If clear (0) the descriptor defines a data segment. If set (1) it defines a code segment which can be executed from.
 			 */
-			u8 executable : 1;
+			bool executable : 1;
 
 			/**
 			 * DC: Direction bit/Conforming bit.
@@ -53,38 +59,30 @@ namespace Memory
 					If clear (0) code in this segment can only be executed from the ring set in DPL.
 					If set (1) code in this segment can be executed from an equal or lower privilege level. For example, code in ring 3 can far-jump to conforming code in a ring 2 segment. The DPL field represent the highest privilege level that is allowed to execute the segment. For example, code in ring 0 cannot far-jump to a conforming code segment where DPL is 2, while code in ring 2 and 3 can. Note that the privilege level remains the same, ie. a far-jump from ring 3 to a segment with a DPL of 2 remains in ring 3 after the jump.
 			 */
-			union
+			enum class DirectionConforming : u8
 			{
-				enum class Direction : u8
-				{
-					GrowsUp = 0,
-					GrowsDown = 1,
-				} dataSegment __attribute__((packed)) : 1;
-				enum class Conforming : u8
-				{
-					RingEqual = 0,
-					RingEqualOrLower = 1,
-				} codeSegment __attribute__((packed)) : 1;
-			} access __attribute__((packed));
+				// Data segment
+				Data_GrowsUp = 0,
+				Data_GrowsDown = 1,
+				// Code segment
+				Code_RingEqual = 0,
+				Code_RingEqualOrLower = 1,
+			} directionConforming : 1;
 
 			/**
 			 * RW: Readable bit/Writable bit.
 				For code segments: Readable bit. If clear (0), read access for this segment is not allowed. If set (1) read access is allowed. Write access is never allowed for code segments.
 				For data segments: Writeable bit. If clear (0), write access for this segment is not allowed. If set (1) write access is allowed. Read access is always allowed for data segments.
 			 */
-			union
+			enum class Readable : u8
 			{
-				enum class Readable : u8
-				{
-					ExecutableOnly = 0,
-					Readable = 1,
-				} codeSegment __attribute__((packed)) : 1;
-				enum class Writable : u8
-				{
-					ReadOnly = 0,
-					ReadWrite = 1,
-				} dataSegment __attribute__((packed)) : 1;
-			} attributes __attribute__((packed));
+				// Code segment
+				Code_ExecutableOnly = 0,
+				Code_Readable = 1,
+				// Data segment
+				Data_ReadOnly = 0,
+				Data_ReadWrite = 1,
+			} attributes : 1;
 
 			/**
 			 * A: Accessed bit. Best left clear (0), the CPU will set it when the segment is accessed.
@@ -92,21 +90,24 @@ namespace Memory
 			u8 _accessed : 1;
 		} __attribute__((packed));
 
-		struct GDTEntry
+		union GDTEntry
 		{
-			u16 limit_0_15;
-			u16 base_0_15;
-			u8 base_16_23;
-			u8 flags;
-			u8 limit_16_19;
-			u8 base_24_31;
+			struct
+			{
+				u16 limit_0_15;
+				u16 base_0_15;
+				u8 base_16_23;
+				GDTEntry_Access flags;
+				u8 limit_16_19;
+				u8 base_24_31;
+			} fields __attribute__((packed));
+			u64 value;
+		} __attribute__((packed));
 
-			// .limit_0_15 resw 1,
-			// .base_0_15 resw 1,
-			// .base_16_23 resb 1,
-			// .flags resb 1,
-			// .limit_16_19_attributes resb 1,
-			// .base_24_31 resb 1
+		struct GDTArray
+		{
+			u16 length;
+			GDTEntry* ptr;
 		} __attribute__((packed));
 
 		bool Init();

@@ -82,7 +82,8 @@ namespace Timer
 		Time time = ticks + ms;
 		while(ticks < time)
 		{
-			__asm("int $0xff");
+			// __asm("int $0xff");
+			// FIXME
 		}
 
 		// Thread::SetState(Thread::currentThread, prevState);

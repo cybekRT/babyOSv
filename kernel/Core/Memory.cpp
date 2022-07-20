@@ -218,13 +218,13 @@ namespace Memory
 
 		Print("Memory: %x:%p\n", globalTSS.ss0, globalTSS.esp0);
 
-		// for(;;);
+		for(;;);
 
-		__asm(
-			"mov $(5*8 | 0), %%ax \r\n"
-			"ltr %%ax \r\n"
-			: : : "ax"
-		);
+		// __asm(
+		// 	"mov $(5*8 | 0), %%ax \r\n"
+		// 	"ltr %%ax \r\n"
+		// 	: : : "ax"
+		// );
 	}
 
 	bool Init()
@@ -233,16 +233,7 @@ namespace Memory
 
 		Physical::Init();
 		Logical::Init();
-
-		// Print("Size: %d\n", sizeof(GDT::GDTEntry_Access::present));
-		// Print("Align: %d\n", alignof(GDT::GDTEntry_Access::present));
-		Print("Size: %d\n", sizeof(GDT::GDTEntry_Access::access));
-		Print("Align: %d\n", alignof(GDT::GDTEntry_Access::access));
-		Print("Size: %d\n", sizeof(GDT::GDTEntry_Access::attributes));
-		Print("Align: %d\n", alignof(GDT::GDTEntry_Access::attributes));
-		// Print("Size: %d\n", sizeof(GDT::GDTEntry_Access::_accessed));
-		// Print("Align: %d\n", alignof(GDT::GDTEntry_Access::_accessed));
-		for(;;);
+		GDT::Init();
 
 		memoryEntries = (MemoryInfo_t*)(((unsigned)_bootloader_info_ptr->memoryEntries) | 0x80000000);
 		memoryEntriesCount = *_bootloader_info_ptr->memoryEntriesCount;

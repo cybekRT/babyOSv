@@ -3,6 +3,7 @@
 #include"HAL.hpp"
 #include"Keyboard.hpp"
 #include"Thread.hpp"
+#include"Signal.hpp"
 
 #include"Keyboard_map.cpp"
 
@@ -12,6 +13,7 @@ typedef Keyboard::KeyCode Key;
 namespace Keyboard
 {
 	List<KeyEvent> events;
+	Signal irqSignal;
 
 	u8 keysMap[ ((u32)Key::Total + 7) / 8 ];
 	HAL::RegisterRO<u8> regStatus(0x64);
@@ -88,13 +90,15 @@ namespace Keyboard
 		// Interrupt::AckIRQ();
 
 		events.PushBack(event);
-		Thread::RaiseSignal( { .type = Thread::Signal::IRQ, .value = Interrupt::IRQ_KEYBOARD } );
+		// Thread::RaiseSignal( { .type = Thread::Signal::IRQ, .value = Interrupt::IRQ_KEYBOARD } );
+		irqSignal.Raise();
 	}
 
 	void AddEvent(const KeyEvent& event)
 	{
 		events.PushBack(event);
-		Thread::RaiseSignal( { .type = Thread::Signal::IRQ, .value = Interrupt::IRQ_KEYBOARD } );
+		// Thread::RaiseSignal( { .type = Thread::Signal::IRQ, .value = Interrupt::IRQ_KEYBOARD } );
+		irqSignal.Raise();
 	}
 
 	bool ReadEvent(KeyEvent* event)
@@ -111,7 +115,8 @@ namespace Keyboard
 	{
 		while(events.IsEmpty())
 		{
-			Thread::WaitForSignal( { .type = Thread::Signal::IRQ, .value = Interrupt::IRQ_KEYBOARD } );
+			// Thread::WaitForSignal( { .type = Thread::Signal::IRQ, .value = Interrupt::IRQ_KEYBOARD } );
+			irqSignal.Wait();
 		}
 
 		*event = events.PopFront();

@@ -5,6 +5,7 @@
 #include"Containers/Array.hpp"
 #include"Containers/List.hpp"
 #include"Thread.hpp"
+#include"Signal.hpp"
 
 #include"Timer.hpp"
 #include"Mutex.hpp"
@@ -28,6 +29,7 @@ namespace Mouse
 
 	Array<u8> dataBuffer(8);
 	List<Event> events;
+	Signal irqSignal;
 
 	// TODO: thread-safe
 	Array<EventHandler> handlers;
@@ -128,7 +130,8 @@ namespace Mouse
 			// handlersMutex.Unlock();
 
 			// Thread::SetState(thread, Thread::State::Waiting);
-			Thread::WaitForSignal(Thread::Signal { .type = Thread::Signal::IRQ, .value = 123 } );
+			// Thread::WaitForSignal(Thread::Signal { .type = Thread::Signal::IRQ, .value = 123 } );
+			irqSignal.Wait();
 		}
 
 		return 1;
@@ -246,7 +249,8 @@ namespace Mouse
 
 			// Thread::SetState(thread, Thread::State::Running);
 
-			Thread::RaiseSignal(Thread::Signal { .type = Thread::Signal::IRQ, .value = 123 } );
+			// Thread::RaiseSignal(Thread::Signal { .type = Thread::Signal::IRQ, .value = 123 } );
+			irqSignal.Raise();
 
 			dataBuffer.Clear();
 		}
