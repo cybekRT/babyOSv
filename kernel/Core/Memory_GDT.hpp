@@ -1,3 +1,5 @@
+#pragma once
+
 namespace Memory
 {
 	namespace GDT
@@ -23,34 +25,24 @@ namespace Memory
 		struct GDTEntry_Access
 		{
 			/**
-			 * P: Present bit. Allows an entry to refer to a valid segment. Must be set (1) for any valid segment.
+			 * A: Accessed bit. Best left clear (0), the CPU will set it when the segment is accessed.
 			 */
-			u8 present : 1;
+			u8 _accessed : 1;
 
 			/**
-			 * DPL: Descriptor privilege level field. Contains the CPU Privilege level of the segment. 0 = highest privilege (kernel), 3 = lowest privilege (user applications).
+			 * RW: Readable bit/Writable bit.
+				For code segments: Readable bit. If clear (0), read access for this segment is not allowed. If set (1) read access is allowed. Write access is never allowed for code segments.
+				For data segments: Writeable bit. If clear (0), write access for this segment is not allowed. If set (1) write access is allowed. Read access is always allowed for data segments.
 			 */
-			enum class Ring : u8
+			enum class Readable : u8
 			{
-				Ring0 = 0,
-				Ring1 = 1,
-				Ring2 = 2,
-				Ring3 = 3,
-			} ring : 2;
-
-			/**
-			 * S: Descriptor type bit. If clear (0) the descriptor defines a system segment (eg. a Task State Segment). If set (1) it defines a code or data segment.
-			 */
-			enum class SegmentType : u8
-			{
-				SystemSegment = 0,
-				CodeDataSegment = 1,
-			} type : 1;
-
-			/**
-			 * E: Executable bit. If clear (0) the descriptor defines a data segment. If set (1) it defines a code segment which can be executed from.
-			 */
-			bool executable : 1;
+				// Code segment
+				Code_ExecutableOnly = 0,
+				Code_Readable = 1,
+				// Data segment
+				Data_ReadOnly = 0,
+				Data_ReadWrite = 1,
+			} attributes : 1;
 
 			/**
 			 * DC: Direction bit/Conforming bit.
@@ -70,25 +62,46 @@ namespace Memory
 			} directionConforming : 1;
 
 			/**
-			 * RW: Readable bit/Writable bit.
-				For code segments: Readable bit. If clear (0), read access for this segment is not allowed. If set (1) read access is allowed. Write access is never allowed for code segments.
-				For data segments: Writeable bit. If clear (0), write access for this segment is not allowed. If set (1) write access is allowed. Read access is always allowed for data segments.
+			 * E: Executable bit. If clear (0) the descriptor defines a data segment. If set (1) it defines a code segment which can be executed from.
 			 */
-			enum class Readable : u8
-			{
-				// Code segment
-				Code_ExecutableOnly = 0,
-				Code_Readable = 1,
-				// Data segment
-				Data_ReadOnly = 0,
-				Data_ReadWrite = 1,
-			} attributes : 1;
+			bool executable : 1;
 
 			/**
-			 * A: Accessed bit. Best left clear (0), the CPU will set it when the segment is accessed.
+			 * S: Descriptor type bit. If clear (0) the descriptor defines a system segment (eg. a Task State Segment). If set (1) it defines a code or data segment.
 			 */
-			u8 _accessed : 1;
+			enum class SegmentType : u8
+			{
+				SystemSegment = 0,
+				CodeDataSegment = 1,
+			} type : 1;
+
+			/**
+			 * DPL: Descriptor privilege level field. Contains the CPU Privilege level of the segment. 0 = highest privilege (kernel), 3 = lowest privilege (user applications).
+			 */
+			enum class Ring : u8
+			{
+				Ring0 = 0,
+				Ring1 = 1,
+				Ring2 = 2,
+				Ring3 = 3,
+			} ring : 2;
+
+			/**
+			 * P: Present bit. Allows an entry to refer to a valid segment. Must be set (1) for any valid segment.
+			 */
+			u8 present : 1;
 		} __attribute__((packed));
+
+		enum class SizeFlag : u8
+		{
+			Protected16b,
+			Protected32b
+		};
+		enum class LimitType : u8
+		{
+			Byte,
+			Block4k,
+		};
 
 		union GDTEntry
 		{
@@ -98,7 +111,11 @@ namespace Memory
 				u16 base_0_15;
 				u8 base_16_23;
 				GDTEntry_Access flags;
-				u8 limit_16_19;
+				u8 _reserved : 1;
+				u8 longMode : 1;
+				SizeFlag sizeFlag : 1;
+				LimitType limitType : 1;
+				u8 limit_16_19 : 4;
 				u8 base_24_31;
 			} fields __attribute__((packed));
 			u64 value;
