@@ -30,39 +30,6 @@ struct gdt_entry
 	gdt_entry_bits* entries;
 } __attribute__((packed));
 
-struct tss_entry_struct {
-	u32 prev_tss; // The previous TSS - with hardware task switching these form a kind of backward linked list.
-	u32 esp0;     // The stack pointer to load when changing to kernel mode.
-	u32 ss0;      // The stack segment to load when changing to kernel mode.
-	// Everything below here is unused.
-	u32 esp1; // esp and ss 1 and 2 would be used when switching to rings 1 or 2.
-	u32 ss1;
-	u32 esp2;
-	u32 ss2;
-	u32 cr3;
-	u32 eip;
-	u32 eflags;
-	u32 eax;
-	u32 ecx;
-	u32 edx;
-	u32 ebx;
-	u32 esp;
-	u32 ebp;
-	u32 esi;
-	u32 edi;
-	u32 es;
-	u32 cs;
-	u32 ss;
-	u32 ds;
-	u32 fs;
-	u32 gs;
-	u32 ldt;
-	u16 trap;
-	u16 iomap_base;
-} __attribute__((packed));
-
-tss_entry_struct globalTSS;
-
 namespace Memory
 {
 	struct MemoryInfo_t
@@ -181,51 +148,51 @@ namespace Memory
 		Memory::Physical::ReserveMemory((void*)(_kernel_beg & (~0x80000000)), _kernel_end - _kernel_beg);
 	}
 
-	void CreateTSS()
-	{
-		static gdt_entry gdt;
-		__asm("sgdt %0" : "=m"(gdt));
+	// void CreateTSS()
+	// {
+	// 	static gdt_entry gdt;
+	// 	__asm("sgdt %0" : "=m"(gdt));
 
-		Print("GDT: %x - %d\n", gdt.entries, gdt.size);
+	// 	Print("GDT: %x - %d\n", gdt.entries, gdt.size);
 
-		u32 base = (u32) &globalTSS;
-		u32 limit = sizeof(globalTSS);
+	// 	u32 base = (u32) &globalTSS;
+	// 	u32 limit = sizeof(globalTSS);
 
-		gdt_entry_bits* g = gdt.entries + 5;
-		// Add a TSS descriptor to the GDT.
-		g->limit_low = limit;
-		g->base_low = base;
-		g->accessed = 1; // With a system entry (`code_data_segment` = 0), 1 indicates TSS and 0 indicates LDT
-		g->read_write = 0; // For a TSS, indicates busy (1) or not busy (0).
-		g->conforming_expand_down = 0; // always 0 for TSS
-		g->code = 1; // For a TSS, 1 indicates 32-bit (1) or 16-bit (0).
-		g->code_data_segment=0; // indicates TSS/LDT (see also `accessed`)
-		g->DPL = 0; // ring 0, see the comments below
-		g->present = 1;
-		g->limit_high = (limit & (0xf << 16)) >> 16; // isolate top nibble
-		g->available = 0; // 0 for a TSS
-		g->long_mode = 0;
-		g->big = 0; // should leave zero according to manuals.
-		g->gran = 0; // limit is in bytes, not pages
-		g->base_high = (base & (0xff << 24)) >> 24; //isolate top byte
+	// 	gdt_entry_bits* g = gdt.entries + 5;
+	// 	// Add a TSS descriptor to the GDT.
+	// 	g->limit_low = limit;
+	// 	g->base_low = base;
+	// 	g->accessed = 1; // With a system entry (`code_data_segment` = 0), 1 indicates TSS and 0 indicates LDT
+	// 	g->read_write = 0; // For a TSS, indicates busy (1) or not busy (0).
+	// 	g->conforming_expand_down = 0; // always 0 for TSS
+	// 	g->code = 1; // For a TSS, 1 indicates 32-bit (1) or 16-bit (0).
+	// 	g->code_data_segment=0; // indicates TSS/LDT (see also `accessed`)
+	// 	g->DPL = 0; // ring 0, see the comments below
+	// 	g->present = 1;
+	// 	g->limit_high = (limit & (0xf << 16)) >> 16; // isolate top nibble
+	// 	g->available = 0; // 0 for a TSS
+	// 	g->long_mode = 0;
+	// 	g->big = 0; // should leave zero according to manuals.
+	// 	g->gran = 0; // limit is in bytes, not pages
+	// 	g->base_high = (base & (0xff << 24)) >> 24; //isolate top byte
 
-		// Ensure the TSS is initially zero'd.
-		memset(&globalTSS, 0, sizeof(globalTSS));
+	// 	// Ensure the TSS is initially zero'd.
+	// 	memset(&globalTSS, 0, sizeof(globalTSS));
 
-		globalTSS.ss0  = 0x10;  // Set the kernel stack segment.
-		globalTSS.esp0 = (u32)Memory::Alloc(8192);// REPLACE_KERNEL_STACK_ADDRESS; // Set the kernel stack pointer.
-		globalTSS.esp0 += 8192;
+	// 	globalTSS.ss0  = 0x10;  // Set the kernel stack segment.
+	// 	globalTSS.esp0 = (u32)Memory::Alloc(8192);// REPLACE_KERNEL_STACK_ADDRESS; // Set the kernel stack pointer.
+	// 	globalTSS.esp0 += 8192;
 
-		Print("Memory: %x:%p\n", globalTSS.ss0, globalTSS.esp0);
+	// 	Print("Memory: %x:%p\n", globalTSS.ss0, globalTSS.esp0);
 
-		for(;;);
+	// 	for(;;);
 
 		// __asm(
 		// 	"mov $(5*8 | 0), %%ax \r\n"
 		// 	"ltr %%ax \r\n"
 		// 	: : : "ax"
 		// );
-	}
+	// }
 
 	bool Init()
 	{
@@ -242,7 +209,8 @@ namespace Memory
 		SortEntries();
 		FixEntries();
 		CreateMemoryMap();
-		CreateTSS();
+		// CreateTSS();
+		GDT::InitTSS();
 
 		return true;
 	}
@@ -391,21 +359,17 @@ namespace Memory
 			else
 				ptr = ptr->next;
 		}
-
-		// Print("Merged: %d\n", count);
 	}
 
 	void Free(void* ptr)
 	{
-		// return;
-		MallocHeader* hdr = (MallocHeader*)ptr;//&((MallocHeader*)ptr)[-1];
+		MallocHeader* hdr = (MallocHeader*)ptr;
 		hdr--;
 
 		if(!hdr->used)
 		{
 			FAIL("Double free~!\n");
 			return;
-			//Print("Double free~!\n"); for(;;);
 		}
 
 		hdr->used = false;
@@ -432,46 +396,6 @@ namespace Memory
 		}
 
 		MallocMerge();
-
-		//Print("MallocPage: %p, Hdr: %p\n", mallocPage, hdr);
-		// if(hdr < mallocPage)
-		// {
-			// hdr->next = mallocPage;
-			// mallocPage = hdr;
-			//Print("MallocPage = Hdr = %p\n", mallocPage);
-		// }
-		// else
-		// {
-		// 	auto ptr = mallocPage;
-		// 	auto prevPtr = (MallocHeader*)nullptr;
-		// 	while(ptr)
-		// 	{
-		// 		if(ptr == hdr || ptr->next == hdr)
-		// 		{
-		// 			FAIL("Cycle in malloc list~!\n");
-		// 			//Print("Oopsie...\n"); for(;;);
-		// 		}
-
-		// 		if(ptr->next > hdr)
-		// 		{
-		// 			hdr->next = ptr->next;
-		// 			ptr->next = hdr;
-
-		// 			break;
-		// 		}
-
-		// 		prevPtr = ptr;
-		// 		ptr = ptr->next;
-		// 	}
-
-		// 	if(ptr == nullptr)
-		// 	{
-		// 		// Print("Prev: %p, Ptr: %p, Hdr: %p, Hdr->next: %p\n", prevPtr, ptr, hdr, hdr->next);
-		// 		prevPtr->next = hdr;
-		// 		//hdr->next = nullptr;
-		// 	}
-		// }
-		// TODO: merge entries
 	}
 
 	u32 Size(void* ptr)

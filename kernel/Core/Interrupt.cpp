@@ -35,6 +35,7 @@ struct IDT_Entry
 		u32 a = (u32)isrAddr;
 		address_0_15 = a & 0xFFFF;
 		address_16_31 = a >> 16;
+		selector = 0x08;
 	}
 
 	Interrupt::ISR GetAddress()
@@ -332,8 +333,9 @@ namespace Interrupt
 		Print("Registering %x  with handler: %p... ", (u32)isr);
 
 		idt->entries[index].SetAddress(isr);
+		idt->entries[index].flags  = IDT_Entry::Flag::IDT_FLAG_32BIT_INT_GATE;
 		idt->entries[index].flags |= IDT_Entry::Flag::IDT_FLAG_ENTRY_PRESENT;
-		idt->entries[index].flags |= IDT_Entry::Flag::IDT_FLAG_RING_3;
+		idt->entries[index].flags |= IDT_Entry::Flag::IDT_FLAG_RING_0;
 
 		Print("Ok~!\n");
 	}

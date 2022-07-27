@@ -111,9 +111,19 @@ extern "C" void kmain()
 
 	Timer::Init();
 	Thread::Init();
-	// PS2::Init();
+	PS2::Init();
 
 	Print("Thread started~!\n");
+	// __asm("sti");
+
+	for(;;)
+	{
+		// Keyboard::KeyEvent ev;
+		// if(Keyboard::WaitAndReadEvent(&ev))
+		// {
+		// 	Print("Key: %c\n", ev.ascii);
+		// }
+	}
 
 	// Interrupt::Disable();
 	KillStack();

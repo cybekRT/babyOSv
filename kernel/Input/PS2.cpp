@@ -40,6 +40,8 @@ namespace PS2
 		if(keyboardEnabled)
 			Handle();
 		Interrupt::AckIRQ();
+
+		Print(".");
 	}
 
 	ISR(Mouse)
