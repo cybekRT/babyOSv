@@ -142,11 +142,11 @@ namespace Memory
 				u16 base_0_15;
 				u8 base_16_23;
 				GDTEntry_Access flags;
+				u8 limit_16_19 : 4;
 				u8 tssAvailable : 1;
 				u8 longMode : 1;
 				SizeFlag sizeFlag : 1;
 				LimitType limitType : 1;
-				u8 limit_16_19 : 4;
 				u8 base_24_31;
 			} fields __attribute__((packed));
 			u64 value;
