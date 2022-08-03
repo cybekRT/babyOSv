@@ -304,6 +304,11 @@ namespace Interrupt
 		Register(INT_INVALID_SEGMENT, (ISR)ISR_GPF);
 		//Register(INT_DIVISION_BY_ZERO, ISR_GPF);
 
+		idt->entries[INT_DOUBLE_FAULT].flags  = IDT_Entry::Flag::IDT_FLAG_32BIT_TASK_GATE;
+		idt->entries[INT_DOUBLE_FAULT].flags |= IDT_Entry::Flag::IDT_FLAG_ENTRY_PRESENT;
+		idt->entries[INT_DOUBLE_FAULT].flags |= IDT_Entry::Flag::IDT_FLAG_RING_0;
+		idt->entries[INT_DOUBLE_FAULT].selector = 0x30;
+
 		// idt->entries[INT_PAGE_FAULT].selector=0x28;
 		// idt->entries[INT_PAGE_FAULT].flags = IDT_Entry::IDT_FLAG_32BIT_TASK_GATE | IDT_Entry::IDT_FLAG_ENTRY_PRESENT | IDT_Entry::IDT_FLAG_RING_0;
 

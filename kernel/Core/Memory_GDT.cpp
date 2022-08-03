@@ -106,7 +106,7 @@ namespace Memory::GDT
 				.base_24_31 = 0
 			}
 		},
-		// TSS
+		// TSS - normal
 		[5] =
 		{
 			.fields =
@@ -130,7 +130,32 @@ namespace Memory::GDT
 				.limitType = LimitType::Byte,
 				.base_24_31 = 0
 			}
-		}
+		},
+		// TSS - interrupt
+		[6] =
+		{
+			.fields =
+			{
+				.limit_0_15 = 0,
+				.base_0_15 = 0,
+				.base_16_23 = 0,
+				.flags = {
+					._accessed = true,
+					.attributes = GDTEntry_Access::Readable::Code_ExecutableOnly,
+					.directionConforming = GDTEntry_Access::DirectionConforming::Data_GrowsUp,
+					.executable = true,
+					.type = GDTEntry_Access::SegmentType::SystemSegment,
+					.ring = GDTEntry_Access::Ring::Ring0,
+					.present = 1,
+				},
+				.limit_16_19 = 0,
+				.tssAvailable = true,
+				.longMode = false,
+				.sizeFlag = SizeFlag::Protected32b,
+				.limitType = LimitType::Byte,
+				.base_24_31 = 0
+			}
+		},
 	};
 
 	__attribute__((aligned(8)))
@@ -168,6 +193,8 @@ namespace Memory::GDT
 
 	__attribute__((aligned(4)))
 	tss_entry_struct globalTSS;
+	__attribute__((aligned(4)))
+	tss_entry_struct globalTSSInt;
 
 	struct gdt_entry_bits
 	{
@@ -188,8 +215,19 @@ namespace Memory::GDT
 		u32 base_high              :  8;
 	} __attribute__((packed));
 
+	void YoLo()
+	{
+		u32 addr;
+
+		__asm("mov %%cr2, %0" : "=r"(addr));
+		Print("Page fault: %x", addr);
+
+		for(;;);
+	}
+
 	bool InitTSS()
 	{
+		// TSS 0x28
 		memset(&globalTSS, 0, sizeof(globalTSS));
 
 		u8* tssStack = (u8*)Memory::Alloc(8192);
@@ -199,32 +237,41 @@ namespace Memory::GDT
 		globalTSS.ss0 = 0x10;
 		globalTSS.esp0 = (u32)(tssStack + 8192);
 		globalTSS.iomap_base = (u32)sizeof(globalTSS);
-
+		globalTSS.cs = 0x08;
+		globalTSS.eip = (u32)YoLo;
 		u32 globalTSSV = (u32)(&globalTSS);
-		Print("GDT entry size: %d\n", sizeof(GDTEntry));
-		Print("Sizeof: %d\n", sizeof(globalTSS));
-		Print("      : %d %d\n", sizeof(globalTSS) & 0xffff, (sizeof(globalTSS) >> 16) & 0xff);
-		// entries[5].fields.limit_0_15 = sizeof(globalTSS) & 0xffff;
-		// entries[5].fields.limit_16_19 = (sizeof(globalTSS) >> 16) & 0xff;
-		// entries[5].fields.base_0_15 = (globalTSSV & 0xffff);
-		// entries[5].fields.base_16_23 = ((globalTSSV >> 16) & 0xff);
-		// entries[5].fields.base_24_31 = ((globalTSSV >> 24) & 0xff);
+		entries[5].fields.limit_0_15 = sizeof(globalTSS) & 0xffff;
+		entries[5].fields.limit_16_19 = (sizeof(globalTSS) >> 16) & 0xff;
+		entries[5].fields.base_0_15 = (globalTSSV & 0xffff);
+		entries[5].fields.base_16_23 = ((globalTSSV >> 16) & 0xff);
+		entries[5].fields.base_24_31 = ((globalTSSV >> 24) & 0xff);
 
-		Print("Hmm: %x\n", (((u32)(entries[1].fields.limit_16_19)) << 16) | entries[1].fields.limit_0_15);
+		// TSS 0x30 - interrupt
+		memset(&globalTSS, 0, sizeof(globalTSS));
 
-		Print("Code: %x %x\n", entries[1].value);
+		tssStack = (u8*)Memory::Alloc(2048);
+		if(!tssStack)
+			return false;
 
-		for(unsigned a = 0; a < 8; a++)
-		{
-			u8* ptr = (u8*)(&entries[1]);
-			Print("%x ", ptr[a]);
-		}
+		globalTSSInt.ss = 0x10;
+		globalTSSInt.esp = (u32)(tssStack + 8192);
+		globalTSSInt.iomap_base = (u32)sizeof(globalTSSInt);
+		__asm("mov %%cr3, %0" : "=r"(globalTSSInt.cr3));
+		globalTSSInt.cs = 0x08;
+		globalTSSInt.eip = (u32)YoLo;
+		globalTSSV = (u32)(&globalTSSInt);
+		entries[6].fields.limit_0_15 = sizeof(globalTSSInt) & 0xffff;
+		entries[6].fields.limit_16_19 = (sizeof(globalTSSInt) >> 16) & 0xff;
+		entries[6].fields.base_0_15 = (globalTSSV & 0xffff);
+		entries[6].fields.base_16_23 = ((globalTSSV >> 16) & 0xff);
+		entries[6].fields.base_24_31 = ((globalTSSV >> 24) & 0xff);
 
+
+		// Reload GDT and load TSS
 		Reload();
-
 		Print("TSS value: %x %x\n", entries[5].value);
 
-		__asm("xchg %bx, %bx");
+		// __asm("xchg %bx, %bx");
 
 		__asm(
 			"mov $(5*8 | 0), %%ax \r\n"
